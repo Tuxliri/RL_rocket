@@ -91,7 +91,20 @@ class Simulator():
 
             return dy
 
+    def _computeAoA(self, state):
+        if self.dynamics == 'std3DOF':
+            vx = state[3]
+            vz = state[4]
 
+            alfa = np.arctan2(vz,vx)
+
+        elif self.dynamics == '6DOF':
+            raise NotImplementedError
+
+        else:
+             raise NotImplementedError
+
+        return alfa
 if __name__ == "__main__":
     IC = np.array([10, 10, 10, 3, 4, 5])
     RKT1 = Simulator(IC)
