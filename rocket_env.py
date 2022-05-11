@@ -22,16 +22,34 @@ class Rocket(gym.Env):
         self.ICMean = np.array([-1e3, 5e3, 30/180*np.pi, 300, 300, 0.05])
         self.ICRange = np.array([100, 500, 10/180*np.pi, 50, 50, 0.01])  # +- range
 
+        # Maximum rocket angular velocity
+        self.omegaMax = np.deg2rad(10)
+
         # Instantiate the random number generator
         self.rng = np.random.default_rng(12345)
 
+        # Maximum simulation time [s]
+        self.tMax = 100
+
         # Define action and observation spaces
-        self.observation_space = spaces.Box(low=-50e3,high=50e3,shape=(6,),dtype=np.float32) # add reasonable lower and upper bounds
+        self.upperBound = np.abs(self.ICMean) + self.ICRange
+        self.observation_space = spaces.Box(low = np.float32([-self.upperBound[0],
+                                                        0,
+                                                        0,
+                                                        -self.upperBound[3],
+                                                        0,
+                                                        -2*self.omegaMax]),
+                                            high = np.float32([self.upperBound[0],
+                                                        1.1*self.upperBound[1],
+                                                        2*np.pi,
+                                                        1.1*self.upperBound[3],
+                                                        self.upperBound[4] + 0.5*9.81*self.tMax**2,
+                                                        2*self.omegaMax]))
 
         # Two valued vector in the range -1,+1, both for the
         # gimbal angle and the thrust command. It will then be 
         # rescaled to the appropriate ranges in the dynamics
-        self.action_space = spaces.Box(low=np.float32([-1, 0]), high=np.float32([1, 1]),shape=(2,), dtype=np.float32)
+        self.action_space = spaces.Box(low=np.float32([-1, -1]), high=np.float32([1, 1]),shape=(2,), dtype=np.float32)
 
         # Initial condition space
         self.init_space = spaces.Box(low=self.ICMean-self.ICRange/2,
@@ -57,7 +75,7 @@ class Rocket(gym.Env):
         # (e.g. less than 30cm)
         done = bool(np.linalg.norm(self.y[0:2]) < self.doneDistance)
 
-        return self.y, reward, done, info
+        return self.y.astype(np.float32), reward, done, info
 
     def render(self, mode='console'):
         if mode != 'console':
@@ -77,13 +95,24 @@ class Rocket(gym.Env):
         self.y = self.rng.uniform(low=self.ICMean-self.ICRange/2,
             high=self.ICMean+self.ICRange/2)
 
+        MAXIMUM = self.y > RKT.observation_space.high
+        MINIMUM = self.y < RKT.observation_space.low
+
         return self.y.astype(np.float32)
 
-    def denormalize(self,action):
+    def _denormalizeAction(self,action):
         """ Denormalize the action as we've bounded it
             between [-1,+1]. The first element of the 
             array action is the gimbal angle while the
             second is the throttle"""
 
         return np.array([action[0]*self.maxGimbal,
-                action[1]*(self.maxThrust - self.minThrust) + self.minThrust])
+                (action[1]+1)*(self.maxThrust - self.minThrust)/2 + self.minThrust])
+
+if __name__ == "__main__":
+    from stable_baselines3.common.env_checker import check_env
+
+    RKT = Rocket()
+    initialObs = RKT.reset()
+
+    check_env(RKT)
