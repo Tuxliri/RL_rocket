@@ -31,18 +31,19 @@ class Rocket(gym.Env):
 
         # Define action and observation spaces
         self.upperBound = np.abs(self.ICMean) + self.ICRange
-        self.observation_space = spaces.Box(low = np.float32([-self.upperBound[0],
-                                                        0,
-                                                        0,
-                                                        -self.upperBound[3],
-                                                        0,
-                                                        -2*self.omegaMax]),
-                                            high = np.float32([self.upperBound[0],
-                                                        1.1*self.upperBound[1],
-                                                        2*np.pi,
-                                                        1.1*self.upperBound[3],
-                                                        self.upperBound[4] + 0.5*9.81*self.tMax**2,
-                                                        2*self.omegaMax]))
+        self.observation_space = spaces.Box(low = np.float32(
+            [-self.upperBound[0],
+            0,
+            0,
+            -self.upperBound[3],
+            0,
+            -2*self.omegaMax]), high = np.float32(
+                [self.upperBound[0],
+                1.1*self.upperBound[1],
+                2*np.pi,
+                1.1*self.upperBound[3],
+                self.upperBound[4] + 0.5*9.81*self.tMax**2,
+                2*self.omegaMax]))
 
         # Two valued vector in the range -1,+1, both for the
         # gimbal angle and the thrust command. It will then be 
