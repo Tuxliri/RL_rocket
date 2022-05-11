@@ -5,8 +5,6 @@ from distutils.log import info
 import numpy as np
 import gym
 
-from scipy import integrate
-
 from gym import spaces
 
 class Rocket(gym.Env):
