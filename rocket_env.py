@@ -2,10 +2,12 @@
 # on the rocket landing control problem. It is a simplified
 # 3DOF version of the real dynamics
 from distutils.log import info
-import numpy as np
-import gym
 
+import gym
+import numpy as np
 from gym import spaces
+
+from simulator import Simulator
 
 
 class Rocket(gym.Env):
@@ -24,8 +26,15 @@ class Rocket(gym.Env):
 
         self.upperBound = np.abs(self.ICMean) + self.ICRange
 
+        # Maximum simulation time [s]
+        self.tMax = 100
+
         # Maximum rocket angular velocity
         self.omegaMax = np.deg2rad(10)
+
+        # Actuators bounds
+        self.maxGimbal = 10
+        self.maxThrust = 500
 
         # Upper and lower bounds of the state
         self.stateLow = np.float32(
@@ -35,8 +44,7 @@ class Rocket(gym.Env):
              -self.upperBound[3],
              0,
              -2*self.omegaMax])
-        
-        
+
         self.stateHigh = np.float32(
             [self.upperBound[0],
              1.1*self.upperBound[1],
@@ -44,18 +52,17 @@ class Rocket(gym.Env):
              1.1*self.upperBound[3],
              self.upperBound[4] + 0.5*9.81*self.tMax**2,
              2*self.omegaMax])
-        
+
         # Define normalizer of the observation space
-        self.stateNormalizer = np.maximum(np.abs(self.stateLow),np.abs(self.stateHigh))
+        self.stateNormalizer = np.maximum(
+            np.abs(self.stateLow), np.abs(self.stateHigh))
 
         # Instantiate the random number generator
         self.rng = np.random.default_rng(12345)
 
-        # Maximum simulation time [s]
-        self.tMax = 100
-
         # Define action and observation spaces
-        self.observation_space = spaces.Box(low=self.stateLow, high=self.stateHigh)
+        self.observation_space = spaces.Box(
+            low=self.stateLow/self.stateNormalizer, high=self.stateHigh/self.stateNormalizer)
 
         # Two valued vector in the range -1,+1, both for the
         # gimbal angle and the thrust command. It will then be
@@ -70,8 +77,11 @@ class Rocket(gym.Env):
         # distance where rocket can be considered landed
         self.doneDistance = 0.5             # [m]
 
-        # Initialize the state of the system
+        # Initialize the state of the system (sample randomly within the IC space)
         self.y = self.ICMean
+
+        # Instantiate the simulator
+        self.RKT = Simulator(self.y)
 
     def step(self, action):
         observation = []
@@ -79,13 +89,20 @@ class Rocket(gym.Env):
         done = False
         info = {}
 
-        reward = 0
+        reward = -self.y[1]
+
+        u = self._denormalizeAction(action)
+
+        self.y = self._normalizeState(self.RKT.step())
 
         # Done if the distance of the rocket to the ground is about 0
         # (e.g. less than 30cm)
-        done = bool(np.linalg.norm(self.y[0:2]) < self.doneDistance)
+        done = self._checkTerminal()
 
         return self.y.astype(np.float32), reward, done, info
+
+    def _checkTerminal(self):
+        bool(np.linalg.norm(self.y[0:2]) < self.doneDistance)
 
     def render(self, mode='console'):
         if mode != 'console':
@@ -103,11 +120,8 @@ class Rocket(gym.Env):
             It returns an initial observation drawn randomly
             from the uniform distribution of the ICs"""
 
-        self.y = self.rng.uniform(low=self.ICMean-self.ICRange/2,
-                                  high=self.ICMean+self.ICRange/2)
-
-        MAXIMUM = self.y > RKT.observation_space.high
-        MINIMUM = self.y < RKT.observation_space.low
+        self.y = self._normalizeState(self.rng.uniform(low=self.ICMean-self.ICRange/2,
+                                                       high=self.ICMean+self.ICRange/2))
 
         return self.y.astype(np.float32)
 
@@ -116,9 +130,17 @@ class Rocket(gym.Env):
             between [-1,+1]. The first element of the 
             array action is the gimbal angle while the
             second is the throttle"""
+        gimbal = action[0]*self.maxGimbal
 
-        return np.array([action[0]*self.maxGimbal,
-                         (action[1]+1)*(self.maxThrust - self.minThrust)/2 + self.minThrust])
+        thrust = (action[1]+1)/2*self.maxThrust
+
+        return np.array([gimbal, thrust]).astype(np.float32)
+
+    def _normalizeState(self, state):
+        return state / self.stateNormalizer
+
+    def _denormalizeState(self, state):
+        return state * self.stateNormalizer
 
 
 if __name__ == "__main__":
@@ -126,5 +148,7 @@ if __name__ == "__main__":
 
     RKT = Rocket()
     initialObs = RKT.reset()
+    RKT.step(np.array([0.,0.]))
+
 
     check_env(RKT)

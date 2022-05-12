@@ -4,6 +4,7 @@
 from math import radians
 import numpy as np
 from scipy import integrate
+from math import fmod
 
 
 class Simulator():
@@ -39,8 +40,10 @@ class Simulator():
     def step(self):
 
         if self.dynamics == 'std3DOF':
-            return integrate.solve_ivp(self.RHS, [0, 60],
+            solution = integrate.solve_ivp(self.RHS, [0, 60],
                 self._globalToLocal(self.state)).y[:, -1]
+            solution[2] = self._wrapTo2Pi(solution[2])
+            return solution
 
         elif self.dynamics == 'linear3DOF':
             raise NotImplementedError()
@@ -146,6 +149,21 @@ class Simulator():
             raise NotImplementedError
 
         return stateLocal
+
+    def _wrapTo2Pi(self,angle):
+        """
+        Wrap the angle between 0 and 2 * pi.
+
+        Args:
+            angle (float): angle to wrap.
+
+        Returns:
+            The wrapped angle.
+
+        """
+        pi_2 = 2. * np.pi
+
+        return fmod(fmod(angle, pi_2) + pi_2, pi_2)
 
 if __name__ == "__main__":
     IC = np.array([10, 10, 10, 3, 4, 5])
