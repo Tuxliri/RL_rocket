@@ -39,7 +39,8 @@ class Simulator():
     def step(self):
 
         if self.dynamics == 'std3DOF':
-            return integrate.solve_ivp(self.RHS, [self.t, 60 + self.t + self.dt], self.state).y[:, -1]
+            return integrate.solve_ivp(self.RHS, [0, 60],
+                self._globalToLocal(self.state)).y[:, -1]
 
         elif self.dynamics == 'linear3DOF':
             raise NotImplementedError()

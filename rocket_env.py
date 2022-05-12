@@ -45,6 +45,9 @@ class Rocket(gym.Env):
              self.upperBound[4] + 0.5*9.81*self.tMax**2,
              2*self.omegaMax])
         
+        # Define normalizer of the observation space
+        self.stateNormalizer = np.maximum(np.abs(self.stateLow),np.abs(self.stateHigh))
+
         # Instantiate the random number generator
         self.rng = np.random.default_rng(12345)
 
@@ -52,7 +55,6 @@ class Rocket(gym.Env):
         self.tMax = 100
 
         # Define action and observation spaces
-        
         self.observation_space = spaces.Box(low=self.stateLow, high=self.stateHigh)
 
         # Two valued vector in the range -1,+1, both for the
