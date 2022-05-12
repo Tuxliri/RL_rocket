@@ -22,9 +22,29 @@ class Rocket(gym.Env):
         self.ICRange = np.array(
             [100, 500, 10/180*np.pi, 50, 50, 0.01])  # +- range
 
+        self.upperBound = np.abs(self.ICMean) + self.ICRange
+
         # Maximum rocket angular velocity
         self.omegaMax = np.deg2rad(10)
 
+        # Upper and lower bounds of the state
+        self.stateLow = np.float32(
+            [-self.upperBound[0],
+             0,
+             0,
+             -self.upperBound[3],
+             0,
+             -2*self.omegaMax])
+        
+        
+        self.stateHigh = np.float32(
+            [self.upperBound[0],
+             1.1*self.upperBound[1],
+             2*np.pi,
+             1.1*self.upperBound[3],
+             self.upperBound[4] + 0.5*9.81*self.tMax**2,
+             2*self.omegaMax])
+        
         # Instantiate the random number generator
         self.rng = np.random.default_rng(12345)
 
@@ -32,26 +52,14 @@ class Rocket(gym.Env):
         self.tMax = 100
 
         # Define action and observation spaces
-        self.upperBound = np.abs(self.ICMean) + self.ICRange
-        self.observation_space = spaces.Box(low=np.float32(
-            [-self.upperBound[0],
-             0,
-             0,
-             -self.upperBound[3],
-             0,
-             -2*self.omegaMax]), high=np.float32(
-            [self.upperBound[0],
-             1.1*self.upperBound[1],
-             2*np.pi,
-             1.1*self.upperBound[3],
-             self.upperBound[4] + 0.5*9.81*self.tMax**2,
-             2*self.omegaMax]))
+        
+        self.observation_space = spaces.Box(low=self.stateLow, high=self.stateHigh)
 
         # Two valued vector in the range -1,+1, both for the
         # gimbal angle and the thrust command. It will then be
         # rescaled to the appropriate ranges in the dynamics
         self.action_space = spaces.Box(low=np.float32(
-            [-1, -1]), high=np.float32([1, 1]), shape=(2,), dtype=np.float32)
+            [-1, -1]), high=np.float32([1, 1]), shape=(2,))
 
         # Initial condition space
         self.init_space = spaces.Box(low=self.ICMean-self.ICRange/2,
