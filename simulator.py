@@ -21,18 +21,18 @@ class Simulator():
         self.g0 = 9.81
 
         # Define rocket properties
-        self.m = 5000                       # rocket initial mass
+        self.m = 45000                      # rocket initial mass
         self.maxGimbal = np.deg2rad(20)     # [rad]
         self.maxThrust = 500                # [N]
         self.minThrust = 100                # [N]
         self.Cdalfa = 2                     # drag coefficient [-]
         self.Cnalfa = 1                     # normal force coefficient [-]
-        self.I = 1000                       # inertia moment [kg*m^2]
+        self.I = 6.04e6                     # inertia moment [kg*m^2]
 
         # Geometric properties
         self.x_CG = 10                      # Center of gravity [m]
         self.x_CP = 20                      # Center of pressure [m]
-        self.Sref = 50                      # Reference surface [m^2]
+        self.Sref = 10.5                      # Reference surface [m^2]
         self.x_PVP = 0                      # Thrust gimbal point [m]
 
         pass
@@ -40,11 +40,15 @@ class Simulator():
     def step(self):
 
         if self.dynamics == 'std3DOF':
-            solution = integrate.solve_ivp(self.RHS, [0, 60],
-                self._globalToLocal(self.state)).y[:, -1]
-            solution[2] = self._wrapTo2Pi(solution[2])
-            return solution
 
+            # integrate using Euler's method
+            self.state = self.state + self.dt*self.RHS(self.t, self.state)
+            self.t += self.dt
+
+            #solution = integrate.solve_ivp(self.RHS, [0, 60],
+            #    self._globalToLocal(self.state)).y[:, -1]
+            self.state[2] = self._wrapTo2Pi(self.state[2])
+            
         elif self.dynamics == 'linear3DOF':
             raise NotImplementedError()
 
@@ -56,9 +60,11 @@ class Simulator():
         else:
             raise NotImplementedError()
 
+        return self.state
+
     def RHS(self, t, y):
         # extract dynamics variables
-        x, z, th, dx, dz, dth = y
+        x, z, th, dx, dz, dth = self._globalToLocal(y)
 
         # Get control variables
         T = 0  # *u[0]
@@ -95,8 +101,7 @@ class Simulator():
         # dm = T/(self.Isp*self.g0)
 
         dy = np.array([dx, dz, dth, ddx, ddz, ddth])
-
-        return dy
+        return self._localToGlobal(dy)
 
     def _computeAoA(self, state):
         if self.dynamics == 'std3DOF':
@@ -116,8 +121,8 @@ class Simulator():
     def _localToGlobal(self, stateLocal):
         if self.dynamics == 'std3DOF':
             theta = stateLocal[2]
-            ROT = np.array([np.cos(theta), np.sin(theta)],
-                           [-np.sin(theta), np.cos(theta)])
+            ROT = np.array([[np.cos(theta), np.sin(theta)],
+                           [-np.sin(theta), np.cos(theta)]])
             stateGlobal = stateLocal
             stateGlobal[0:2] = np.dot(
                 ROT, stateLocal[0:2]
