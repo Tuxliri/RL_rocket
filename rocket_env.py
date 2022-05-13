@@ -18,7 +18,7 @@ class Rocket(gym.Env):
         super(Rocket, self).__init__()
 
         # Initial conditions mean values and +- range
-        self.ICMean = np.array([-1e3, -5e3, 0*90/180*np.pi, 300, 300, 1000*0.05])
+        self.ICMean = np.array([-1e3, -5e3, 0*90/180*np.pi, 300, +300, 0.1])
         self.ICRange = np.array(
             [100, 500, 10/180*np.pi, 50, 50, 0.01])  # +- range
 
@@ -40,17 +40,17 @@ class Rocket(gym.Env):
 
         # Upper and lower bounds of the state
         self.stateLow = np.float32(
-            [-self.upperBound[0],
+            [-1.1*self.upperBound[0],
+             -1.1*self.upperBound[1],
              0,
-             0,
-             -self.upperBound[3],
+             -1.1*self.upperBound[3],
              0,
              -2*self.omegaMax*np.inf
              ])
 
         self.stateHigh = np.float32(
-            [self.upperBound[0],
-             1.1*self.upperBound[1],
+            [1.1*self.upperBound[0],
+             0,
              2*np.pi,
              1.1*self.upperBound[3],
              self.upperBound[4] + 0.5*9.81*self.tMax**2,
@@ -61,12 +61,15 @@ class Rocket(gym.Env):
         self.stateNormalizer = np.maximum(
             np.abs(self.stateLow[0:5]), np.abs(self.stateHigh[0:5]))
 
-        self.stateNormalizer = np.append(self.stateNormalizer,np.float32(1))
+        self.stateNormalizer = np.append(self.stateNormalizer, np.float32(1))
         
+
         # Define action and observation spaces
         self.observation_space = spaces.Box(
             low=self.stateLow/self.stateNormalizer, high=self.stateHigh/self.stateNormalizer)
 
+        self.observation_space = spaces.Box(low=-np.inf,high=np.inf,shape=(6,))
+        
         # Two valued vector in the range -1,+1, both for the
         # gimbal angle and the thrust command. It will then be
         # rescaled to the appropriate ranges in the dynamics

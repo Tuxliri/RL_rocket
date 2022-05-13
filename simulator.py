@@ -15,7 +15,7 @@ class Simulator():
         self.timestep = dt
         self.t = 0
         self.dt = 0.5
-        self.state = IC
+        self.state = IC                     # state is in GLOBAL COORDINATES
 
         # Define environment properties
         self.g0 = 9.81
@@ -41,13 +41,17 @@ class Simulator():
 
         if self.dynamics == 'std3DOF':
 
+            localState = self._globalToLocal(self.state)
+            
             # integrate using Euler's method
-            self.state = self.state + self.dt*self.RHS(self.t, self.state)
+            localState = localState + self.dt*self.RHS(self.t, localState)
             self.t += self.dt
 
             #solution = integrate.solve_ivp(self.RHS, [0, 60],
             #    self._globalToLocal(self.state)).y[:, -1]
             self.state[2] = self._wrapTo2Pi(self.state[2])
+            
+            self.state = self._localToGlobal(localState)
             
         elif self.dynamics == 'linear3DOF':
             raise NotImplementedError()
@@ -63,8 +67,12 @@ class Simulator():
         return self.state
 
     def RHS(self, t, y):
+        """ 
+        Function computing the derivatives of the state vector
+        in body coordinates
+        """
         # extract dynamics variables
-        x, z, th, dx, dz, dth = self._globalToLocal(y)
+        x, z, th, dx, dz, dth = y
 
         # Get control variables
         T = 0  # *u[0]
@@ -74,7 +82,7 @@ class Simulator():
         rho = 1.225
 
         alfa = 0
-        alfa = self._computeAoA(y)
+        #alfa = self._computeAoA(y)
 
         # Compute aerodynamic coefficients
         Cn = self.Cnalfa*alfa
@@ -101,7 +109,7 @@ class Simulator():
         # dm = T/(self.Isp*self.g0)
 
         dy = np.array([dx, dz, dth, ddx, ddz, ddth])
-        return self._localToGlobal(dy)
+        return dy
 
     def _computeAoA(self, state):
         if self.dynamics == 'std3DOF':
