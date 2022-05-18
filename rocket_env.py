@@ -14,13 +14,13 @@ class Rocket(gym.Env):
         with rotational dynamics and translation along
         two axis """
 
-    def __init__(self) -> None:
+    def __init__(self, IC = np.float32([-1e3, -5e3, 90/180*np.pi, 300, +300, 0.1]),
+        ICRange = np.float32([100, 500, 10/180*np.pi, 50, 50, 0.01])) -> None:
         super(Rocket, self).__init__()
 
         # Initial conditions mean values and +- range
-        self.ICMean = np.array([-1e3, -5e3, 0*90/180*np.pi, 300, +300, 0.1])
-        self.ICRange = np.array(
-            [100, 500, 10/180*np.pi, 50, 50, 0.01])  # +- range
+        self.ICMean = IC
+        self.ICRange = ICRange  # +- range
 
         # Initial condition space
         self.init_space = spaces.Box(low=self.ICMean-self.ICRange/2,
@@ -58,8 +58,9 @@ class Rocket(gym.Env):
              ])
 
         # Define normalizer of the observation space
-        self.stateNormalizer = np.maximum(
-            np.abs(self.stateLow[0:5]), np.abs(self.stateHigh[0:5]))
+        self.stateNormalizer = np.maximum(np.maximum(
+            np.abs(self.stateLow[0:5]), np.abs(self.stateHigh[0:5])),
+            1e-16*np.ones(5))
 
         self.stateNormalizer = np.append(self.stateNormalizer, np.float32(1))
         
@@ -123,7 +124,7 @@ class Rocket(gym.Env):
         screen_width = 1000
         screen_height = 800
 
-        world_width = self.stateHigh[0]*2
+        world_width = 100 + self.stateHigh[0]*2
         scale = screen_width / world_width
         rocketwidth = 10.0
         rocketlen = scale*( 20.0)*100
@@ -218,7 +219,10 @@ class Rocket(gym.Env):
 if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
 
-    RKT = Rocket()
+    initialConditions = np.float32([1,-1e3,np.pi/2,1,1,0.01])
+    initialConditionsRange = np.zeros_like(initialConditions)
+
+    RKT = Rocket(initialConditions, initialConditionsRange)
     frames = []
     RKT.reset()
     RKT.render(mode="human")
@@ -229,5 +233,6 @@ if __name__ == "__main__":
         RKT.render(mode="human")
         done = a[2]
         frames.append(RKT.render(mode="rgb_array"))
+
 
     check_env(RKT)
