@@ -33,36 +33,28 @@ class Simulator():
         self.Cnalfa = 1                     # normal force coefficient [-]
         self.I = 6.04e6                     # inertia moment [kg*m^2]
 
-        # Geometric properties
+        # Geometric properties NB: REDEFINE THEM FROM THE TIP OF THE BOOSTER!! (or change torque equation in RHS)
         self.x_CG = 10                      # Center of gravity [m]
         self.x_CP = 20                      # Center of pressure [m]
         self.Sref = 10.5                      # Reference surface [m^2]
         self.x_PVP = 0                      # Thrust gimbal point [m]
+        self.x_T = 40
 
         pass
 
     def step(self):
 
         if self.dynamics == 'std3DOF':
-            theta = self.state[2]
-            fx = self.RHS(self.t, self._globalToLocal(self.state))
+            
+            fx = self.RHS(self.t, self.state)
             
             #euler integration
-            self.localState = self.localState + self.timestep*fx
+            self.state = self.state + self.timestep*fx
             self.derivatives.append(fx)
-
-            # integrate with RK45
-            """ timeRange = [self.t, self.t+self.timestep]
-            solution = odeint(lambda y,t : self.RHS(t,y),
-                              localState,
-                              timeRange,rtol=1e-8,atol=1e-8)
-
-            localState = solution[-1] """
 
             self.t += self.timestep
 
-            self.localState[2] = self._wrapTo2Pi(self.localState[2])
-            self.state = self._localToGlobal(self.localState, theta)
+            self.state[2] = self._wrapTo2Pi(self.state[2])
 
         elif self.dynamics == 'linear3DOF':
             raise NotImplementedError()
@@ -80,57 +72,61 @@ class Simulator():
         
         return self.state
 
-    def RHS(self, t, y):
+    def RHS(self, t, state):
         """ 
         Function computing the derivatives of the state vector
-        in body coordinates
+        in inertial coordinates
         """
         # extract dynamics variables
-        x, z, th, dx, dz, dth = y
+        x, y, phi, vx, vz, om = state
 
         # Get control variables
         T = 0  # *u[0]
-        beta = 0  # *u[1]
+        delta = 0  # *u[1]
 
-        # Implement getting it from the height (z)
-        rho = 1.225
+        # Implement getting it from the height (y)
+        rho = 1.225 #*exp(-y/H) scaling due to height
 
         alfa = 0
-        #alfa = self._computeAoA(y)
+        alfa = self._computeAoA(state)
 
         # Compute aerodynamic coefficients
         Cn = self.Cnalfa*alfa
         Cd = self.Cdalfa*alfa   # ADD Cd0
 
         # Compute aero forces
-        v2 = dx**2 + dz**2
+        v2 = vx**2 + vz**2
         Q = 0.5*rho*v2
 
-        D = Cd*Q*self.Sref
+        A = Cd*Q*self.Sref
 
         N = Cn*Q*self.Sref
 
         g = self.g0
 
-        # Torque arms
-        l_alfa = self.x_CP - self.x_CG
-        l_c = self.x_CG - self.x_PVP
-
         # Compute state derivatives
-        ddx = (T*np.cos(beta) - D)/self.m - g*np.sin(th) - dth*dz
-        ddz = g*np.cos(th) + dx*dth + (-N - T*np.sin(beta))/self.m
-        ddth = (l_alfa*N - l_c*T*np.sin(beta))/self.I
+        ax = (T*np.cos(delta+phi) - N*np.sin(phi) - A*np.cos(phi))/self.m
+        ay = (T*np.sin(delta+phi) + N*np.cos(phi) - A*np.cos(phi))/self.m - g
+        dom = (N*(self.x_CG - self.x_CP) - T*np.sin(delta)*(self.x_T - self.x_CG))/self.I
+        
         # dm = T/(self.Isp*self.g0)
 
-        dy = np.array([dx, dz, dth, ddx, ddz, ddth])
-        return dy
+        dstate = np.array([vx, vz, om, ax, ay, dom])
 
-    def _computeAoA(self, state):
+        return dstate
+
+    def _computeAoA(self, state): # CHANGE
         if self.dynamics == 'std3DOF':
+            phi = state[2]
             vx = state[3]
-            vz = state[4]
+            vy = state[4]
 
-            alfa = np.arctan2(vz, vx)
+            gamma = np.arctan2(vy, vx)
+
+            if not( vx == 0 and vy == 0):
+                alfa = phi - gamma
+            else:
+                alfa = 0
 
         elif self.dynamics == '6DOF':
             raise NotImplementedError
@@ -138,7 +134,32 @@ class Simulator():
         else:
             raise NotImplementedError
 
-        return alfa
+        return self._normalize(alfa)
+
+    def _normalize(self, num, lower=-np.pi, upper=np.pi):
+    
+        from math import floor, ceil
+        # abs(num + upper) and abs(num - lower) are needed, instead of
+        # abs(num), since the lower and upper limits need not be 0. We need
+        # to add half size of the range, so that the final result is lower +
+        # <value> or upper - <value>, respectively.
+        res = num
+        
+        if lower >= upper:
+            raise ValueError("Invalid lower and upper limits: (%s, %s)" %
+                            (lower, upper))
+
+        res = num
+        if num > upper or num == lower:
+            num = lower + abs(num + upper) % (abs(lower) + abs(upper))
+        if num < lower or num == upper:
+            num = upper - abs(num - lower) % (abs(lower) + abs(upper))
+
+        res = lower if res == upper else num
+        
+        res = num * 1.0  # Make all numbers float, to be consistent
+
+        return res
 
     def _localToGlobal(self, stateLocal, theta):
         '''
@@ -224,13 +245,12 @@ class Simulator():
         ts = np.array(times)
         #analytical_velz = 9.81*ts*np.cos(0.1*ts)
         line1, = ax.plot(downrange, label='Downrange (x)')
-        line2, = ax.plot(height, label='Height (-z)')
+        line2, = ax.plot(height, label='Height (y)')
         #line3, = ax.plot(vxs, label='Cross velocity (v_x)')
         #line4, = ax.plot(vzs, label='Cross velocity (v_z)')
         #line5, = ax.plot(analytical_velz, label='Analytical v_bz')
-        #line6, = ax.plot(ths, label='theta')
+        line6, = ax.plot(ths, label='phi')
         #line7, = ax.plot(ddzs, label='ddz')
-        RHS = 9.81*np.cos(np.array(ths)) + np.array(oms)*np.array(vzs)
         #line8, = ax.plot(RHS, label='RHS')
         ax.legend()
         plt.show()
@@ -240,8 +260,8 @@ class Simulator():
 
 
 if __name__ == "__main__" :
-    IC = np.array([0, -10000, np.pi/2, 0, 0, 0.1])
-    RKT1 = Simulator(IC, 1)
+    IC = np.array([0, 0, np.pi/2, 0, 0, 0])
+    RKT1 = Simulator(IC, 0.5)
     states = []
     times = []
 
