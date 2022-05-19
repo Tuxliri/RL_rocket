@@ -16,7 +16,6 @@ class Simulator():
         self.timestep = dt
         self.t = 0
         self.state = IC                     # state is in GLOBAL COORDINATES
-        self.localState = self._globalToLocal(self.state)
 
         self.states = [IC]
         self.derivatives = []
@@ -55,9 +54,6 @@ class Simulator():
             self.t += self.timestep
 
             self.state[2] = self._wrapTo2Pi(self.state[2])
-
-        elif self.dynamics == 'linear3DOF':
-            raise NotImplementedError()
 
         elif self.dynamics == '6DOF':
             # Implement the Simulink interface
@@ -128,9 +124,6 @@ class Simulator():
             else:
                 alfa = 0
 
-        elif self.dynamics == '6DOF':
-            raise NotImplementedError
-
         else:
             raise NotImplementedError
 
@@ -160,51 +153,6 @@ class Simulator():
         res = num * 1.0  # Make all numbers float, to be consistent
 
         return res
-
-    def _localToGlobal(self, stateLocal, theta):
-        '''
-        Need to fix this as it needs the angle BEFORE
-        the euler integration step
-        '''
-        if self.dynamics == 'std3DOF':
-            #theta = stateLocal[2]
-            c = np.cos(theta)
-            s = np.sin(theta)
-            ROT = np.array([[c, s],
-                            [-s, c]])
-
-            stateGlobal = np.copy(stateLocal)
-            stateGlobal[0:2] = ROT @ stateLocal[0:2]
-            stateGlobal[3:5] = ROT @ stateLocal[3:5]
-            
-        elif self.dynamics == '6DOF':
-            raise NotImplementedError
-
-        else:
-            raise NotImplementedError
-
-        return stateGlobal
-
-    def _globalToLocal(self, stateGlobal):
-        '''
-        Need to fix this as it is working
-        only for the attitude, not for the global pose
-        '''
-        if self.dynamics == 'std3DOF':
-            theta = stateGlobal[2]
-            ROT = np.array([[np.cos(theta), -np.sin(theta)],
-                            [np.sin(theta), np.cos(theta)]])
-            stateLocal = np.copy(stateGlobal)
-            stateLocal[0:2] = ROT @ stateGlobal[0:2]
-            stateLocal[3:5] = ROT @ stateGlobal[3:5]
-
-        elif self.dynamics == '6DOF':
-            raise NotImplementedError
-
-        else:
-            raise NotImplementedError
-
-        return stateLocal
 
     def _wrapTo2Pi(self, angle):
         """
