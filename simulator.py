@@ -169,7 +169,7 @@ class Simulator():
 
         return fmod(fmod(angle, pi_2) + pi_2, pi_2)
 
-    def _plotStates(self,times):
+    def _plotStates(self):
         height = []
         downrange = []
         ths = []
@@ -190,14 +190,16 @@ class Simulator():
         for dy in self.derivatives:
             ddzs.append(dy[4])
         
-        ts = np.array(times)
+        
         #analytical_velz = 9.81*ts*np.cos(0.1*ts)
         line1, = ax.plot(downrange, label='Downrange (x)')
         line2, = ax.plot(height, label='Height (y)')
-        #line3, = ax.plot(vxs, label='Cross velocity (v_x)')
-        #line4, = ax.plot(vzs, label='Cross velocity (v_z)')
-        #line5, = ax.plot(analytical_velz, label='Analytical v_bz')
-        line6, = ax.plot(ths, label='phi')
+        line3, = ax.plot(ths, label='phi')
+
+        #line4, = ax.plot(vxs, label='Cross velocity (v_x)')
+        #line5, = ax.plot(vzs, label='Cross velocity (v_z)')
+        #line6, = ax.plot(analytical_velz, label='Analytical v_bz')
+        
         #line7, = ax.plot(ddzs, label='ddz')
         #line8, = ax.plot(RHS, label='RHS')
         ax.legend()
@@ -208,8 +210,8 @@ class Simulator():
 
 
 if __name__ == "__main__" :
-    IC = np.array([0, 0, np.pi/2, 0, 0, 0])
-    RKT1 = Simulator(IC, 0.5)
+    IC = np.array([0, 0, np.pi/2, 0, 0, 1])
+    RKT1 = Simulator(IC, 0.1)
     states = []
     times = []
 
@@ -217,7 +219,4 @@ if __name__ == "__main__" :
         states.append(RKT1.step())
         times.append(RKT1.t)
 
-    heights = RKT1._plotStates(times)
-
-    print(heights[-1])
-    print(RKT1.t)
+    heights = RKT1._plotStates()

@@ -7,12 +7,15 @@ from gym import spaces
 from gym.error import DependencyNotInstalled
 
 from simulator import Simulator
+from matplotlib import pyplot as plt
 
 class Rocket(gym.Env):
 
     """ Simple environment simulating a 3DOF rocket
         with rotational dynamics and translation along
         two axis """
+
+    metadata = {"render_modes": ["human", "rgb_array", "plot"], "render_fps": 2}
 
     def __init__(self, IC = np.float32([-1e3, -5e3, 90/180*np.pi, 300, +300, 0.1]),
         ICRange = np.float32([100, 500, 10/180*np.pi, 50, 50, 0.01])) -> None:
@@ -98,7 +101,7 @@ class Rocket(gym.Env):
 
         u = self._denormalizeAction(action)
 
-        self.y = self._normalizeState(self.RKT.step())
+        self.y = self.RKT.step()
 
         # Done if the distance of the rocket to the ground is about 0
         # (e.g. less than 30cm)
@@ -108,9 +111,10 @@ class Rocket(gym.Env):
 
     def _checkTerminal(self, state):
         #bool(np.linalg.norm(self.y[0:2]) < self.doneDistance)
-        return not bool(self.observation_space.contains(state))
+        # return (not bool(self.observation_space.contains(state))) or self.RKT.t>self.tMax
+        return bool(self.RKT.t>self.tMax)
 
-    def render(self, mode='console'):
+    def render(self, mode='human'):
 
         try:
             import pygame
@@ -174,6 +178,45 @@ class Rocket(gym.Env):
                 np.array(pygame.surfarray.pixels3d(self.screen)), axes=(1, 0, 2)
             )
 
+        if mode == "plot":
+
+            fig = plt.gcf()
+            ax = plt.gca()
+
+            height = []
+            downrange = []
+            ths = []
+            vxs = []
+            vzs = []
+            oms = []
+
+
+            if self.y is None:
+                return None
+
+            state = self.y
+
+            downrange.append(state[0])
+            height.append(state[1])
+            ths.append(state[2])
+            vxs.append(state[3])
+            vzs.append(state[4])
+            oms.append(state[5])
+            
+            
+            #line1, = ax.plot(downrange, label='Downrange (x)')
+            line2, = ax.plot(state[1], label='Height (y)', marker='o')
+            #line3, = ax.plot(vxs, label='Cross velocity (v_x)')
+            #line4, = ax.plot(vzs, label='Cross velocity (v_z)')
+            #line5, = ax.plot(analytical_velz, label='Analytical v_bz')
+            #line6, = ax.plot(ths, label='phi')
+            #line7, = ax.plot(ddzs, label='ddz')
+            #line8, = ax.plot(RHS, label='RHS')
+            ax.legend()
+            plt.show()
+
+            pass            
+
     def close(self) -> None:
         if self.screen is not None:
             import pygame
@@ -219,20 +262,20 @@ class Rocket(gym.Env):
 if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
 
-    initialConditions = np.float32([1,-1e3,np.pi/2,1,1,0.01])
+    initialConditions = np.float32([0, 10000, np.pi/2, 0, 0, 1])
     initialConditionsRange = np.zeros_like(initialConditions)
 
     RKT = Rocket(initialConditions, initialConditionsRange)
     frames = []
     RKT.reset()
-    RKT.render(mode="human")
+    RKT.render(mode="plot")
     done = False
     
-    while not done:
+    for t in range(200):
         a = RKT.step(np.array([-1.,-1.]))
-        RKT.render(mode="human")
+        RKT.render(mode="plot")
         done = a[2]
-        frames.append(RKT.render(mode="rgb_array"))
-
-
+    RKT.RKT._plotStates()
+    
+    input()
     check_env(RKT)
