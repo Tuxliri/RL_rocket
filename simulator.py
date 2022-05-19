@@ -74,7 +74,7 @@ class Simulator():
         rho = 1.225
 
         alfa = 0
-        alfa = self._computeAoA(y)
+        #alfa = self._computeAoA(y)
 
         # Compute aerodynamic coefficients
         Cn = self.Cnalfa*alfa
