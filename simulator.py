@@ -88,11 +88,7 @@ class Simulator():
         rho = 1.225 #*exp(-y/H) scaling due to height
 
         alfa = 0
-<<<<<<< HEAD
         #alfa = self._computeAoA(y)
-=======
-        alfa = self._computeAoA(state)
->>>>>>> ee4aa6c8d38a51e186de8e83aff98c927061cd5f
 
         # Compute aerodynamic coefficients
         Cn = self.Cnalfa*alfa
