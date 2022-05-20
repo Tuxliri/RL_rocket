@@ -164,7 +164,12 @@ class Rocket(Env):
         """
         
         agent_location[1] = self.window_size - agent_location[1]
-        angleDeg = self.y[2]*180/np.pi
+        angleDeg = self.y[2]*180/np.pi - 90
+        """
+        As the image is vertical when displayed with 0 rotation
+        we need to align it with the convention of rocket horizontal
+        when the angle is 0
+        """
 
         # Add gridlines?
         
