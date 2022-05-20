@@ -238,7 +238,7 @@ class Rocket(Env):
 if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
 
-    initialConditions = np.float32([0, 10000, np.pi/2, 100, 0, 1])
+    initialConditions = np.float32([0, 10000, np.pi/2, 100, 0, 0])
     initialConditionsRange = np.zeros_like(initialConditions)
 
     RKT = Rocket(initialConditions, initialConditionsRange)
