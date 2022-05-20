@@ -37,7 +37,7 @@ class Rocket(Env):
             abs(self.init_space.high), abs(self.init_space.low))
 
         # Maximum simulation time [s]
-        self.tMax = 50
+        self.tMax = 120
 
         # Maximum rocket angular velocity
         self.omegaMax = np.deg2rad(10)
@@ -240,7 +240,7 @@ class Rocket(Env):
 if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
 
-    initialConditions = np.float32([1000, 10000, np.pi/4, 100, 0, 0.3])
+    initialConditions = np.float32([0, 1e5, np.pi/2, 100, 0, 1])
     initialConditionsRange = np.zeros_like(initialConditions)
 
     RKT = Rocket(initialConditions, initialConditionsRange)
