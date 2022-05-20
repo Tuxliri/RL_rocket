@@ -1,24 +1,25 @@
 # This is the gym environment to test the RL algorithms
 # on the rocket landing control problem. It is a simplified
-# 3DOF version of the real dynamics
-import gym
+# 3DOF version of the real 6DOF dynamics
+
 import numpy as np
-from gym import spaces
-from gym.error import DependencyNotInstalled
+from gym import spaces, Env
 
 from simulator import Simulator
 from matplotlib import pyplot as plt
 
-class Rocket(gym.Env):
+class Rocket(Env):
 
     """ Simple environment simulating a 3DOF rocket
         with rotational dynamics and translation along
         two axis """
 
-    metadata = {"render_modes": ["human", "rgb_array", "plot"], "render_fps": 2}
+    metadata = {"render_modes": ["human", "rgb_array", "plot"], "render_fps": 50}
 
     def __init__(self, IC = np.float32([-1e3, -5e3, 90/180*np.pi, 300, +300, 0.1]),
-        ICRange = np.float32([100, 500, 10/180*np.pi, 50, 50, 0.01])) -> None:
+        ICRange = np.float32([100, 500, 10/180*np.pi, 50, 50, 0.01]),
+        render_mode = "human") -> None:
+        
         super(Rocket, self).__init__()
 
         # Initial conditions mean values and +- range
@@ -88,8 +89,26 @@ class Rocket(gym.Env):
         self.RKT = None
 
         # Renderer variables (pygame)
-        self.screen = None
-        self.clock = None
+        self.window_size = 1000  # The size of the PyGame window
+        """
+        If human-rendering is used, `self.window` will be a reference
+        to the window that we draw to. `self.clock` will be a clock that is used
+        to ensure that the environment is rendered at the correct framerate in
+        human-mode.
+        """
+        if render_mode == "human":
+            import pygame  # import here to avoid pygame dependency with no render
+
+            pygame.init()
+            pygame.display.init()
+            self.window = pygame.display.set_mode((self.window_size, self.window_size))
+            self.clock = pygame.time.Clock()
+                
+        # The following line uses the util class Renderer to gather a collection of frames 
+        # using a method that computes a single frame. We will define _render_frame below.
+        # ???WHERE IS THIS Renderer utils function???
+        #self.renderer = Renderer(render_mode, self._render_frame)
+
 
     def step(self, action):
         observation = []
@@ -114,108 +133,71 @@ class Rocket(gym.Env):
         # return (not bool(self.observation_space.contains(state))) or self.RKT.t>self.tMax
         return bool(self.RKT.t>self.tMax)
 
-    def render(self, mode='human'):
+    def render(self, mode="human"):
+        return self._render_frame(mode)
 
-        try:
-            import pygame
-            from pygame import gfxdraw
+    def _render_frame(self, mode: str):
+        import pygame # avoid global pygame dependency. This method is not called with no-render.
+    
+        canvas = pygame.Surface((self.window_size, self.window_size))
+        canvas.fill((255, 255, 255))
+        rocket_height = 50
 
-        except ImportError:
-            raise DependencyNotInstalled(
-                "pygame is not installed, run pip install pygame"
+        step_size = (
+            self.window_size / self.ICMean[1]
+        )  # The size of rocket in pixels
+
+        rocket_size = rocket_height * step_size
+
+        agent_location = self.y[0:2] * step_size # position of the CoM of the rocket
+        agent_location[1] = self.window_size - agent_location[1]
+        # Now we draw the agent
+        pygame.draw.rect(
+            canvas,
+            (0, 0, 255),
+            pygame.Rect(
+                agent_location,
+                (rocket_height, 0.1*rocket_height))        
+        )
+
+        # Finally, add some gridlines
+        """ for x in range(self.size + 1):
+            pygame.draw.line(
+                canvas,
+                0,
+                (0, rocket_size * x),
+                (self.window_size, rocket_size * x),
+                width=3,
             )
-
-        screen_width = 1000
-        screen_height = 800
-
-        world_width = 100 + self.stateHigh[0]*2
-        scale = screen_width / world_width
-        rocketwidth = 10.0
-        rocketlen = scale*( 20.0)*100
-
-        if self.y is None:
-            return None
-
-        x = self.y
-
-        if self.screen is None:
-            pygame.init()
-            pygame.display.init()
-            self.screen = pygame.display.set_mode((screen_width, screen_height))
-        if self.clock is None:
-            self.clock = pygame.time.Clock()
-
-        self.surf = pygame.Surface((screen_width, screen_height))
-        self.surf.fill((255, 255, 255))
-
-        l, r, t, b = -rocketwidth / 2, rocketwidth / 2, rocketlen / 2, -rocketlen / 2
-
-        rocketx = x[0]*scale
-        rockety = x[1]*scale
-
-        rocket_coords = []
-        for coord in [(l, b), (l, t), (r, t), (r, b)]:
-            coord = pygame.math.Vector2(coord).rotate_rad(-x[2]) # CHECK IF THIS SIGN IN THE ROTATION IS CORRECT
-            coord = (coord[0] + rocketx, coord[1] + rockety)
-            rocket_coords.append(coord)
-
-        gfxdraw.aapolygon(self.surf, rocket_coords, (202, 152, 101))
-        gfxdraw.filled_polygon(self.surf, rocket_coords, (202, 152, 101))
-
-        self.surf = pygame.transform.flip(self.surf, False, True)
-        self.screen.blit(self.surf, (0, 0))
-
-        if mode == 'console':
-            raise NotImplementedError()
-
+            pygame.draw.line(
+                canvas,
+                0,
+                (rocket_size * x, 0),
+                (rocket_size * x, self.window_size),
+                width=3,
+            ) """
+        image = pygame.image.load("rocket.jpg")
         if mode == "human":
-            pygame.event.pump()
-            self.clock.tick()
+            assert self.window is not None
+            # The following line copies our drawings from `canvas` to the visible window
+            #self.window.blit(canvas, canvas.get_rect())
+            self.window.fill((255,255,255))
+            image.set_colorkey((246,246,246))
+            self.window.blit(
+                pygame.transform.rotate(image,self.y[2]*180/np.pi),
+                tuple(agent_location)
+                )
+            #pygame.event.pump()
+            
             pygame.display.flip()
 
-        if mode == "rgb_array":
+            # We need to ensure that human-rendering occurs at the predefined framerate.
+            # The following line will automatically add a delay to keep the framerate stable.
+            self.clock.tick(self.metadata["render_fps"])
+        else:  # rgb_array
             return np.transpose(
-                np.array(pygame.surfarray.pixels3d(self.screen)), axes=(1, 0, 2)
-            )
-
-        if mode == "plot":
-
-            fig = plt.gcf()
-            ax = plt.gca()
-
-            height = []
-            downrange = []
-            ths = []
-            vxs = []
-            vzs = []
-            oms = []
-
-
-            if self.y is None:
-                return None
-
-            state = self.y
-
-            downrange.append(state[0])
-            height.append(state[1])
-            ths.append(state[2])
-            vxs.append(state[3])
-            vzs.append(state[4])
-            oms.append(state[5])
-            
-            
-            #line1, = ax.plot(downrange, label='Downrange (x)')
-            line2, = ax.plot(state[1], label='Height (y)', marker='o')
-            #line3, = ax.plot(vxs, label='Cross velocity (v_x)')
-            #line4, = ax.plot(vzs, label='Cross velocity (v_z)')
-            #line5, = ax.plot(analytical_velz, label='Analytical v_bz')
-            #line6, = ax.plot(ths, label='phi')
-            #line7, = ax.plot(ddzs, label='ddz')
-            #line8, = ax.plot(RHS, label='RHS')
-            ax.legend()
-            plt.show()
-
-            pass            
+                np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)
+            )            
 
     def close(self) -> None:
         if self.screen is not None:
@@ -234,10 +216,10 @@ class Rocket(gym.Env):
 
         # Initialize the state of the system (sample randomly within the IC space)
         initialCondition = self.init_space.sample()
-        self.y = self._normalizeState(initialCondition)
+        self.y = initialCondition
 
         # instantiate the simulator object
-        self.RKT = Simulator(initialCondition)
+        self.RKT = Simulator(initialCondition, 0.1)
 
         return self.y.astype(np.float32)
 
@@ -262,18 +244,18 @@ class Rocket(gym.Env):
 if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
 
-    initialConditions = np.float32([0, 10000, np.pi/2, 0, 0, 1])
+    initialConditions = np.float32([1000, 10000, np.pi/4, 100, 0, 0])
     initialConditionsRange = np.zeros_like(initialConditions)
 
     RKT = Rocket(initialConditions, initialConditionsRange)
     frames = []
     RKT.reset()
-    RKT.render(mode="plot")
+    RKT.render(mode="human")
     done = False
     
-    for t in range(200):
+    while RKT.y[1]>0:
         a = RKT.step(np.array([-1.,-1.]))
-        RKT.render(mode="plot")
+        RKT.render(mode="human")
         done = a[2]
     RKT.RKT._plotStates()
     
