@@ -248,7 +248,7 @@ if __name__ == "__main__":
     done = False
 
     while not done:
-        action = np.array([0, 0*1])
+        action = np.array([0, -1])
 
         obs, rew, done, info = RKT.step(action)
         RKT.render(mode="human")
