@@ -1,21 +1,28 @@
 # This is the gym environment to test the RL algorithms
 # on the rocket landing control problem. It is a simplified
-# 3DOF version of the real dynamics
-import gym
+# 3DOF version of the real 6DOF dynamics
+
 import numpy as np
-from gym import spaces
-from gym.error import DependencyNotInstalled
+from gym import spaces, Env
 
 from simulator import Simulator
+from matplotlib import pyplot as plt
 
-class Rocket(gym.Env):
+from renderer_utils import blitRotate
+
+class Rocket(Env):
 
     """ Simple environment simulating a 3DOF rocket
         with rotational dynamics and translation along
         two axis """
 
-    def __init__(self, IC = np.float32([-1e3, -5e3, 90/180*np.pi, 300, +300, 0.1]),
-        ICRange = np.float32([100, 500, 10/180*np.pi, 50, 50, 0.01])) -> None:
+    metadata = {"render_modes": [
+        "human", "rgb_array", "plot"], "render_fps": 50}
+
+    def __init__(self, IC=np.float32([-1e3, -5e3, 90/180*np.pi, 300, +300, 0.1]),
+                 ICRange=np.float32([100, 500, 10/180*np.pi, 50, 50, 0.01]),
+                 render_mode="human") -> None:
+
         super(Rocket, self).__init__()
 
         # Initial conditions mean values and +- range
@@ -26,10 +33,11 @@ class Rocket(gym.Env):
         self.init_space = spaces.Box(low=self.ICMean-self.ICRange/2,
                                      high=self.ICMean+self.ICRange/2)
 
-        self.upperBound = np.maximum(abs(self.init_space.high), abs(self.init_space.low))
+        self.upperBound = np.maximum(
+            abs(self.init_space.high), abs(self.init_space.low))
 
         # Maximum simulation time [s]
-        self.tMax = 100
+        self.tMax = 50
 
         # Maximum rocket angular velocity
         self.omegaMax = np.deg2rad(10)
@@ -63,14 +71,14 @@ class Rocket(gym.Env):
             1e-16*np.ones(5))
 
         self.stateNormalizer = np.append(self.stateNormalizer, np.float32(1))
-        
 
         # Define action and observation spaces
         self.observation_space = spaces.Box(
             low=self.stateLow/self.stateNormalizer, high=self.stateHigh/self.stateNormalizer)
 
-        self.observation_space = spaces.Box(low=-np.inf,high=np.inf,shape=(6,))
-        
+        self.observation_space = spaces.Box(
+            low=-np.inf, high=np.inf, shape=(6,))
+
         # Two valued vector in the range -1,+1, both for the
         # gimbal angle and the thrust command. It will then be
         # rescaled to the appropriate ranges in the dynamics
@@ -85,8 +93,26 @@ class Rocket(gym.Env):
         self.RKT = None
 
         # Renderer variables (pygame)
-        self.screen = None
-        self.clock = None
+        self.window_size = 1000  # The size of the PyGame window
+        """
+        If human-rendering is used, `self.window` will be a reference
+        to the window that we draw to. `self.clock` will be a clock that is used
+        to ensure that the environment is rendered at the correct framerate in
+        human-mode.
+        """
+        if render_mode == "human":
+            import pygame  # import here to avoid pygame dependency with no render
+
+            pygame.init()
+            pygame.display.init()
+            self.window = pygame.display.set_mode(
+                (self.window_size, self.window_size))
+            self.clock = pygame.time.Clock()
+
+        # The following line uses the util class Renderer to gather a collection of frames
+        # using a method that computes a single frame. We will define _render_frame below.
+        # ???WHERE IS THIS Renderer utils function???
+        #self.renderer = Renderer(render_mode, self._render_frame)
 
     def step(self, action):
         observation = []
@@ -98,7 +124,7 @@ class Rocket(gym.Env):
 
         u = self._denormalizeAction(action)
 
-        self.y = self._normalizeState(self.RKT.step())
+        self.y = self.RKT.step()
 
         # Done if the distance of the rocket to the ground is about 0
         # (e.g. less than 30cm)
@@ -108,71 +134,87 @@ class Rocket(gym.Env):
 
     def _checkTerminal(self, state):
         #bool(np.linalg.norm(self.y[0:2]) < self.doneDistance)
-        return not bool(self.observation_space.contains(state))
+        # return (not bool(self.observation_space.contains(state))) or self.RKT.t>self.tMax
 
-    def render(self, mode='console'):
+        return bool(self.RKT.t > self.tMax or self.y[1] < 0)
 
-        try:
-            import pygame
-            from pygame import gfxdraw
+    def render(self, mode="human"):
+        return self._render_frame(mode)
 
-        except ImportError:
-            raise DependencyNotInstalled(
-                "pygame is not installed, run pip install pygame"
+    def _render_frame(self, mode: str):
+        # avoid global pygame dependency. This method is not called with no-render.
+        import pygame
+
+        rocket_height = 50
+
+        step_size = (
+            self.window_size / self.ICMean[1]
+        )  # The number of pixels per each meter
+
+        
+
+        # position of the CoM of the rocket
+        agent_location = self.y[0:2] * step_size
+        
+        """
+        Since the 0 in pygame is in the TOP-LEFT corner, while the
+        0 in the simulator reference system is in the bottom we need
+        to change between these two coordinate frames
+        """
+        
+        agent_location[1] = self.window_size - agent_location[1]
+        angleDeg = self.y[2]*180/np.pi
+
+        # Finally, add some gridlines
+        """ for x in range(self.size + 1):
+            pygame.draw.line(
+                canvas,
+                0,
+                (0, rocket_size * x),
+                (self.window_size, rocket_size * x),
+                width=3,
             )
+            pygame.draw.line(
+                canvas,
+                0,
+                (rocket_size * x, 0),
+                (rocket_size * x, self.window_size),
+                width=3,
+            ) """
+        
+        # load image of rocket
+        image = pygame.image.load("rocket.jpg")
+        h = image.get_height()
+        w = image.get_width()
 
-        screen_width = 1000
-        screen_height = 800
-
-        world_width = 100 + self.stateHigh[0]*2
-        scale = screen_width / world_width
-        rocketwidth = 10.0
-        rocketlen = scale*( 20.0)*100
-
-        if self.y is None:
-            return None
-
-        x = self.y
-
-        if self.screen is None:
-            pygame.init()
-            pygame.display.init()
-            self.screen = pygame.display.set_mode((screen_width, screen_height))
-        if self.clock is None:
-            self.clock = pygame.time.Clock()
-
-        self.surf = pygame.Surface((screen_width, screen_height))
-        self.surf.fill((255, 255, 255))
-
-        l, r, t, b = -rocketwidth / 2, rocketwidth / 2, rocketlen / 2, -rocketlen / 2
-
-        rocketx = x[0]*scale
-        rockety = x[1]*scale
-
-        rocket_coords = []
-        for coord in [(l, b), (l, t), (r, t), (r, b)]:
-            coord = pygame.math.Vector2(coord).rotate_rad(-x[2]) # CHECK IF THIS SIGN IN THE ROTATION IS CORRECT
-            coord = (coord[0] + rocketx, coord[1] + rockety)
-            rocket_coords.append(coord)
-
-        gfxdraw.aapolygon(self.surf, rocket_coords, (202, 152, 101))
-        gfxdraw.filled_polygon(self.surf, rocket_coords, (202, 152, 101))
-
-        self.surf = pygame.transform.flip(self.surf, False, True)
-        self.screen.blit(self.surf, (0, 0))
-
-        if mode == 'console':
-            raise NotImplementedError()
+        
 
         if mode == "human":
-            pygame.event.pump()
-            self.clock.tick()
+            assert self.window is not None
+            # The following line copies our drawings from `canvas` to the visible window
+            #self.window.blit(canvas, canvas.get_rect())
+            self.window.fill((255, 255, 255))
+            image.set_colorkey((246, 246, 246))
+
+            # self.window.blit(
+            #     pygame.transform.rotate(image, self.y[2]*180/np.pi),
+            #     tuple(agent_location) + (img_px_width/2.,img_px_height/2.) 
+            # )
+
+            blitRotate(self.window, image, tuple(agent_location), (w/2, h/2), angleDeg)
+
             pygame.display.flip()
 
-        if mode == "rgb_array":
-            return np.transpose(
-                np.array(pygame.surfarray.pixels3d(self.screen)), axes=(1, 0, 2)
-            )
+            # We need to ensure that human-rendering occurs at the predefined framerate.
+            # The following line will automatically add a delay to keep the framerate stable.
+            self.clock.tick(self.metadata["render_fps"])
+        else:  # rgb_array
+            # return np.transpose(
+            #     np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)
+            # )
+            return None
+
+        
 
     def close(self) -> None:
         if self.screen is not None:
@@ -191,10 +233,10 @@ class Rocket(gym.Env):
 
         # Initialize the state of the system (sample randomly within the IC space)
         initialCondition = self.init_space.sample()
-        self.y = self._normalizeState(initialCondition)
+        self.y = initialCondition
 
         # instantiate the simulator object
-        self.RKT = Simulator(initialCondition)
+        self.RKT = Simulator(initialCondition, 0.1)
 
         return self.y.astype(np.float32)
 
@@ -219,7 +261,7 @@ class Rocket(gym.Env):
 if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
 
-    initialConditions = np.float32([1,-1e3,np.pi/2,1,1,0.01])
+    initialConditions = np.float32([1000, 10000, np.pi/4, 100, 0, 0.3])
     initialConditionsRange = np.zeros_like(initialConditions)
 
     RKT = Rocket(initialConditions, initialConditionsRange)
@@ -227,12 +269,12 @@ if __name__ == "__main__":
     RKT.reset()
     RKT.render(mode="human")
     done = False
-    
+
     while not done:
-        a = RKT.step(np.array([-1.,-1.]))
+        a = RKT.step(np.array([-1., -1.]))
         RKT.render(mode="human")
         done = a[2]
-        frames.append(RKT.render(mode="rgb_array"))
+    RKT.RKT._plotStates()
 
-
+    input()
     check_env(RKT)

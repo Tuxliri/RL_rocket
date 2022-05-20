@@ -16,7 +16,6 @@ class Simulator():
         self.timestep = dt
         self.t = 0
         self.state = IC                     # state is in GLOBAL COORDINATES
-        self.localState = self._globalToLocal(self.state)
 
         self.states = [IC]
         self.derivatives = []
@@ -55,9 +54,6 @@ class Simulator():
             self.t += self.timestep
 
             self.state[2] = self._wrapTo2Pi(self.state[2])
-
-        elif self.dynamics == 'linear3DOF':
-            raise NotImplementedError()
 
         elif self.dynamics == '6DOF':
             # Implement the Simulink interface
@@ -128,9 +124,6 @@ class Simulator():
             else:
                 alfa = 0
 
-        elif self.dynamics == '6DOF':
-            raise NotImplementedError
-
         else:
             raise NotImplementedError
 
@@ -161,51 +154,6 @@ class Simulator():
 
         return res
 
-    def _localToGlobal(self, stateLocal, theta):
-        '''
-        Need to fix this as it needs the angle BEFORE
-        the euler integration step
-        '''
-        if self.dynamics == 'std3DOF':
-            #theta = stateLocal[2]
-            c = np.cos(theta)
-            s = np.sin(theta)
-            ROT = np.array([[c, s],
-                            [-s, c]])
-
-            stateGlobal = np.copy(stateLocal)
-            stateGlobal[0:2] = ROT @ stateLocal[0:2]
-            stateGlobal[3:5] = ROT @ stateLocal[3:5]
-            
-        elif self.dynamics == '6DOF':
-            raise NotImplementedError
-
-        else:
-            raise NotImplementedError
-
-        return stateGlobal
-
-    def _globalToLocal(self, stateGlobal):
-        '''
-        Need to fix this as it is working
-        only for the attitude, not for the global pose
-        '''
-        if self.dynamics == 'std3DOF':
-            theta = stateGlobal[2]
-            ROT = np.array([[np.cos(theta), -np.sin(theta)],
-                            [np.sin(theta), np.cos(theta)]])
-            stateLocal = np.copy(stateGlobal)
-            stateLocal[0:2] = ROT @ stateGlobal[0:2]
-            stateLocal[3:5] = ROT @ stateGlobal[3:5]
-
-        elif self.dynamics == '6DOF':
-            raise NotImplementedError
-
-        else:
-            raise NotImplementedError
-
-        return stateLocal
-
     def _wrapTo2Pi(self, angle):
         """
         Wrap the angle between 0 and 2 * pi.
@@ -221,7 +169,7 @@ class Simulator():
 
         return fmod(fmod(angle, pi_2) + pi_2, pi_2)
 
-    def _plotStates(self,times):
+    def _plotStates(self):
         height = []
         downrange = []
         ths = []
@@ -242,14 +190,16 @@ class Simulator():
         for dy in self.derivatives:
             ddzs.append(dy[4])
         
-        ts = np.array(times)
+        
         #analytical_velz = 9.81*ts*np.cos(0.1*ts)
         line1, = ax.plot(downrange, label='Downrange (x)')
         line2, = ax.plot(height, label='Height (y)')
-        #line3, = ax.plot(vxs, label='Cross velocity (v_x)')
-        #line4, = ax.plot(vzs, label='Cross velocity (v_z)')
-        #line5, = ax.plot(analytical_velz, label='Analytical v_bz')
-        line6, = ax.plot(ths, label='phi')
+        line3, = ax.plot(ths, label='phi')
+
+        #line4, = ax.plot(vxs, label='Cross velocity (v_x)')
+        #line5, = ax.plot(vzs, label='Cross velocity (v_z)')
+        #line6, = ax.plot(analytical_velz, label='Analytical v_bz')
+        
         #line7, = ax.plot(ddzs, label='ddz')
         #line8, = ax.plot(RHS, label='RHS')
         ax.legend()
@@ -260,8 +210,8 @@ class Simulator():
 
 
 if __name__ == "__main__" :
-    IC = np.array([0, 0, np.pi/2, 0, 0, 0])
-    RKT1 = Simulator(IC, 0.5)
+    IC = np.array([0, 0, np.pi/2, 0, 0, 1])
+    RKT1 = Simulator(IC, 0.1)
     states = []
     times = []
 
@@ -269,7 +219,4 @@ if __name__ == "__main__" :
         states.append(RKT1.step())
         times.append(RKT1.t)
 
-    heights = RKT1._plotStates(times)
-
-    print(heights[-1])
-    print(RKT1.t)
+    heights = RKT1._plotStates()
