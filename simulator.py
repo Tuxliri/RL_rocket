@@ -103,7 +103,7 @@ class Simulator():
         # Compute state derivatives
         ax = (T*np.cos(delta+phi) - N*np.sin(phi) - A*np.cos(phi))/self.m
         ay = (T*np.sin(delta+phi) + N*np.cos(phi) - A*np.cos(phi))/self.m - g
-        dom = (N*(self.x_CG - self.x_CP) - T*np.sin(delta)*(self.x_T - self.x_CG))/self.I
+        dom = (N*(self.x_CG - self.x_CP) - T*np.sin(delta+phi)*(self.x_T - self.x_CG))/self.I
         
         # dm = T/(self.Isp*self.g0)
 
