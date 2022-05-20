@@ -238,7 +238,7 @@ class Rocket(Env):
 if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
 
-    initialConditions = np.float32([1000, 0, np.pi/2 - 0*np.pi/180, 0, 0, 0])
+    initialConditions = np.float32([0, 10000, np.pi/2, 100, 0, 1])
     initialConditionsRange = np.zeros_like(initialConditions)
 
     RKT = Rocket(initialConditions, initialConditionsRange)
@@ -248,7 +248,7 @@ if __name__ == "__main__":
     done = False
 
     while not done:
-        action = np.array([0, 1])
+        action = np.array([0, 0*1])
 
         obs, rew, done, info = RKT.step(action)
         RKT.render(mode="human")
