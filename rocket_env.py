@@ -100,6 +100,7 @@ class Rocket(Env):
         to ensure that the environment is rendered at the correct framerate in
         human-mode.
         """
+
         if render_mode == "human":
             import pygame  # import here to avoid pygame dependency with no render
 
@@ -165,41 +166,18 @@ class Rocket(Env):
         agent_location[1] = self.window_size - agent_location[1]
         angleDeg = self.y[2]*180/np.pi
 
-        # Finally, add some gridlines
-        """ for x in range(self.size + 1):
-            pygame.draw.line(
-                canvas,
-                0,
-                (0, rocket_size * x),
-                (self.window_size, rocket_size * x),
-                width=3,
-            )
-            pygame.draw.line(
-                canvas,
-                0,
-                (rocket_size * x, 0),
-                (rocket_size * x, self.window_size),
-                width=3,
-            ) """
+        # Add gridlines?
         
         # load image of rocket
         image = pygame.image.load("rocket.jpg")
         h = image.get_height()
         w = image.get_width()
 
-        
-
         if mode == "human":
             assert self.window is not None
-            # The following line copies our drawings from `canvas` to the visible window
-            #self.window.blit(canvas, canvas.get_rect())
+            # Draw the image on the screen and update the window
             self.window.fill((255, 255, 255))
             image.set_colorkey((246, 246, 246))
-
-            # self.window.blit(
-            #     pygame.transform.rotate(image, self.y[2]*180/np.pi),
-            #     tuple(agent_location) + (img_px_width/2.,img_px_height/2.) 
-            # )
 
             blitRotate(self.window, image, tuple(agent_location), (w/2, h/2), angleDeg)
 
@@ -217,13 +195,14 @@ class Rocket(Env):
         
 
     def close(self) -> None:
-        if self.screen is not None:
+        if self.window is not None:
             import pygame
 
             pygame.display.quit()
             pygame.quit()
             self.isopen = False
 
+            self.RKT._plotStates()
         pass
 
     def reset(self):
@@ -271,10 +250,12 @@ if __name__ == "__main__":
     done = False
 
     while not done:
-        a = RKT.step(np.array([-1., -1.]))
+        action = np.array([-1., -1.])
+
+        obs, rew, done, info = RKT.step(action)
         RKT.render(mode="human")
-        done = a[2]
-    RKT.RKT._plotStates()
+
+    RKT.close()
 
     input()
     check_env(RKT)
