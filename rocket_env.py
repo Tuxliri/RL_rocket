@@ -260,7 +260,13 @@ if __name__ == "__main__":
         obs, rew, done, info = RKT.step(action)
         RKT.render(mode="human")
 
+    tFinal = RKT.RKT.t
+
+    x,y = RKT.computeGravityAscent()
+    assert np.isclose(), \
+        f"The values are not close!"
     RKT.close()
 
     input()
     check_env(RKT)
+
