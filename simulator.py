@@ -26,7 +26,7 @@ class Simulator():
         # Define rocket properties
         self.m = 45000                      # rocket initial mass
         self.maxGimbal = np.deg2rad(20)     # [rad]
-        self.maxThrust = 500                # [N]
+        self.maxThrust = 1e6                # [N]
         self.minThrust = 100                # [N]
         self.Cdalfa = 2                     # drag coefficient [-]
         self.Cnalfa = 1                     # normal force coefficient [-]
@@ -41,11 +41,11 @@ class Simulator():
 
         pass
 
-    def step(self):
+    def step(self, u):
 
         if self.dynamics == 'std3DOF':
-            
-            fx = self.RHS(self.t, self.state)
+            thrust = float(u[1])
+            fx = self.RHS(self.t, self.state, thrust)
             
             #euler integration
             self.state = self.state + self.timestep*fx
@@ -68,7 +68,7 @@ class Simulator():
         
         return self.state
 
-    def RHS(self, t, state):
+    def RHS(self, t, state, thrust):
         """ 
         Function computing the derivatives of the state vector
         in inertial coordinates
@@ -77,7 +77,7 @@ class Simulator():
         x, y, phi, vx, vz, om = state
 
         # Get control variables
-        T = 0  # *u[0]
+        T = thrust  # *u[0]
         delta = 0  # *u[1]
 
         # Implement getting it from the height (y)

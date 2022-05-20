@@ -37,14 +37,14 @@ class Rocket(Env):
             abs(self.init_space.high), abs(self.init_space.low))
 
         # Maximum simulation time [s]
-        self.tMax = 50
+        self.tMax = 150
 
         # Maximum rocket angular velocity
         self.omegaMax = np.deg2rad(10)
 
         # Actuators bounds
         self.maxGimbal = 10
-        self.maxThrust = 500
+        self.maxThrust = 1e6
 
         # Upper and lower bounds of the state
         self.stateLow = np.float32(
@@ -116,8 +116,6 @@ class Rocket(Env):
         #self.renderer = Renderer(render_mode, self._render_frame)
 
     def step(self, action):
-        observation = []
-        reward = 0
         done = False
         info = {}
 
@@ -125,7 +123,7 @@ class Rocket(Env):
 
         u = self._denormalizeAction(action)
 
-        self.y = self.RKT.step()
+        self.y = self.RKT.step(u)
 
         # Done if the distance of the rocket to the ground is about 0
         # (e.g. less than 30cm)
@@ -137,7 +135,7 @@ class Rocket(Env):
         #bool(np.linalg.norm(self.y[0:2]) < self.doneDistance)
         # return (not bool(self.observation_space.contains(state))) or self.RKT.t>self.tMax
 
-        return bool(self.RKT.t > self.tMax or self.y[1] < 0)
+        return bool(self.RKT.t > self.tMax)# or self.y[1] < 0)
 
     def render(self, mode="human"):
         return self._render_frame(mode)
@@ -149,7 +147,7 @@ class Rocket(Env):
         rocket_height = 50
 
         step_size = (
-            self.window_size / self.ICMean[1]
+            self.window_size / 100e3
         )  # The number of pixels per each meter
 
         
@@ -240,7 +238,7 @@ class Rocket(Env):
 if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
 
-    initialConditions = np.float32([1000, 10000, np.pi/4, 100, 0, 0.3])
+    initialConditions = np.float32([1000, 0, np.pi/2 - 0*np.pi/180, 0, 0, 0])
     initialConditionsRange = np.zeros_like(initialConditions)
 
     RKT = Rocket(initialConditions, initialConditionsRange)
@@ -250,7 +248,7 @@ if __name__ == "__main__":
     done = False
 
     while not done:
-        action = np.array([-1., -1.])
+        action = np.array([0, 1])
 
         obs, rew, done, info = RKT.step(action)
         RKT.render(mode="human")
