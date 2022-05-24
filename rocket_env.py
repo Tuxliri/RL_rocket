@@ -37,7 +37,7 @@ class Rocket(Env):
             abs(self.init_space.high), abs(self.init_space.low))
 
         # Maximum simulation time [s]
-        self.tMax = 150
+        self.tMax = 120
 
         # Maximum rocket angular velocity
         self.omegaMax = np.deg2rad(10)
@@ -133,7 +133,12 @@ class Rocket(Env):
         """
         
         agent_location[1] = self.window_size - agent_location[1]
-        angleDeg = self.y[2]*180/np.pi -90
+        angleDeg = self.y[2]*180/np.pi - 90
+        """
+        As the image is vertical when displayed with 0 rotation
+        we need to align it with the convention of rocket horizontal
+        when the angle is 0
+        """
 
         # Add gridlines?
         
@@ -224,6 +229,11 @@ if __name__ == "__main__":
         obs, rew, done, info = RKT.step(action)
         RKT.render(mode="human")
 
+    tFinal = RKT.RKT.t
+
+    x,y = RKT.computeGravityAscent()
+    assert np.isclose(), \
+        f"The values are not close!"
     RKT.close()
 
     input()
