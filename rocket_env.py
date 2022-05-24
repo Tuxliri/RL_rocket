@@ -17,7 +17,7 @@ class Rocket(Env):
         two axis """
 
     metadata = {"render_modes": [
-        "human", "rgb_array", "plot"], "render_fps": 50}
+        "human", "rgb_array", "plot"], "render_fps": 4}
 
     def __init__(self, IC=np.float32([-1e3, -5e3, 90/180*np.pi, 300, +300, 0.1]),
                  ICRange=np.float32([100, 500, 10/180*np.pi, 50, 50, 0.01]),
@@ -46,36 +46,7 @@ class Rocket(Env):
         self.maxGimbal = 10
         self.maxThrust = 1e6
 
-        # Upper and lower bounds of the state
-        self.stateLow = np.float32(
-            [-1.1*self.upperBound[0],
-             -1.1*self.upperBound[1],
-             0,
-             -1.1*self.upperBound[3],
-             0,
-             -2*self.omegaMax*np.inf
-             ])
-
-        self.stateHigh = np.float32(
-            [1.1*self.upperBound[0],
-             0,
-             2*np.pi,
-             1.1*self.upperBound[3],
-             self.upperBound[4] + 0.5*9.81*self.tMax**2,
-             2*self.omegaMax*np.inf
-             ])
-
-        # Define normalizer of the observation space
-        self.stateNormalizer = np.maximum(np.maximum(
-            np.abs(self.stateLow[0:5]), np.abs(self.stateHigh[0:5])),
-            1e-16*np.ones(5))
-
-        self.stateNormalizer = np.append(self.stateNormalizer, np.float32(1))
-
-        # Define action and observation spaces
-        self.observation_space = spaces.Box(
-            low=self.stateLow/self.stateNormalizer, high=self.stateHigh/self.stateNormalizer)
-
+        # Define observation space
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(6,))
 
@@ -238,7 +209,7 @@ class Rocket(Env):
 if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
 
-    initialConditions = np.float32([0, 10000, np.pi/2, 100, 0, 0])
+    initialConditions = np.float32([0, 10000, np.pi/2-0.01, 0, 0, 0])
     initialConditionsRange = np.zeros_like(initialConditions)
 
     RKT = Rocket(initialConditions, initialConditionsRange)
@@ -248,7 +219,7 @@ if __name__ == "__main__":
     done = False
 
     while not done:
-        action = np.array([0, -1])
+        action = np.array([0, 1])
 
         obs, rew, done, info = RKT.step(action)
         RKT.render(mode="human")
