@@ -26,8 +26,8 @@ class Simulator():
         # Define rocket properties
         self.m = 45000                      # rocket initial mass
         self.maxGimbal = np.deg2rad(20)     # [rad]
-        self.maxThrust = 500                # [N]
-        self.minThrust = 100                # [N]
+        self.maxThrust = 9*1e6                # [N]
+        self.minThrust = 1e5                # [N]
         self.Cdalfa = 2                     # drag coefficient [-]
         self.Cnalfa = 1                     # normal force coefficient [-]
         self.I = 6.04e6                     # inertia moment [kg*m^2]
@@ -41,11 +41,11 @@ class Simulator():
 
         pass
 
-    def step(self):
+    def step(self, u):
 
         if self.dynamics == 'std3DOF':
             
-            fx = self.RHS(self.t, self.state)
+            fx = self.RHS(self.t, self.state, u)
             
             #euler integration
             self.state = self.state + self.timestep*fx
@@ -68,7 +68,7 @@ class Simulator():
         
         return self.state
 
-    def RHS(self, t, state):
+    def RHS(self, t, state, u):
         """ 
         Function computing the derivatives of the state vector
         in inertial coordinates
@@ -77,8 +77,8 @@ class Simulator():
         x, y, phi, vx, vz, om = state
 
         # Get control variables
-        T = 0  # *u[0]
-        delta = 0  # *u[1]
+        delta = u[0]
+        T = u[1]
 
         # Implement getting it from the height (y)
         rho = 1.225 #*exp(-y/H) scaling due to height
@@ -214,9 +214,9 @@ if __name__ == "__main__" :
     RKT1 = Simulator(IC, 0.1)
     states = []
     times = []
-
+    u = np.array([0,1])
     while RKT1.t < 100:
-        states.append(RKT1.step())
+        states.append(RKT1.step(u))
         times.append(RKT1.t)
 
     heights = RKT1._plotStates()
