@@ -17,7 +17,7 @@ class Rocket(Env):
         two axis """
 
     metadata = {"render_modes": [
-        "human", "rgb_array", "plot"], "render_fps": 4}
+        "human", "rgb_array", "plot"], "render_fps": 50}
 
     def __init__(self, IC=np.float32([-1e3, -5e3, 90/180*np.pi, 300, +300, 0.1]),
                  ICRange=np.float32([100, 500, 10/180*np.pi, 50, 50, 0.01]),
@@ -133,7 +133,7 @@ class Rocket(Env):
         """
         
         agent_location[1] = self.window_size - agent_location[1]
-        angleDeg = self.y[2]*180/np.pi
+        angleDeg = self.y[2]*180/np.pi -90
 
         # Add gridlines?
         
@@ -209,7 +209,7 @@ class Rocket(Env):
 if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
 
-    initialConditions = np.float32([0, 10000, np.pi/2-0.01, 0, 0, 0])
+    initialConditions = np.float32([0, 10000, np.pi/2-0.05, 0, 0, 0])
     initialConditionsRange = np.zeros_like(initialConditions)
 
     RKT = Rocket(initialConditions, initialConditionsRange)
