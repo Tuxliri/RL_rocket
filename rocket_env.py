@@ -19,9 +19,7 @@ class Rocket(Env):
     metadata = {"render_modes": [
         "human", "rgb_array", "plot"], "render_fps": 50}
 
-    def __init__(self, IC=np.float32([-1e3, -5e3, 90/180*np.pi, 300, +300, 0.1]),
-                 ICRange=np.float32([100, 500, 10/180*np.pi, 50, 50, 0.01]),
-                 render_mode="human") -> None:
+    def __init__(self, IC, ICRange, render_mode="human") -> None:
 
         super(Rocket, self).__init__()
 
@@ -33,8 +31,6 @@ class Rocket(Env):
         self.init_space = spaces.Box(low=self.ICMean-self.ICRange/2,
                                      high=self.ICMean+self.ICRange/2)
 
-        self.upperBound = np.maximum(
-            abs(self.init_space.high), abs(self.init_space.low))
 
         # Maximum simulation time [s]
         self.tMax = 120
@@ -103,10 +99,8 @@ class Rocket(Env):
         return self.y.astype(np.float32), float(reward), done, info
 
     def _checkTerminal(self, state):
-        #bool(np.linalg.norm(self.y[0:2]) < self.doneDistance)
-        # return (not bool(self.observation_space.contains(state))) or self.RKT.t>self.tMax
 
-        return bool(self.RKT.t > self.tMax)# or self.y[1] < 0)
+        return bool(self.y[1] < 0)
 
     def render(self, mode="human"):
         return self._render_frame(mode)
@@ -115,24 +109,18 @@ class Rocket(Env):
         # avoid global pygame dependency. This method is not called with no-render.
         import pygame
 
-        rocket_height = 50
-
-        step_size = (
-            self.window_size / 100e3
-        )  # The number of pixels per each meter
-
-        
+        step_size = (self.window_size / 100e3)  # The number of pixels per each meter        
 
         # position of the CoM of the rocket
         agent_location = self.y[0:2] * step_size
         
+        agent_location[1] = self.window_size - agent_location[1]
         """
         Since the 0 in pygame is in the TOP-LEFT corner, while the
         0 in the simulator reference system is in the bottom we need
         to change between these two coordinate frames
         """
-        
-        agent_location[1] = self.window_size - agent_location[1]
+
         angleDeg = self.y[2]*180/np.pi - 90
         """
         As the image is vertical when displayed with 0 rotation
@@ -160,10 +148,12 @@ class Rocket(Env):
             # We need to ensure that human-rendering occurs at the predefined framerate.
             # The following line will automatically add a delay to keep the framerate stable.
             self.clock.tick(self.metadata["render_fps"])
-        else:  # rgb_array
-            # return np.transpose(
-            #     np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)
-            # )
+        elif mode == "rgb_array":
+            return np.transpose(
+                 np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)
+            )
+            
+        else:
             return None
 
         
