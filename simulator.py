@@ -162,4 +162,16 @@ class Simulator3DOF():
 
         return fmod(fmod(angle, pi_2) + pi_2, pi_2)
 
-   
+    def _wrapToPi(self, angle):
+        """
+        Wrap the angle between 0 and pi.
+
+        Args:
+            angle (float): angle to wrap.
+
+        Returns:
+            The wrapped angle.
+
+        """
+
+        return fmod(fmod(angle, np.pi) + np.pi, np.pi)
