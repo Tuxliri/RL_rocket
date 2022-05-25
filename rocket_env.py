@@ -4,6 +4,7 @@
 
 import numpy as np
 from gym import spaces, Env
+from gym.wrappers.time_limit import TimeLimit
 
 from simulator import Simulator
 from matplotlib import pyplot as plt
@@ -200,24 +201,22 @@ if __name__ == "__main__":
     initialConditions = np.float32([0, 10000, np.pi/2-0.05, 0, 0, 0])
     initialConditionsRange = np.zeros_like(initialConditions)
 
-    RKT = Rocket(initialConditions, initialConditionsRange)
+    env = Rocket(initialConditions, initialConditionsRange)
+    env = TimeLimit(env, max_episode_steps=200)
     frames = []
-    RKT.reset()
-    RKT.render(mode="human")
+    env.reset()
+    env.render(mode="human")
     done = False
 
     while not done:
         action = np.array([0, 1])
 
-        obs, rew, done, info = RKT.step(action)
-        RKT.render(mode="human")
+        obs, rew, done, info = env.step(action)
+        env.render(mode="human")
 
-    tFinal = RKT.SIM.t
+    tFinal = env.SIM.t
 
-    x, y = RKT.computeGravityAscent()
-    assert np.isclose(), \
-        f"The values are not close!"
-    RKT.close()
+    env.close()
 
     input()
-    check_env(RKT)
+    check_env(env)
