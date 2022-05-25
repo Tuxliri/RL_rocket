@@ -202,7 +202,7 @@ if __name__ == "__main__":
     initialConditionsRange = np.zeros_like(initialConditions)
 
     env = Rocket(initialConditions, initialConditionsRange)
-    env = TimeLimit(env, max_episode_steps=200)
+    env = TimeLimit(env, max_episode_steps=500)
     frames = []
     env.reset()
     env.render(mode="human")
