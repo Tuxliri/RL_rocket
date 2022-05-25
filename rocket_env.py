@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 
 from renderer_utils import blitRotate
 
+
 class Rocket(Env):
 
     """ Simple environment simulating a 3DOF rocket
@@ -19,24 +20,24 @@ class Rocket(Env):
     metadata = {"render_modes": [
         "human", "rgb_array", "plot"], "render_fps": 50}
 
-    def __init__(self, IC, ICRange, render_mode="human") -> None:
+    def __init__(
+        self,
+        IC,
+        ICRange,
+        timestep=0.5,
+        render_mode="human"
+    ) -> None:
 
         super(Rocket, self).__init__()
 
         # Initial conditions mean values and +- range
         self.ICMean = IC
         self.ICRange = ICRange  # +- range
+        self.timestep = timestep
 
         # Initial condition space
         self.init_space = spaces.Box(low=self.ICMean-self.ICRange/2,
                                      high=self.ICMean+self.ICRange/2)
-
-
-        # Maximum simulation time [s]
-        self.tMax = 120
-
-        # Maximum rocket angular velocity
-        self.omegaMax = np.deg2rad(10)
 
         # Actuators bounds
         self.maxGimbal = 10
@@ -52,15 +53,12 @@ class Rocket(Env):
         self.action_space = spaces.Box(low=np.float32(
             [-1, -1]), high=np.float32([1, 1]), shape=(2,))
 
-        # distance where rocket can be considered landed
-        self.doneDistance = 0.5             # [m]
-
         # Environment state variable and simulator object
         self.y = None
-        self.RKT = None
+        self.SIM = None
 
         # Renderer variables (pygame)
-        self.window_size = 1000  # The size of the PyGame window
+        self.window_size = 900  # The size of the PyGame window
         """
         If human-rendering is used, `self.window` will be a reference
         to the window that we draw to. `self.clock` will be a clock that is used
@@ -86,17 +84,18 @@ class Rocket(Env):
         done = False
         info = {}
 
-        reward = - self.y[1]
-
         u = self._denormalizeAction(action)
 
-        self.y = self.RKT.step(u)
+        self.y = self.SIM.step(u)
 
-        # Done if the distance of the rocket to the ground is about 0
-        # (e.g. less than 30cm)
+        reward = - self.y[1]
+
+        # Done if the rocket is at ground
         done = self._checkTerminal(self.y.astype(np.float32))
 
-        return self.y.astype(np.float32), float(reward), done, info
+        obs = self.y.astype(np.float32)
+
+        return obs, reward, done, info
 
     def _checkTerminal(self, state):
 
@@ -109,11 +108,12 @@ class Rocket(Env):
         # avoid global pygame dependency. This method is not called with no-render.
         import pygame
 
-        step_size = (self.window_size / 100e3)  # The number of pixels per each meter        
+        # The number of pixels per each meter
+        step_size = (self.window_size / 100e3)
 
         # position of the CoM of the rocket
         agent_location = self.y[0:2] * step_size
-        
+
         agent_location[1] = self.window_size - agent_location[1]
         """
         Since the 0 in pygame is in the TOP-LEFT corner, while the
@@ -129,7 +129,7 @@ class Rocket(Env):
         """
 
         # Add gridlines?
-        
+
         # load image of rocket
         image = pygame.image.load("rocket.jpg")
         h = image.get_height()
@@ -141,7 +141,8 @@ class Rocket(Env):
             self.window.fill((255, 255, 255))
             image.set_colorkey((246, 246, 246))
 
-            blitRotate(self.window, image, tuple(agent_location), (w/2, h/2), angleDeg)
+            blitRotate(self.window, image, tuple(
+                agent_location), (w/2, h/2), angleDeg)
 
             pygame.display.flip()
 
@@ -150,13 +151,11 @@ class Rocket(Env):
             self.clock.tick(self.metadata["render_fps"])
         elif mode == "rgb_array":
             return np.transpose(
-                 np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)
+                np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)
             )
-            
+
         else:
             return None
-
-        
 
     def close(self) -> None:
         if self.window is not None:
@@ -166,7 +165,7 @@ class Rocket(Env):
             pygame.quit()
             self.isopen = False
 
-            self.RKT._plotStates()
+            self.SIM._plotStates()
         pass
 
     def reset(self):
@@ -179,7 +178,7 @@ class Rocket(Env):
         self.y = initialCondition
 
         # instantiate the simulator object
-        self.RKT = Simulator(initialCondition, 0.1)
+        self.SIM = Simulator(initialCondition, self.timestep)
 
         return self.y.astype(np.float32)
 
@@ -190,15 +189,9 @@ class Rocket(Env):
             second is the throttle"""
         gimbal = action[0]*self.maxGimbal
 
-        thrust = (action[1]+1)/2*self.maxThrust
+        thrust = (action[1] + 1)/2 * self.maxThrust
 
-        return np.array([gimbal, thrust]).astype(np.float32)
-
-    def _normalizeState(self, state):
-        return state / self.stateNormalizer
-
-    def _denormalizeState(self, state):
-        return state * self.stateNormalizer
+        return np.float32([gimbal, thrust])
 
 
 if __name__ == "__main__":
@@ -219,9 +212,9 @@ if __name__ == "__main__":
         obs, rew, done, info = RKT.step(action)
         RKT.render(mode="human")
 
-    tFinal = RKT.RKT.t
+    tFinal = RKT.SIM.t
 
-    x,y = RKT.computeGravityAscent()
+    x, y = RKT.computeGravityAscent()
     assert np.isclose(), \
         f"The values are not close!"
     RKT.close()
