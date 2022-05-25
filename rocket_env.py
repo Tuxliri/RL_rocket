@@ -6,11 +6,12 @@ import numpy as np
 from gym import spaces, Env
 from gym.wrappers.time_limit import TimeLimit
 
-from simulator import Simulator
+from simulator import Simulator3DOF
 from matplotlib import pyplot as plt
 
 from renderer_utils import blitRotate
 
+MAX_SIZE_RENDER = 10e3      # Max size in meters of the rendering window
 
 class Rocket(Env):
 
@@ -19,7 +20,7 @@ class Rocket(Env):
         two axis """
 
     metadata = {"render_modes": [
-        "human", "rgb_array", "plot"], "render_fps": 50}
+        "human", "rgb_array", "plot"], "render_fps": 20}
 
     def __init__(
         self,
@@ -41,8 +42,9 @@ class Rocket(Env):
                                      high=self.ICMean+self.ICRange/2)
 
         # Actuators bounds
-        self.maxGimbal = 10
-        self.maxThrust = 1e6
+        self.maxGimbal = np.deg2rad(20)     # [rad]
+        self.maxThrust = 1e6                # [N]
+        self.minThrust = 1e5                # [N]
 
         # Define observation space
         self.observation_space = spaces.Box(
@@ -100,7 +102,7 @@ class Rocket(Env):
 
     def _checkTerminal(self, state):
 
-        return bool(self.y[1] < 0)
+        return bool(self.y[1] <= 0)
 
     def render(self, mode="human"):
         return self._render_frame(mode)
@@ -110,7 +112,7 @@ class Rocket(Env):
         import pygame
 
         # The number of pixels per each meter
-        step_size = (self.window_size / 100e3)
+        step_size = self.window_size / MAX_SIZE_RENDER
 
         # position of the CoM of the rocket
         agent_location = self.y[0:2] * step_size
@@ -151,9 +153,10 @@ class Rocket(Env):
             # The following line will automatically add a delay to keep the framerate stable.
             self.clock.tick(self.metadata["render_fps"])
         elif mode == "rgb_array":
-            return np.transpose(
+            return None
+            """ np.transpose(
                 np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)
-            )
+            ) """
 
         else:
             return None
@@ -179,7 +182,7 @@ class Rocket(Env):
         self.y = initialCondition
 
         # instantiate the simulator object
-        self.SIM = Simulator(initialCondition, self.timestep)
+        self.SIM = Simulator3DOF(initialCondition, self.timestep)
 
         return self.y.astype(np.float32)
 
@@ -198,25 +201,23 @@ class Rocket(Env):
 if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
 
-    initialConditions = np.float32([0, 10000, np.pi/2-0.05, 0, 0, 0])
+    initialConditions = np.float32([0, MAX_SIZE_RENDER, np.pi/2, 0, 0, 0])
     initialConditionsRange = np.zeros_like(initialConditions)
 
     env = Rocket(initialConditions, initialConditionsRange)
-    env = TimeLimit(env, max_episode_steps=500)
-    frames = []
+    #env = TimeLimit(env, max_episode_steps=500)
+    check_env(env)
+
     env.reset()
     env.render(mode="human")
     done = False
 
     while not done:
-        action = np.array([0, 1])
+        action = np.array([0, -0.2])
 
         obs, rew, done, info = env.step(action)
+        
         env.render(mode="human")
 
-    tFinal = env.SIM.t
 
     env.close()
-
-    input()
-    check_env(env)

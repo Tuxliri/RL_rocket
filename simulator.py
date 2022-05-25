@@ -122,31 +122,6 @@ class Simulator3DOF():
 
         return self._normalize(alfa)
 
-    def _normalize(self, num, lower=-np.pi, upper=np.pi):
-    
-        from math import floor, ceil
-        # abs(num + upper) and abs(num - lower) are needed, instead of
-        # abs(num), since the lower and upper limits need not be 0. We need
-        # to add half size of the range, so that the final result is lower +
-        # <value> or upper - <value>, respectively.
-        res = num
-        
-        if lower >= upper:
-            raise ValueError("Invalid lower and upper limits: (%s, %s)" %
-                            (lower, upper))
-
-        res = num
-        if num > upper or num == lower:
-            num = lower + abs(num + upper) % (abs(lower) + abs(upper))
-        if num < lower or num == upper:
-            num = upper - abs(num - lower) % (abs(lower) + abs(upper))
-
-        res = lower if res == upper else num
-        
-        res = num * 1.0  # Make all numbers float, to be consistent
-
-        return res
-
     def _wrapTo2Pi(self, angle):
         """
         Wrap the angle between 0 and 2 * pi.
