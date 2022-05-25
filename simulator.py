@@ -8,9 +8,9 @@ from math import fmod
 from matplotlib import pyplot as plt
 
 
-class Simulator():
+class Simulator3DOF():
     def __init__(self, IC, dt=0.5, dynamics='std3DOF') -> None:
-        super(Simulator, self).__init__()
+        super(Simulator3DOF, self).__init__()
 
         self.dynamics = dynamics
         self.timestep = dt
@@ -25,12 +25,10 @@ class Simulator():
 
         # Define rocket properties
         self.m = 45000                      # rocket initial mass
-        self.maxGimbal = np.deg2rad(20)     # [rad]
-        self.maxThrust = 9*1e6                # [N]
-        self.minThrust = 1e5                # [N]
         self.Cdalfa = 2                     # drag coefficient [-]
         self.Cnalfa = 1                     # normal force coefficient [-]
         self.I = 6.04e6                     # inertia moment [kg*m^2]
+        self.Isp = 360                      # Specific impulse [s]
 
         # Geometric properties NB: REDEFINE THEM FROM THE TIP OF THE BOOSTER!! (or change torque equation in RHS)
         self.x_CG = 10                      # Center of gravity [m]
@@ -55,18 +53,13 @@ class Simulator():
 
             self.state[2] = self._wrapTo2Pi(self.state[2])
 
-        elif self.dynamics == '6DOF':
-            # Implement the Simulink interface
-            # here, with the step() method
-            raise NotImplementedError
-
         else:
             raise NotImplementedError()
 
         # Keep track of all states
         self.states.append(self.state)
         
-        return self.state
+        return self.state, {'states': self.states, 'derivatives': self.derivatives}
 
     def RHS(self, t, state, u):
         """ 
@@ -74,7 +67,7 @@ class Simulator():
         in inertial coordinates
         """
         # extract dynamics variables
-        x, y, phi, vx, vz, om = state
+        x, y, phi, vx, vz, om, mass = state
 
         # Get control variables
         delta = u[0]
@@ -101,13 +94,13 @@ class Simulator():
         g = self.g0
 
         # Compute state derivatives
-        ax = (T*np.cos(delta+phi) - N*np.sin(phi) - A*np.cos(phi))/self.m
-        ay = (T*np.sin(delta+phi) + N*np.cos(phi) - A*np.cos(phi))/self.m - g
+        ax = (T*np.cos(delta+phi) - N*np.sin(phi) - A*np.cos(phi))/mass
+        ay = (T*np.sin(delta+phi) + N*np.cos(phi) - A*np.cos(phi))/mass - g
         dom = (N*(self.x_CG - self.x_CP) - T*np.sin(delta)*(self.x_T - self.x_CG))/self.I
         
-        # dm = T/(self.Isp*self.g0)
+        dm = T/(self.Isp*self.g0)
 
-        dstate = np.array([vx, vz, om, ax, ay, dom])
+        dstate = np.array([vx, vz, om, ax, ay, dom, dm])
 
         return dstate
 
@@ -169,54 +162,4 @@ class Simulator():
 
         return fmod(fmod(angle, pi_2) + pi_2, pi_2)
 
-    def _plotStates(self):
-        height = []
-        downrange = []
-        ths = []
-        vxs = []
-        vzs = []
-        oms = []
-        ddzs = []
-        fig, ax = plt.subplots()
-
-        for state in self.states:
-            downrange.append(state[0])
-            height.append(state[1])
-            ths.append(state[2])
-            vxs.append(state[3])
-            vzs.append(state[4])
-            oms.append(state[5])
-
-        for dy in self.derivatives:
-            ddzs.append(dy[4])
-        
-        
-        #analytical_velz = 9.81*ts*np.cos(0.1*ts)
-        line1, = ax.plot(downrange, label='Downrange (x)')
-        line2, = ax.plot(height, label='Height (y)')
-        line3, = ax.plot(ths, label='phi')
-
-        #line4, = ax.plot(vxs, label='Cross velocity (v_x)')
-        #line5, = ax.plot(vzs, label='Cross velocity (v_z)')
-        #line6, = ax.plot(analytical_velz, label='Analytical v_bz')
-        
-        #line7, = ax.plot(ddzs, label='ddz')
-        #line8, = ax.plot(RHS, label='RHS')
-        ax.legend()
-        plt.show()
-
-       
-        return height, downrange
-
-
-if __name__ == "__main__" :
-    IC = np.array([0, 0, np.pi/2, 0, 0, 1])
-    RKT1 = Simulator(IC, 0.1)
-    states = []
-    times = []
-    u = np.array([0,1])
-    while RKT1.t < 100:
-        states.append(RKT1.step(u))
-        times.append(RKT1.t)
-
-    heights = RKT1._plotStates()
+   
