@@ -45,10 +45,11 @@ class Rocket(Env):
         self.maxGimbal = np.deg2rad(20)     # [rad]
         self.maxThrust = 1e6                # [N]
         self.minThrust = 1e5                # [N]
+        self.dryMass = 25.6e3               # [kg]
 
         # Define observation space
         self.observation_space = spaces.Box(
-            low=-np.inf, high=np.inf, shape=(6,))
+            low=-np.inf, high=np.inf, shape=(7,))
 
         # Two valued vector in the range -1,+1, both for the
         # gimbal angle and the thrust command. It will then be
@@ -84,25 +85,32 @@ class Rocket(Env):
         #self.renderer = Renderer(render_mode, self._render_frame)
 
     def step(self, action):
-        done = False
-        info = {}
 
         u = self._denormalizeAction(action)
 
-        self.y = self.SIM.step(u)
+        self.y, info = self.SIM.step(u)
 
         reward = - self.y[1]
 
         # Done if the rocket is at ground
         done = self._checkTerminal(self.y.astype(np.float32))
 
+        assert done is not bool, "done is not of type bool!"
+
         obs = self.y.astype(np.float32)
 
         return obs, reward, done, info
 
     def _checkTerminal(self, state):
+        """
+        massCheck : check that the current stage mass is greater than the dryMass
+        heightCheck : check that we have not reached ground
+        """
 
-        return bool(self.y[1] <= 0)
+        massCheck = (self.y[6] <= self.dryMass)
+        heightCheck = (self.y[1] <= 0)
+
+        return bool(heightCheck or massCheck)
 
     def render(self, mode="human"):
         return self._render_frame(mode)
@@ -169,7 +177,8 @@ class Rocket(Env):
             pygame.quit()
             self.isopen = False
 
-            self.SIM._plotStates()
+        
+        self.SIM._plotStates()
         pass
 
     def reset(self):
@@ -201,23 +210,24 @@ class Rocket(Env):
 if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
 
-    initialConditions = np.float32([0, MAX_SIZE_RENDER, np.pi/2, 0, 0, 0])
+    initialConditions = np.float32([500, 1000, np.pi/4, 0, 0, 0, 30e3])
     initialConditionsRange = np.zeros_like(initialConditions)
 
-    env = Rocket(initialConditions, initialConditionsRange)
-    #env = TimeLimit(env, max_episode_steps=500)
-    check_env(env)
+    env = Rocket(initialConditions, initialConditionsRange, 0.1)
+    env = TimeLimit(env, max_episode_steps=400)
 
     env.reset()
     env.render(mode="human")
     done = False
 
     while not done:
-        action = np.array([0, -0.2])
+        action = np.array([0, -0.05])
 
         obs, rew, done, info = env.step(action)
         
         env.render(mode="human")
-
-
     env.close()
+
+    env = Rocket(initialConditions, initialConditionsRange, 0.1)
+    env = TimeLimit(env, max_episode_steps=400)
+    check_env(env)

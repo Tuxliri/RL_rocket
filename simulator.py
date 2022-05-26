@@ -98,13 +98,13 @@ class Simulator3DOF():
         ay = (T*np.sin(delta+phi) + N*np.cos(phi) - A*np.cos(phi))/mass - g
         dom = (N*(self.x_CG - self.x_CP) - T*np.sin(delta)*(self.x_T - self.x_CG))/self.I
         
-        dm = T/(self.Isp*self.g0)
+        dm = -T/(self.Isp*self.g0)
 
         dstate = np.array([vx, vz, om, ax, ay, dom, dm])
 
         return dstate
 
-    def _computeAoA(self, state): # CHANGE
+    def _computeAoA(self, state): # CHECK
         if self.dynamics == 'std3DOF':
             phi = state[2]
             vx = state[3]
@@ -150,3 +150,41 @@ class Simulator3DOF():
         """
 
         return fmod(fmod(angle, np.pi) + np.pi, np.pi)
+
+    def _plotStates(self):
+        height = []
+        downrange = []
+        ths = []
+        vxs = []
+        vzs = []
+        oms = []
+        mass = []
+        fig, ax = plt.subplots()
+
+        for state in self.states:
+            downrange.append(state[0])
+            height.append(state[1])
+            ths.append(state[2])
+            vxs.append(state[3])
+            vzs.append(state[4])
+            oms.append(state[5])
+            mass.append(state[6])
+        
+        
+        #analytical_velz = 9.81*ts*np.cos(0.1*ts)
+        line1, = ax.plot(downrange, label='Downrange (x)')
+        line2, = ax.plot(height, label='Height (y)')
+        line3, = ax.plot(ths, label='phi')
+
+        #line4, = ax.plot(vxs, label='Cross velocity (v_x)')
+        #line5, = ax.plot(vzs, label='Cross velocity (v_z)')
+        #line6, = ax.plot(analytical_velz, label='Analytical v_bz')
+        
+        line7, = ax.plot(mass, label='mass')
+        #line8, = ax.plot(RHS, label='RHS')
+        
+        ax.legend()
+        plt.show()
+
+       
+        return height, downrange
