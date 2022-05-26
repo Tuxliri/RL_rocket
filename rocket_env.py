@@ -22,7 +22,7 @@ class Rocket(Env):
         two axis """
 
     metadata = {"render_modes": [
-        "human", "rgb_array", "plot"], "render_fps": 20}
+        "human", "rgb_array", "plot"], "render_fps": 40}
 
     def __init__(
         self,
@@ -205,21 +205,43 @@ class Rocket(Env):
         
         assert isinstance(action, (np.ndarray)) and action.shape==(2,),\
             f"Action is of type {type(action)}, shape: {action.shape}"
+
         gimbal = action[0]*self.maxGimbal
 
         thrust = (action[1] + 1)/2 * self.maxThrust
 
         return np.float32([gimbal, thrust])
 
-class Rocket1D(gym.ActionWrapper):
+class Rocket1D(gym.Wrapper):
     def __init__(self, env: Env) -> None:
         super().__init__(env)
         self.env = env
+        self._action_space = spaces.Box(
+            low=-1,
+            high=1,
+            shape=(1,),
+            dtype=np.float32
+            )
 
-    def step(self, act):
-        thrust = act[1]
-        new_act = np.float32([0, thrust])
-        return self.env.step(new_act)
+    def step(self, thrust):
+        
+        action = np.float32([0, thrust])
+        obs, _, done, info = self.env.step(action)
+
+        rew = self._computeReward1D(obs)
+
+        """
+        Return the height of the rocket as the only 
+        observation available 
+        """
+        return obs[1:2], rew, done, info
+
+    def _computeReward1D(self, obs):
+        height = obs[1]
+        return height
+
+
+
 
 if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
@@ -227,38 +249,28 @@ if __name__ == "__main__":
     initialConditions = np.float32([500, 0.1, np.pi/2 , 0, 0, 0, 30e3])
     initialConditionsRange = np.zeros_like(initialConditions)
 
-    """ env = Rocket(initialConditions, initialConditionsRange, 0.1)
-    env = TimeLimit(env, max_episode_steps=400)
-
-    env.reset()
-    env.render(mode="human")
-    done = False
-
-    while not done:
-        action = np.array([0, 1])
-
-        obs, rew, done, info = env.step(action)
-        
-        env.render(mode="human")
-    env.close()
-    check_env(env)
-     """
     env = Rocket(initialConditions, initialConditionsRange, 0.1)
     env = TimeLimit(env, max_episode_steps=400)
     
 
     # 1D problem test
     env = Rocket1D(env)
+    thrusts = []
 
     env.reset()
     env.render(mode="human")
     done = False
 
     while not done:
-        action = np.array([0, 1])
+        thrust = 1
+        #action = env.action_space.sample()
 
-        obs, rew, done, info = env.step(action)
+        thrusts.append(thrust)
+
+        obs, rew, done, info = env.step(thrust)
         
         env.render(mode="human")
+
     env.close()
+
     check_env(env)
