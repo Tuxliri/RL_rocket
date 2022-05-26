@@ -6,12 +6,14 @@ import numpy as np
 import gym
 from gym import spaces, Env
 from gym.wrappers.time_limit import TimeLimit
-from gym.wrappers.transform_observation import TransformObservation
 
 from simulator import Simulator3DOF
 from matplotlib import pyplot as plt
 
 from renderer_utils import blitRotate
+
+from stable_baselines3 import PPO
+from stable_baselines3.common.evaluation import evaluate_policy
 
 MAX_SIZE_RENDER = 10e3      # Max size in meters of the rendering window
 
@@ -260,6 +262,7 @@ if __name__ == "__main__":
     env.reset()
     env.render(mode="human")
     done = False
+    rewards = []
 
     while not done:
         thrust = 1
@@ -268,9 +271,23 @@ if __name__ == "__main__":
         thrusts.append(thrust)
 
         obs, rew, done, info = env.step(thrust)
-        
+        rewards.append(rew)
         env.render(mode="human")
 
+    mean_rwd = np.sum(rewards)
     env.close()
 
-    check_env(env)
+    model = PPO('MlpPolicy', env)
+
+    # Random Agent, before training
+    mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
+
+    print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
+    
+    # Train the agent for 10000 steps
+    model.learn(total_timesteps=10000)
+
+    # Evaluate the trained agent
+    mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
+
+    print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
