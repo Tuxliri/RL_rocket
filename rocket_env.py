@@ -3,8 +3,10 @@
 # 3DOF version of the real 6DOF dynamics
 
 import numpy as np
+import gym
 from gym import spaces, Env
 from gym.wrappers.time_limit import TimeLimit
+from gym.wrappers.transform_observation import TransformObservation
 
 from simulator import Simulator3DOF
 from matplotlib import pyplot as plt
@@ -200,20 +202,32 @@ class Rocket(Env):
             between [-1,+1]. The first element of the 
             array action is the gimbal angle while the
             second is the throttle"""
+        
+        assert isinstance(action, (np.ndarray)) and action.shape==(2,),\
+            f"Action is of type {type(action)}, shape: {action.shape}"
         gimbal = action[0]*self.maxGimbal
 
         thrust = (action[1] + 1)/2 * self.maxThrust
 
         return np.float32([gimbal, thrust])
 
+class Rocket1D(gym.ActionWrapper):
+    def __init__(self, env: Env) -> None:
+        super().__init__(env)
+        self.env = env
+
+    def step(self, act):
+        thrust = act[1]
+        new_act = np.float32([0, thrust])
+        return self.env.step(new_act)
 
 if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
 
-    initialConditions = np.float32([500, 1000, np.pi/4, 0, 0, 0, 30e3])
+    initialConditions = np.float32([500, 0.1, np.pi/2 , 0, 0, 0, 30e3])
     initialConditionsRange = np.zeros_like(initialConditions)
 
-    env = Rocket(initialConditions, initialConditionsRange, 0.1)
+    """ env = Rocket(initialConditions, initialConditionsRange, 0.1)
     env = TimeLimit(env, max_episode_steps=400)
 
     env.reset()
@@ -221,13 +235,30 @@ if __name__ == "__main__":
     done = False
 
     while not done:
-        action = np.array([0, -0.05])
+        action = np.array([0, 1])
 
         obs, rew, done, info = env.step(action)
         
         env.render(mode="human")
     env.close()
-
+    check_env(env)
+     """
     env = Rocket(initialConditions, initialConditionsRange, 0.1)
     env = TimeLimit(env, max_episode_steps=400)
+    
+
+    # 1D problem test
+    env = Rocket1D(env)
+
+    env.reset()
+    env.render(mode="human")
+    done = False
+
+    while not done:
+        action = np.array([0, 1])
+
+        obs, rew, done, info = env.step(action)
+        
+        env.render(mode="human")
+    env.close()
     check_env(env)
