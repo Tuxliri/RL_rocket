@@ -218,6 +218,12 @@ class Rocket1D(gym.Wrapper):
     def __init__(self, env: Env) -> None:
         super().__init__(env)
         self.env = env
+        self.observation_space = spaces.Box(
+            low=-np.inf,
+            high=np.inf,
+            shape=(1,),
+            dtype=np.float32
+        )
         self._action_space = spaces.Box(
             low=-1,
             high=1,
@@ -227,10 +233,14 @@ class Rocket1D(gym.Wrapper):
 
     def step(self, thrust):
         
-        action = np.float32([0, thrust])
+        action = np.float32([0.0, float(thrust)])
         obs, _, done, info = self.env.step(action)
 
-        rew = self._computeReward1D(obs)
+        if done is True:
+            rew = self._computeReward1D(obs)
+
+        else:
+            rew = 0
 
         """
         Return the height of the rocket as the only 
@@ -238,9 +248,16 @@ class Rocket1D(gym.Wrapper):
         """
         return obs[1:2], rew, done, info
 
+    def reset(self):
+        obs = self.env.reset()
+
+        return obs[1]
+
     def _computeReward1D(self, obs):
         height = obs[1]
         return height
+
+    
 
 
 
@@ -252,42 +269,46 @@ if __name__ == "__main__":
     initialConditionsRange = np.zeros_like(initialConditions)
 
     env = Rocket(initialConditions, initialConditionsRange, 0.1)
-    env = TimeLimit(env, max_episode_steps=400)
-    
-
-    # 1D problem test
+    env = TimeLimit(env, max_episode_steps=50)
     env = Rocket1D(env)
-    thrusts = []
 
-    env.reset()
+    obs = env.reset()
     env.render(mode="human")
     done = False
     rewards = []
 
     while not done:
-        thrust = 1
+        thrust =1
         #action = env.action_space.sample()
-
-        thrusts.append(thrust)
 
         obs, rew, done, info = env.step(thrust)
         rewards.append(rew)
-        env.render(mode="human")
+        #env.render(mode="human")
 
     mean_rwd = np.sum(rewards)
-    env.close()
+    
 
-    model = PPO('MlpPolicy', env)
+    model = PPO(
+        'MlpPolicy',
+        env,
+        tensorboard_log="RL_tests/my_environment/logs",
+        verbose=1,
+
+        )
 
     # Random Agent, before training
     mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
 
     print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
     
-    # Train the agent for 10000 steps
-    model.learn(total_timesteps=10000)
+    # Train the agent
+    model.learn(total_timesteps=500000)
 
     # Evaluate the trained agent
     mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
 
     print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
+
+    # Show the trained agent
+
+ 
