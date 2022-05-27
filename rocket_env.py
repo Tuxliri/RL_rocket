@@ -75,14 +75,8 @@ class Rocket(Env):
         human-mode.
         """
 
-        if render_mode == "human":
-            import pygame  # import here to avoid pygame dependency with no render
-
-            pygame.init()
-            pygame.display.init()
-            self.window = pygame.display.set_mode(
-                (self.window_size, self.window_size))
-            self.clock = pygame.time.Clock()
+        self.window = None
+        self.clock = None            
 
         # The following line uses the util class Renderer to gather a collection of frames
         # using a method that computes a single frame. We will define _render_frame below.
@@ -118,6 +112,15 @@ class Rocket(Env):
         return bool(heightCheck or massCheck)
 
     def render(self, mode="human"):
+        if (self.window is None) and mode is "human":
+            import pygame  # import here to avoid pygame dependency with no render
+
+            pygame.init()
+            pygame.display.init()
+            self.window = pygame.display.set_mode(
+                (self.window_size, self.window_size))
+            self.clock = pygame.time.Clock()
+
         return self._render_frame(mode)
 
     def _render_frame(self, mode: str):
