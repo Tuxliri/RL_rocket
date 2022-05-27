@@ -14,6 +14,7 @@ from renderer_utils import blitRotate
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.callbacks import BaseCallback
 
 MAX_SIZE_RENDER = 10e3      # Max size in meters of the rendering window
 
@@ -257,7 +258,20 @@ class Rocket1D(gym.Wrapper):
         height = obs[1]
         return height
 
-    
+class TensorboardCallback(BaseCallback):
+    """
+    Custom callback for plotting additional values in tensorboard
+    """
+
+    def __init__(self, verbose=0):
+        super(TensorboardCallback, self).__init__(verbose)
+
+    def _on_step(self) -> bool:
+        # Log scalar value (here a random variable)
+        value = np.random.random()
+        self.logger.record('random_value', value)
+        return True
+
 
 
 
@@ -269,24 +283,8 @@ if __name__ == "__main__":
     initialConditionsRange = np.zeros_like(initialConditions)
 
     env = Rocket(initialConditions, initialConditionsRange, 0.1)
-    env = TimeLimit(env, max_episode_steps=50)
-    env = Rocket1D(env)
-
-    obs = env.reset()
-    env.render(mode="human")
-    done = False
-    rewards = []
-
-    while not done:
-        thrust =1
-        #action = env.action_space.sample()
-
-        obs, rew, done, info = env.step(thrust)
-        rewards.append(rew)
-        #env.render(mode="human")
-
-    mean_rwd = np.sum(rewards)
-    
+    env = TimeLimit(env, max_episode_steps=400)
+    env = Rocket1D(env)  
 
     model = PPO(
         'MlpPolicy',
@@ -310,5 +308,19 @@ if __name__ == "__main__":
     print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
 
     # Show the trained agent
+    
+    obs = env.reset()
+    env.render(mode="human")
+    done = False
+    rewards = []
 
- 
+    while not done:
+        #thrust =1
+        #action = env.action_space.sample()
+        thrust = model.predict(obs)
+        obs, rew, done, info = env.step(thrust)
+        rewards.append(rew)
+        #env.render(mode="human")
+
+    env.close()
+    input()
