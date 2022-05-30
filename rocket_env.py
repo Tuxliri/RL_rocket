@@ -251,12 +251,13 @@ class Rocket1D(gym.Wrapper):
         of the rocket as the only observations
         available 
         """
-        return obs[1:2], rew, done, info
+        return np.float32([height, velocity]), rew, done, info
 
     def reset(self):
         obs = self.env.reset()
+        height, velocity = obs[1], obs[3]
 
-        return obs[1:2]
+        return np.float32([height, velocity])
 
 class TensorboardCallback(BaseCallback):
     """
@@ -276,6 +277,26 @@ class TensorboardCallback(BaseCallback):
 
 
 
+def showAgent(env, model):
+    # Show the trained agent
+    obs = env.reset()
+    env.render(mode="human")
+    done = False
+    rewards = []
+    thrusts = []
+
+    while not done:
+        #thrust =1
+        #action = env.action_space.sample()
+        thrust, _states = model.predict(obs)
+        obs, rew, done, info = env.step(thrust)
+        thrusts.append(thrust)
+        env.render(mode="human")
+
+    fig, ax = plt.subplots()
+    ax.plot(thrusts)
+    plt.show()
+
 if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
 
@@ -291,16 +312,19 @@ if __name__ == "__main__":
         env,
         tensorboard_log="RL_tests/my_environment/logs",
         verbose=1,
-
         )
 
+    # Show the random agent 
+    
+    showAgent(env, model)
+    
     # Random Agent, before training
     mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
 
     print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
     
     # Train the agent
-    model.learn(total_timesteps=1.5e6)
+    model.learn(total_timesteps=5e5)
     # Save the agent
     model.save("PPO_goddard")
     del model  # delete trained model to demonstrate loading
@@ -311,25 +335,7 @@ if __name__ == "__main__":
 
     print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
 
-    # Show the trained agent
-    
-    obs = env.reset()
-    env.render(mode="human")
-    done = False
-    rewards = []
-    thrusts = []
-
-    while not done:
-        #thrust =1
-        #action = env.action_space.sample()
-        thrust = model.predict(obs)
-        obs, rew, done, info = env.step(thrust)
-        thrusts.append(thrust)
-        env.render(mode="human")
-
-    fig, ax = plt.subplots()
-    ax.plot(thrusts)
-    plt.show()
+    showAgent(env, model)
 
     env.close()
     input()
