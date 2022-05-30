@@ -237,7 +237,7 @@ class Rocket1D(gym.Wrapper):
 
     def step(self, thrust):
         
-        action = np.float32([0.0, float(thrust)])
+        action = np.float32([0.0, thrust[0]])
         obs, _, done, info = self.env.step(action)
 
         if done is True:
@@ -255,7 +255,7 @@ class Rocket1D(gym.Wrapper):
     def reset(self):
         obs = self.env.reset()
 
-        return obs[1]
+        return obs[1:2]
 
     def _computeReward1D(self, obs):
         height = obs[1]
@@ -303,7 +303,7 @@ if __name__ == "__main__":
     print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
     
     # Train the agent
-    model.learn(total_timesteps=100000)
+    model.learn(total_timesteps=1.5e6)
     # Save the agent
     model.save("PPO_goddard")
     del model  # delete trained model to demonstrate loading
@@ -320,14 +320,19 @@ if __name__ == "__main__":
     env.render(mode="human")
     done = False
     rewards = []
+    thrusts = []
 
     while not done:
         #thrust =1
         #action = env.action_space.sample()
         thrust = model.predict(obs)
         obs, rew, done, info = env.step(thrust)
-        rewards.append(rew)
-        #env.render(mode="human")
+        thrusts.append(thrust)
+        env.render(mode="human")
+
+    fig, ax = plt.subplots()
+    ax.plot(thrusts)
+    plt.show()
 
     env.close()
     input()
