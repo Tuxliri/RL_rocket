@@ -240,15 +240,16 @@ class Rocket1D(gym.Wrapper):
         action = np.float32([0.0, thrust[0]])
         obs, _, done, info = self.env.step(action)
         height, velocity = obs[1], obs[3]
-        if done is True:
-            rew = self._computeReward1D(obs)
 
-        else:
-            rew = 0
+        rew = velocity
+
+        if done is True:
+            rew += height
 
         """
-        Return the height of the rocket as the only 
-        observation available 
+        Return the height and vertical velocity
+        of the rocket as the only observations
+        available 
         """
         return obs[1:2], rew, done, info
 
@@ -256,10 +257,6 @@ class Rocket1D(gym.Wrapper):
         obs = self.env.reset()
 
         return obs[1:2]
-
-    def _computeReward1D(self, height):
-        height = obs[1]
-        return height
 
 class TensorboardCallback(BaseCallback):
     """
