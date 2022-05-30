@@ -225,7 +225,7 @@ class Rocket1D(gym.Wrapper):
         self.observation_space = spaces.Box(
             low=-np.inf,
             high=np.inf,
-            shape=(1,),
+            shape=(2,),
             dtype=np.float32
         )
         self._action_space = spaces.Box(
@@ -239,7 +239,7 @@ class Rocket1D(gym.Wrapper):
         
         action = np.float32([0.0, thrust[0]])
         obs, _, done, info = self.env.step(action)
-
+        height, velocity = obs[1], obs[3]
         if done is True:
             rew = self._computeReward1D(obs)
 
@@ -257,7 +257,7 @@ class Rocket1D(gym.Wrapper):
 
         return obs[1:2]
 
-    def _computeReward1D(self, obs):
+    def _computeReward1D(self, height):
         height = obs[1]
         return height
 
