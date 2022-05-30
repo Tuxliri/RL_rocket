@@ -12,7 +12,8 @@ from matplotlib import pyplot as plt
 
 from renderer_utils import blitRotate
 
-from stable_baselines3 import PPO
+from stable_baselines3 import DDPG, HerReplayBuffer
+from stable_baselines3.her.goal_selection_strategy import GoalSelectionStrategy
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.callbacks import BaseCallback
 
@@ -312,9 +313,12 @@ if __name__ == "__main__":
     env = TimeLimit(env, max_episode_steps=400)
     env = Rocket1D(env)  
 
-    model = PPO(
+    goal_selection_strategy = 'future' # equivalent to GoalSelectionStrategy.FUTURE
+
+    model = DDPG(
         'MlpPolicy',
         env,
+        replay_buffer_class=HerReplayBuffer,
         tensorboard_log="RL_tests/my_environment/logs",
         verbose=1,
         )
@@ -331,10 +335,10 @@ if __name__ == "__main__":
     # Train the agent
     model.learn(total_timesteps=2e6)
     # Save the agent
-    model.save("PPO_goddard")
+    model.save("DDPG_goddard")
     del model  # delete trained model to demonstrate loading
 
-    model = PPO.load("PPO_goddard")
+    model = DDPG.load("DDPG_goddard")
     # Evaluate the trained agent
     mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
 
