@@ -241,10 +241,11 @@ class Rocket1D(gym.Wrapper):
         obs, _, done, info = self.env.step(action)
         height, velocity = obs[1], obs[4]
 
-        rew = - (velocity**2)
+        rew = 0
+        #rew = - (velocity**2)
 
         if done is True:
-            rew = -10*(velocity**2)
+            rew = -10*(velocity**2) - 100*(height**2)
 
         """
         Return the height and vertical velocity
@@ -297,10 +298,14 @@ def showAgent(env, model):
     ax.plot(thrusts)
     plt.show()
 
+    env._plotStates()
+
+    return None
+
 if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
 
-    initialConditions = np.float32([500, 1e3, np.pi/2 , 0, -300, 0, 30e3])
+    initialConditions = np.float32([500, 3e3, np.pi/2 , 0, -300, 0, 30e3])
     initialConditionsRange = np.zeros_like(initialConditions)
 
     env = Rocket(initialConditions, initialConditionsRange, 0.1)
@@ -324,9 +329,9 @@ if __name__ == "__main__":
     print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
     
     # Train the agent
-    model.learn(total_timesteps=5e5)
+    #model.learn(total_timesteps=1e6)
     # Save the agent
-    model.save("PPO_goddard")
+    #model.save("PPO_goddard")
     del model  # delete trained model to demonstrate loading
 
     model = PPO.load("PPO_goddard")
