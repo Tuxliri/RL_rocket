@@ -300,7 +300,7 @@ def showAgent(env, model):
 if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
 
-    initialConditions = np.float32([500, 0.1, np.pi/2 , 0, 0, 0, 30e3])
+    initialConditions = np.float32([500, 1e3, np.pi/2 , 0, -300, 0, 30e3])
     initialConditionsRange = np.zeros_like(initialConditions)
 
     env = Rocket(initialConditions, initialConditionsRange, 0.1)
