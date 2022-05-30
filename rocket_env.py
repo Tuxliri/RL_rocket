@@ -298,7 +298,7 @@ def showAgent(env, model):
     ax.plot(thrusts)
     plt.show()
 
-    env._plotStates()
+    env.SIM._plotStates()
 
     return None
 
@@ -329,9 +329,9 @@ if __name__ == "__main__":
     print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
     
     # Train the agent
-    #model.learn(total_timesteps=1e6)
+    model.learn(total_timesteps=2e6)
     # Save the agent
-    #model.save("PPO_goddard")
+    model.save("PPO_goddard")
     del model  # delete trained model to demonstrate loading
 
     model = PPO.load("PPO_goddard")
