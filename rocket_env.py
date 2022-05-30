@@ -239,12 +239,12 @@ class Rocket1D(gym.Wrapper):
         
         action = np.float32([0.0, thrust[0]])
         obs, _, done, info = self.env.step(action)
-        height, velocity = obs[1], obs[3]
+        height, velocity = obs[1], obs[4]
 
-        rew = -velocity
+        rew = - (velocity**2)
 
         if done is True:
-            rew = -10*velocity
+            rew = -10*(velocity**2)
 
         """
         Return the height and vertical velocity
@@ -255,7 +255,7 @@ class Rocket1D(gym.Wrapper):
 
     def reset(self):
         obs = self.env.reset()
-        height, velocity = obs[1], obs[3]
+        height, velocity = obs[1], obs[4]
 
         return np.float32([height, velocity])
 
