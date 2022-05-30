@@ -241,10 +241,10 @@ class Rocket1D(gym.Wrapper):
         obs, _, done, info = self.env.step(action)
         height, velocity = obs[1], obs[3]
 
-        rew = velocity
+        rew = -velocity
 
         if done is True:
-            rew += height
+            rew = -10*velocity
 
         """
         Return the height and vertical velocity
