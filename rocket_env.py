@@ -331,11 +331,10 @@ if __name__ == "__main__":
     goal_selection_strategy = 'future' # equivalent to GoalSelectionStrategy.FUTURE
 
     model = DDPG(
-        'MlpPolicy',
+        'MultiInputPolicy',
         env,
         replay_buffer_class=HerReplayBuffer,
-        tensorboard_log="RL_tests/my_environment/logs",
-        verbose=1,
+        tensorboard_log="RL_tests/my_environment/logs",        verbose=1,
         )
 
     # Show the random agent 
