@@ -4,7 +4,7 @@
 
 import numpy as np
 import gym
-from gym import spaces, Env
+from gym import spaces, Env, GoalEnv
 from gym.wrappers.time_limit import TimeLimit
 
 from simulator import Simulator3DOF
