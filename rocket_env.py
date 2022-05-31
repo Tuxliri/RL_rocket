@@ -219,15 +219,30 @@ class Rocket(Env):
 
         return np.float32([gimbal, thrust])
 
-class Rocket1D(gym.Wrapper):
+class Rocket1D(gym.Wrapper, GoalEnv):
     def __init__(self, env: Env) -> None:
         super().__init__(env)
         self.env = env
-        self.observation_space = spaces.Box(
+        self.observation_space = spaces.Dict({'observation' : spaces.Box(
             low=-np.inf,
             high=np.inf,
             shape=(2,),
             dtype=np.float32
+            ), 
+            'desired_goal' : spaces.Box(
+            low=-1.,
+            high=1.,
+            shape=(2,),
+            dtype=np.float32
+            ), 
+            'achieved_goal' : spaces.Box(
+            low=-np.inf,
+            high=np.inf,
+            shape=(2,),
+            dtype=np.float32
+            )
+            }
+
         )
         self._action_space = spaces.Box(
             low=-1,
