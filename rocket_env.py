@@ -218,6 +218,7 @@ class Rocket(Env):
 
         thrust = (action[1] + 1)/2 * self.maxThrust
 
+        # Add lower bound on thrust with self.minThrust
         return np.float32([gimbal, thrust])
 
 class Rocket1D(gym.Wrapper, GoalEnv):
@@ -290,11 +291,8 @@ class Rocket1D(gym.Wrapper, GoalEnv):
 
         return observation
 
-    def compute_reward(self, achieved_goal: object, desired_goal: object, info) -> float:
-
-    
-        rew = -np.linalg.norm((np.array(achieved_goal)-np.array(desired_goal))**2,axis=0).sum()
-        return rew
+    def compute_reward(self, achieved_goal: object, desired_goal: object, info: dict, p: float = 0.5) -> float:
+        return -np.power(np.dot(achieved_goal - desired_goal, achieved_goal - desired_goal), p)
 
 def showAgent(env, model):
     # Show the trained agent
@@ -337,7 +335,7 @@ if __name__ == "__main__":
         replay_buffer_kwargs=dict(
             n_sampled_goal=8,
             goal_selection_strategy='future',
-            online_sampling=True,
+            online_sampling=False,
             max_episode_length=400,
         ),
         tensorboard_log="RL_tests/my_environment/logs/HER",
@@ -347,7 +345,7 @@ if __name__ == "__main__":
 
     # Show the random agent 
     
-    showAgent(env, model)
+    # showAgent(env, model)
     
     # Random Agent, before training
     mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
@@ -355,7 +353,7 @@ if __name__ == "__main__":
     print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
     
     # Train the agent
-    model.learn(total_timesteps=1e4)
+    model.learn(total_timesteps=1e3)
 
     # Save the agent
     model.save("TD3_goddard")
