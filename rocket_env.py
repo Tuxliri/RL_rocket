@@ -12,10 +12,11 @@ from matplotlib import pyplot as plt
 
 from renderer_utils import blitRotate
 
-from stable_baselines3 import DDPG, HerReplayBuffer
+from stable_baselines3 import DDPG, HerReplayBuffer, TD3
 from stable_baselines3.her.goal_selection_strategy import GoalSelectionStrategy
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.env_checker import check_env
 
 MAX_SIZE_RENDER = 10e3      # Max size in meters of the rendering window
 
@@ -251,6 +252,8 @@ class Rocket1D(gym.Wrapper, GoalEnv):
             dtype=np.float32
             )
 
+        self.desired_goal = np.float32([0, 0])
+
     def step(self, thrust):
         
         action = np.float32([0.0, thrust[0]])
@@ -268,31 +271,30 @@ class Rocket1D(gym.Wrapper, GoalEnv):
         of the rocket as the only observations
         available 
         """
-        return np.float32([height, velocity]), rew, done, info
+        observation = dict({
+            'observation' : np.float32([height, velocity]),
+            'achieved_goal' : np.float32([height, velocity]),
+            'desired_goal' : self.desired_goal
+        })
+        return observation, rew, done, info
 
     def reset(self):
         obs = self.env.reset()
         height, velocity = obs[1], obs[4]
 
-        return np.float32([height, velocity])
+        observation = dict({
+            'observation' : np.float32([height, velocity]),
+            'achieved_goal' : np.float32([height, velocity]),
+            'desired_goal' : self.desired_goal
+        })
 
-class TensorboardCallback(BaseCallback):
-    """
-    Custom callback for plotting additional values in tensorboard
-    """
+        return observation
 
-    def __init__(self, verbose=0):
-        super(TensorboardCallback, self).__init__(verbose)
+    def compute_reward(self, achieved_goal: object, desired_goal: object, info) -> float:
 
-    def _on_step(self) -> bool:
-        # Log scalar value (here a random variable)
-        value = np.random.random()
-        self.logger.record('random_value', value)
-        return True
-
-
-
-
+    
+        rew = -np.linalg.norm((np.array(achieved_goal)-np.array(desired_goal))**2,axis=0).sum()
+        return rew
 
 def showAgent(env, model):
     # Show the trained agent
@@ -303,8 +305,7 @@ def showAgent(env, model):
     thrusts = []
 
     while not done:
-        #thrust =1
-        #action = env.action_space.sample()
+        
         thrust, _states = model.predict(obs)
         obs, rew, done, info = env.step(thrust)
         thrusts.append(thrust)
@@ -328,14 +329,21 @@ if __name__ == "__main__":
     env = TimeLimit(env, max_episode_steps=400)
     env = Rocket1D(env)  
 
-    goal_selection_strategy = 'future' # equivalent to GoalSelectionStrategy.FUTURE
 
-    model = DDPG(
+    model = TD3(
         'MultiInputPolicy',
         env,
         replay_buffer_class=HerReplayBuffer,
-        tensorboard_log="RL_tests/my_environment/logs",        verbose=1,
+        replay_buffer_kwargs=dict(
+            n_sampled_goal=8,
+            goal_selection_strategy='future',
+            online_sampling=True,
+            max_episode_length=400,
+        ),
+        tensorboard_log="RL_tests/my_environment/logs/HER",
+        verbose=1,
         )
+
 
     # Show the random agent 
     
@@ -347,12 +355,13 @@ if __name__ == "__main__":
     print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
     
     # Train the agent
-    model.learn(total_timesteps=2e6)
-    # Save the agent
-    model.save("DDPG_goddard")
-    del model  # delete trained model to demonstrate loading
+    model.learn(total_timesteps=1e4)
 
-    model = DDPG.load("DDPG_goddard")
+    # Save the agent
+    model.save("TD3_goddard")
+    # del model  # delete trained model to demonstrate loading
+
+    #model = TD3.load("TD3_goddard")
     # Evaluate the trained agent
     mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
 
