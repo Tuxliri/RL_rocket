@@ -2,7 +2,7 @@
 # different kind of simulators. A 3DOF simulator,
 # a linearized 3DOF and a 6DOF simulink simulator
 import numpy as np
-from scipy.integrate import RK45, odeint
+from scipy.integrate import RK45, solve_ivp
 from math import fmod
 
 from matplotlib import pyplot as plt
@@ -42,12 +42,20 @@ class Simulator3DOF():
     def step(self, u):
 
         if self.dynamics == 'std3DOF':
-            
-            fx = self.RHS(self.t, self.state, u)
-            
-            #euler integration
-            self.state = self.state + self.timestep*fx
-            self.derivatives.append(fx)
+            def _event(t, y):
+                return y[1]
+
+            # RK integration
+            _event.terminal = True
+
+            solution = solve_ivp(
+                fun=lambda t,y: self.RHS(t, y, u),
+                t_span=[self.t, self.t+self.timestep],
+                y0=self.state,
+                events=_event
+            )
+
+            self.state = np.array([var[-1] for var in solution.y])
 
             self.t += self.timestep
 
@@ -59,7 +67,7 @@ class Simulator3DOF():
         # Keep track of all states
         self.states.append(self.state)
         
-        return self.state, {'states': self.states, 'derivatives': self.derivatives}
+        return self.state, {'states': self.states, 'derivatives': self.derivatives}, solution.status
 
     def RHS(self, t, state, u):
         """ 
