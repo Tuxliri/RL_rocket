@@ -89,12 +89,12 @@ class Rocket(Env):
 
         u = self._denormalizeAction(action)
 
-        self.y, info = self.SIM.step(u)
+        self.y, info, isterminal = self.SIM.step(u)
 
         reward = - self.y[1]
 
         # Done if the rocket is at ground
-        done = self._checkTerminal(self.y.astype(np.float32))
+        done = (isterminal or self._checkTerminal(self.y.astype(np.float32)))
 
         assert done is not bool, "done is not of type bool!"
 
@@ -292,7 +292,7 @@ class Rocket1D(gym.Wrapper, GoalEnv):
         return observation
 
     def compute_reward(self, achieved_goal: object, desired_goal: object, info: dict, p: float = 0.5) -> float:
-        return -np.power(np.dot(achieved_goal - desired_goal, achieved_goal - desired_goal), p)
+        return -np.power(np.dot(np.abs(achieved_goal - desired_goal), np.array([1., 1.])), p)
 
 def showAgent(env, model):
     # Show the trained agent
@@ -345,7 +345,7 @@ if __name__ == "__main__":
 
     # Show the random agent 
     
-    # showAgent(env, model)
+    showAgent(env, model)
     
     # Random Agent, before training
     mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
@@ -353,8 +353,8 @@ if __name__ == "__main__":
     print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
     
     # Train the agent
-    model.learn(total_timesteps=1e3)
-
+    model.learn(total_timesteps=2e6)
+    
     # Save the agent
     model.save("TD3_goddard")
     # del model  # delete trained model to demonstrate loading
