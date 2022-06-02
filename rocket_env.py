@@ -11,11 +11,6 @@ from simulator import Simulator3DOF
 from matplotlib import pyplot as plt
 
 from renderer_utils import blitRotate
-from tensorboard import program
-
-from stable_baselines3 import PPO
-from stable_baselines3.common.evaluation import evaluate_policy
-from stable_baselines3.common.callbacks import BaseCallback
 
 MAX_SIZE_RENDER = 10e3      # Max size in meters of the rendering window
 
