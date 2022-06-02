@@ -191,7 +191,7 @@ class Simulator3DOF():
         #line8, = ax.plot(RHS, label='RHS')
         
         ax.legend()
-        plt.show()
+        plt.show(block=False)
 
        
         return height, downrange

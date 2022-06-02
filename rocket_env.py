@@ -11,6 +11,7 @@ from simulator import Simulator3DOF
 from matplotlib import pyplot as plt
 
 from renderer_utils import blitRotate
+from tensorboard import program
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
@@ -88,11 +89,11 @@ class Rocket(Env):
         u = self._denormalizeAction(action)
 
         self.y, info, isterminal = self.SIM.step(u)
-
+        
         reward = - self.y[1]
 
         # Done if the rocket is at ground
-        done = (isterminal or self._checkTerminal(self.y.astype(np.float32)))
+        done = (bool(isterminal) or self._checkTerminal(self.y.astype(np.float32)))
 
         assert done is not bool, "done is not of type bool!"
 
@@ -242,10 +243,9 @@ class Rocket1D(gym.Wrapper):
         height, velocity = obs[1], obs[4]
 
         rew = 0
-        #rew = - (velocity**2)
-
+        
         if done is True:
-            rew = -10*(velocity**2) - 100*(height**2)
+            rew = - np.abs(velocity) - np.abs(height)
 
         """
         Return the height and vertical velocity
@@ -259,24 +259,6 @@ class Rocket1D(gym.Wrapper):
         height, velocity = obs[1], obs[4]
 
         return np.float32([height, velocity])
-
-class TensorboardCallback(BaseCallback):
-    """
-    Custom callback for plotting additional values in tensorboard
-    """
-
-    def __init__(self, verbose=0):
-        super(TensorboardCallback, self).__init__(verbose)
-
-    def _on_step(self) -> bool:
-        # Log scalar value (here a random variable)
-        value = np.random.random()
-        self.logger.record('random_value', value)
-        return True
-
-
-
-
 
 def showAgent(env, model):
     # Show the trained agent
@@ -296,7 +278,7 @@ def showAgent(env, model):
 
     fig, ax = plt.subplots()
     ax.plot(thrusts)
-    plt.show()
+    plt.show(block=False)
 
     env.SIM._plotStates()
 
@@ -312,13 +294,22 @@ if __name__ == "__main__":
     env = TimeLimit(env, max_episode_steps=400)
     env = Rocket1D(env)  
 
+    # Choose the folder to store tensorboard logs 
+    TENSORBOARD_LOGS_DIR = "RL_tests/my_environment/logs"
+
     model = PPO(
         'MlpPolicy',
         env,
-        tensorboard_log="RL_tests/my_environment/logs",
+        tensorboard_log=TENSORBOARD_LOGS_DIR,
         verbose=1,
         )
 
+    # Start tensorboard server
+    tb = program.TensorBoard()
+    tb.configure(argv=[None, '--logdir', TENSORBOARD_LOGS_DIR])
+    url = tb.launch()
+    print(f"Tensorboard listening on {url}")
+    
     # Show the random agent 
     
     showAgent(env, model)
@@ -329,7 +320,7 @@ if __name__ == "__main__":
     print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
     
     # Train the agent
-    model.learn(total_timesteps=2e6)
+    model.learn(total_timesteps=8e5)
     # Save the agent
     model.save("PPO_goddard")
     del model  # delete trained model to demonstrate loading
