@@ -87,12 +87,12 @@ class Rocket(Env):
 
         u = self._denormalizeAction(action)
 
-        self.y, info = self.SIM.step(u)
+        self.y, info, isterminal = self.SIM.step(u)
 
         reward = - self.y[1]
 
         # Done if the rocket is at ground
-        done = self._checkTerminal(self.y.astype(np.float32))
+        done = (isterminal or self._checkTerminal(self.y.astype(np.float32)))
 
         assert done is not bool, "done is not of type bool!"
 
