@@ -1,6 +1,7 @@
 # In this file the dynamics are simulated using
 # different kind of simulators. A 3DOF simulator,
 # a linearized 3DOF and a 6DOF simulink simulator
+from cProfile import label
 import numpy as np
 from scipy.integrate import RK45, solve_ivp
 from math import fmod
@@ -18,6 +19,7 @@ class Simulator3DOF():
         self.state = IC                     # state is in GLOBAL COORDINATES
 
         self.states = [IC]
+        self.actions = []
         self.derivatives = []
 
         # Define environment properties
@@ -66,7 +68,8 @@ class Simulator3DOF():
 
         # Keep track of all states
         self.states.append(self.state)
-        
+        self.actions.append(u)
+
         return self.state, {'states': self.states, 'derivatives': self.derivatives}, solution.status
 
     def RHS(self, t, state, u):
@@ -160,38 +163,46 @@ class Simulator3DOF():
         return fmod(fmod(angle, np.pi) + np.pi, np.pi)
 
     def _plotStates(self):
-        height = []
-        downrange = []
+        heights = []
+        downranges = []
         ths = []
         vxs = []
         vzs = []
         oms = []
         mass = []
+        thrusts = []
+
         fig, ax = plt.subplots()
 
         for state in self.states:
-            downrange.append(state[0])
-            height.append(state[1])
+            downranges.append(state[0])
+            heights.append(state[1])
             ths.append(state[2])
             vxs.append(state[3])
             vzs.append(state[4])
             oms.append(state[5])
             mass.append(state[6])
         
+        for thrusts in self.actions:
+            thrusts.append(thrusts)
+        
         
         #analytical_velz = 9.81*ts*np.cos(0.1*ts)
-        line1, = ax.plot(downrange, label='Downrange (x)')
-        line2, = ax.plot(height, label='Height (y)')
+        line1, = ax.plot(downranges, label='Downrange (x)')
+        line2, = ax.plot(heights, label='Height (y)')
         line3, = ax.plot(ths, label='phi')
 
         #line4, = ax.plot(vxs, label='Cross velocity (v_x)')
         line5, = ax.plot(vzs, label='Vertical velocity (v_z)')
-        
         line6, = ax.plot(mass, label='mass')
-        #line8, = ax.plot(RHS, label='RHS')
         
+        ax.legend()
+
+        fig2, ax2 = plt.subplots()
+        __, = ax2.plot(thrusts, label='Thrust (N)')
         ax.legend()
         plt.show(block=False)
 
+
        
-        return height, downrange
+        return heights, downranges
