@@ -162,7 +162,7 @@ class Simulator3DOF():
 
         return fmod(fmod(angle, np.pi) + np.pi, np.pi)
 
-    def _plotStates(self):
+    def _plotStates(self, VISIBLE : bool = False):
         heights = []
         downranges = []
         ths = []
@@ -183,26 +183,24 @@ class Simulator3DOF():
             oms.append(state[5])
             mass.append(state[6])
         
-        for thrusts in self.actions:
-            thrusts.append(thrusts)
+        for action in self.actions:
+            thrusts.append(action[1])   # Improvement: allow logging of both thrust and gimbaling
         
-        
-        #analytical_velz = 9.81*ts*np.cos(0.1*ts)
         line1, = ax.plot(downranges, label='Downrange (x)')
         line2, = ax.plot(heights, label='Height (y)')
         line3, = ax.plot(ths, label='phi')
 
         #line4, = ax.plot(vxs, label='Cross velocity (v_x)')
         line5, = ax.plot(vzs, label='Vertical velocity (v_z)')
-        line6, = ax.plot(mass, label='mass')
+        #line6, = ax.plot(mass, label='mass')
         
         ax.legend()
 
         fig2, ax2 = plt.subplots()
         __, = ax2.plot(thrusts, label='Thrust (N)')
         ax.legend()
-        plt.show(block=False)
 
-
-       
-        return heights, downranges
+        if VISIBLE:
+            plt.show(block=False)
+      
+        return fig, fig2

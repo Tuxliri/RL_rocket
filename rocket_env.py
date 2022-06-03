@@ -164,6 +164,7 @@ class Rocket(Env):
             # We need to ensure that human-rendering occurs at the predefined framerate.
             # The following line will automatically add a delay to keep the framerate stable.
             self.clock.tick(self.metadata["render_fps"])
+
         elif mode == "rgb_array":
             return None
             """ np.transpose(
@@ -172,6 +173,10 @@ class Rocket(Env):
 
         else:
             return None
+
+    def plotStates(self, showFig):
+        fig1, fig2 = self.SIM._plotStates(showFig)
+        return (fig1, fig2)
 
     def close(self) -> None:
         if self.window is not None:
@@ -182,7 +187,7 @@ class Rocket(Env):
             self.isopen = False
 
         
-        self.SIM._plotStates()
+        self.plotStates()
         pass
 
     def reset(self):
