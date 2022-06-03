@@ -30,12 +30,7 @@ def showAgent(env, model):
         #action = env.action_space.sample()
         thrust, _states = model.predict(obs)
         obs, rew, done, info = env.step(thrust)
-        thrusts.append(thrust)
         env.render(mode="human")
-
-    fig, ax = plt.subplots()
-    ax.plot(thrusts)
-    plt.show(block=False)
 
     env.SIM._plotStates()
 
@@ -44,16 +39,18 @@ def showAgent(env, model):
 class FigureRecorderCallback(BaseCallback):
     def __init__(self, verbose: int = 0):
         super(FigureRecorderCallback, self).__init__(verbose)
-        self.num_timesteps = 5e3
-        self.logger.dump(self.num_timesteps)
-        
+
     def _on_step(self) -> bool:
 
         showFig = False
-        figure = self.training_env.SIM._plotStates(showFig)
+        # [0] needed as the method returns a list containing the tuple of figures
+        states_fig, thrust_fig = self.training_env.env_method("plotStates", showFig)[0]
 
         # Close the figure after logging it
-        self.logger.record("figure", Figure(figure, close=True), exclude=("stdout", "log", "json", "csv"))
+        
+        self.logger.record("States", Figure(states_fig, close=True), exclude=("stdout", "log", "json", "csv"))
+        self.logger.record("Thrust", Figure(thrust_fig, close=True), exclude=("stdout", "log", "json", "csv"))
+
         
         return super()._on_step()
 
@@ -86,24 +83,19 @@ if __name__ == "__main__":
     # Show the random agent 
     
     showAgent(env, model)
-    
-    # Random Agent, before training
-    mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
-
-    print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
-    
+     
     # Train the agent
-    model.learn(total_timesteps=8e5)
+    TRAINING_TIMESTEPS = 5e5
+    model.learn(
+        total_timesteps=TRAINING_TIMESTEPS,
+        callback=EveryNTimesteps(n_steps=TRAINING_TIMESTEPS/10, callback=FigureRecorderCallback())
+    )
+
     # Save the agent
     model.save("PPO_goddard")
     del model  # delete trained model to demonstrate loading
 
     model = PPO.load("PPO_goddard")
-    # Evaluate the trained agent
-    mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
-
-    print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
-
     showAgent(env, model)
 
     env.close()
