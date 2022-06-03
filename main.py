@@ -14,6 +14,9 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 from rocket_env import Rocket, Rocket1D
 
+from stable_baselines3.common.callbacks import EveryNTimesteps, BaseCallback
+from stable_baselines3.common.logger import Figure
+
 def showAgent(env, model):
     # Show the trained agent
     obs = env.reset()
@@ -37,6 +40,22 @@ def showAgent(env, model):
     env.SIM._plotStates()
 
     return None
+
+class FigureRecorderCallback(BaseCallback):
+    def __init__(self, verbose: int = 0):
+        super(FigureRecorderCallback, self).__init__(verbose)
+        self.num_timesteps = 5e3
+        self.logger.dump(self.num_timesteps)
+        
+    def _on_step(self) -> bool:
+
+        showFig = False
+        figure = self.training_env.SIM._plotStates(showFig)
+
+        # Close the figure after logging it
+        self.logger.record("figure", Figure(figure, close=True), exclude=("stdout", "log", "json", "csv"))
+        
+        return super()._on_step()
 
 if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
