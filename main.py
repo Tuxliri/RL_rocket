@@ -6,8 +6,6 @@ import numpy as np
 
 from gym.wrappers.time_limit import TimeLimit
 
-from matplotlib import pyplot as plt
-
 from tensorboard import program
 
 from stable_baselines3 import PPO
@@ -16,7 +14,7 @@ from rocket_env import Rocket, Rocket1D
 
 from stable_baselines3.common.callbacks import EveryNTimesteps, BaseCallback
 from stable_baselines3.common.logger import Figure
-
+from stable_baselines3.common.env_util import make_vec_env 
 def showAgent(env, model):
     # Show the trained agent
     obs = env.reset()
@@ -54,18 +52,29 @@ class FigureRecorderCallback(BaseCallback):
         
         return super()._on_step()
 
-if __name__ == "__main__":
-    from stable_baselines3.common.env_checker import check_env
-
+def make1Drocket():
     initialConditions = np.float32([500, 3e3, np.pi/2 , 0, -300, 0, 30e3])
     initialConditionsRange = np.zeros_like(initialConditions)
 
-    env = Rocket(initialConditions, initialConditionsRange, 0.1)
+    env = Rocket(initialConditions, initialConditionsRange, 0.1, render_mode="None")
     env = TimeLimit(env, max_episode_steps=400)
-    env = Rocket1D(env)  
+    env = Rocket1D(env)
+
+    return env
+
+if __name__ == "__main__":
+    
+    from gym.envs.registration import register
+
+    register(
+        'Falcon-v0',
+        entry_point='main:make1Drocket'
+    )
 
     # Choose the folder to store tensorboard logs 
     TENSORBOARD_LOGS_DIR = "RL_tests/my_environment/logs"
+
+    env = make1Drocket()
 
     model = PPO(
         'MlpPolicy',
@@ -83,9 +92,11 @@ if __name__ == "__main__":
     # Show the random agent 
     
     showAgent(env, model)
-     
+    
+    # model = PPO.load("PPO_goddard")
     # Train the agent
-    TRAINING_TIMESTEPS = 5e5
+    TRAINING_TIMESTEPS = 12e6
+
     model.learn(
         total_timesteps=TRAINING_TIMESTEPS,
         callback=EveryNTimesteps(n_steps=TRAINING_TIMESTEPS/10, callback=FigureRecorderCallback())
