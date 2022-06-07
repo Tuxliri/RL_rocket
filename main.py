@@ -2,23 +2,20 @@
 # on the rocket landing control problem. It is a simplified
 # 3DOF version of the real 6DOF dynamics
 
-import cProfile
-from datetime import datetime
-from genericpath import exists
 import os
 import sys
+from datetime import datetime
+
 import numpy as np
-import pstats
-
+from genericpath import exists
 from gym.wrappers.time_limit import TimeLimit
-
+from stable_baselines3 import DDPG, HerReplayBuffer, TD3
+from stable_baselines3.common.callbacks import BaseCallback, EveryNTimesteps
+from stable_baselines3.common.logger import Figure
 from tensorboard import program
 
-from stable_baselines3 import PPO
 from rocket_env import Rocket, Rocket1D
 
-from stable_baselines3.common.callbacks import EveryNTimesteps, BaseCallback
-from stable_baselines3.common.logger import Figure
 
 def showAgent(env, model):
     # Show the trained agent
@@ -60,8 +57,8 @@ def make1Drocket():
     initialConditionsRange = np.zeros_like(initialConditions)
 
     env = Rocket(initialConditions, initialConditionsRange, 0.1, render_mode="None")
-    env = TimeLimit(env, max_episode_steps=400)
     env = Rocket1D(env)
+    env = TimeLimit(env, max_episode_steps=400)
 
     return env
 
@@ -80,13 +77,20 @@ if __name__ == "__main__":
     # Create the environment and the training model
     env = make1Drocket()
 
-    model = PPO(
-        'MlpPolicy',
+    model = TD3(
+        'MultiInputPolicy',
         env,
-        tensorboard_log=TENSORBOARD_LOGS_DIR,
+        replay_buffer_class=HerReplayBuffer,
+        replay_buffer_kwargs=dict(
+            n_sampled_goal=8,
+            goal_selection_strategy='future',
+            online_sampling=False,
+            max_episode_length=400,
+        ),
+        tensorboard_log="RL_tests/my_environment/logs/HER",
         verbose=1,
         )
-
+        
     # Start tensorboard server
     tb = program.TensorBoard()
     tb.configure(argv=[None, '--logdir', TENSORBOARD_LOGS_DIR])
@@ -113,7 +117,7 @@ if __name__ == "__main__":
     if not exists(savefolder):
         os.mkdir(savefolder)
 
-    filename = "PPO_" + date.strftime("%Y-%m-%d_%H-%M")
+    filename = "HER_" + date.strftime("%Y-%m-%d_%H-%M")
 
     model.save(os.path.join(savefolder,filename))
 
