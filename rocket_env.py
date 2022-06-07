@@ -2,6 +2,7 @@
 # on the rocket landing control problem. It is a simplified
 # 3DOF version of the real 6DOF dynamics
 
+from turtle import distance
 import numpy as np
 import gym
 from gym import spaces, Env, GoalEnv
@@ -215,8 +216,8 @@ class Rocket(Env):
         # Add lower bound on thrust with self.minThrust
         return np.float32([gimbal, thrust])
 
-class Rocket1D(gym.Wrapper, GoalEnv):
-    def __init__(self, env: Env) -> None:
+class Rocket1D(GoalEnv, gym.Wrapper):
+    def __init__(self, env: Env, rewardType='sparse', distanceThreshold=5) -> None:
         super().__init__(env)
         self.env = env
         self.observation_space = spaces.Dict({'observation' : spaces.Box(
@@ -248,18 +249,19 @@ class Rocket1D(gym.Wrapper, GoalEnv):
             )
 
         self.desired_goal = np.float32([0, 0])
+        self.rewardType = rewardType
+        self.distanceThreshold = distanceThreshold
 
     def step(self, thrust):
         
         action = np.float32([0.0, thrust[0]])
-        obs, _, done, info = self.env.step(action)
-        height, velocity = obs[1], obs[4]
+        obs, rew, done, info = self.env.step(action)
+        obs = self._get_obs(obs)
 
         rew = 0
-        #rew = - (velocity**2)
 
         if done is True:
-            rew -= (np.abs(velocity) + np.abs(height))
+            rew = self.compute_reward(obs, self.desired_goal)
             
 
         """
@@ -268,23 +270,39 @@ class Rocket1D(gym.Wrapper, GoalEnv):
         available 
         """
         observation = dict({
-            'observation' : np.float32([height, velocity]),
-            'achieved_goal' : np.float32([height, velocity]),
+            'observation' : obs,
+            'achieved_goal' : obs,
             'desired_goal' : self.desired_goal
         })
+
         return observation, rew, done, info
 
     def reset(self):
-        obs = self.env.reset()
-        height, velocity = obs[1], obs[4]
+        obs_full = self.env.reset()
+        obs = self._get_obs(obs_full)
 
         observation = dict({
-            'observation' : np.float32([height, velocity]),
-            'achieved_goal' : np.float32([height, velocity]),
+            'observation' : obs,
+            'achieved_goal' : obs,
             'desired_goal' : self.desired_goal
         })
 
         return observation
 
+    def _get_obs(self, obs_original):
+        
+        height, velocity = obs_original[1], obs_original[4]
+        return np.float32([height, velocity])
+
     def compute_reward(self, achieved_goal: object, desired_goal: object, info: dict, p: float = 0.5) -> float:
-        return -np.power(np.dot(np.abs(achieved_goal - desired_goal), np.array([1., 1.])), p)
+        d = self.goal_distance(achieved_goal, desired_goal)
+
+        if self.rewardType == 'sparse':
+            return -(d > self.distanceThreshold).astype(np.float32)
+        else:
+            return -d
+
+    def goal_distance(self, goal_a, goal_b):
+        assert goal_a.shape == goal_b.shape
+        return np.linalg.norm(goal_a - goal_b, axis=-1)
+
