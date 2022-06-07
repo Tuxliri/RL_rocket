@@ -186,9 +186,7 @@ class Simulator3DOF():
 
         #line4, = ax.plot(vxs, label='Cross velocity (v_x)')
         line5, = ax.plot(vzs, label='Vertical velocity (v_z)')
-        
         line6, = ax.plot(mass, label='mass')
-        #line8, = ax.plot(RHS, label='RHS')
         
         ax.legend()
         plt.show()

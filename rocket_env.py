@@ -12,12 +12,6 @@ from matplotlib import pyplot as plt
 
 from renderer_utils import blitRotate
 
-from stable_baselines3 import DDPG, HerReplayBuffer, TD3
-from stable_baselines3.her.goal_selection_strategy import GoalSelectionStrategy
-from stable_baselines3.common.evaluation import evaluate_policy
-from stable_baselines3.common.callbacks import BaseCallback
-from stable_baselines3.common.env_checker import check_env
-
 MAX_SIZE_RENDER = 10e3      # Max size in meters of the rendering window
 
 class Rocket(Env):
@@ -265,7 +259,8 @@ class Rocket1D(gym.Wrapper, GoalEnv):
         #rew = - (velocity**2)
 
         if done is True:
-            rew = -10*(velocity**2) - 100*(height**2)
+            rew -= (np.abs(velocity) + np.abs(height))
+            
 
         """
         Return the height and vertical velocity
@@ -293,79 +288,3 @@ class Rocket1D(gym.Wrapper, GoalEnv):
 
     def compute_reward(self, achieved_goal: object, desired_goal: object, info: dict, p: float = 0.5) -> float:
         return -np.power(np.dot(np.abs(achieved_goal - desired_goal), np.array([1., 1.])), p)
-
-def showAgent(env, model):
-    # Show the trained agent
-    obs = env.reset()
-    env.render(mode="human")
-    done = False
-    rewards = []
-    thrusts = []
-
-    while not done:
-        
-        thrust, _states = model.predict(obs)
-        obs, rew, done, info = env.step(thrust)
-        thrusts.append(thrust)
-        env.render(mode="human")
-
-    fig, ax = plt.subplots()
-    ax.plot(thrusts)
-    plt.show()
-
-    env.SIM._plotStates()
-
-    return None
-
-if __name__ == "__main__":
-    from stable_baselines3.common.env_checker import check_env
-
-    initialConditions = np.float32([500, 3e3, np.pi/2 , 0, -300, 0, 30e3])
-    initialConditionsRange = np.zeros_like(initialConditions)
-
-    env = Rocket(initialConditions, initialConditionsRange, 0.1)
-    env = TimeLimit(env, max_episode_steps=400)
-    env = Rocket1D(env)  
-
-
-    model = TD3(
-        'MultiInputPolicy',
-        env,
-        replay_buffer_class=HerReplayBuffer,
-        replay_buffer_kwargs=dict(
-            n_sampled_goal=8,
-            goal_selection_strategy='future',
-            online_sampling=False,
-            max_episode_length=400,
-        ),
-        tensorboard_log="RL_tests/my_environment/logs/HER",
-        verbose=1,
-        )
-
-
-    # Show the random agent 
-    
-    showAgent(env, model)
-    
-    # Random Agent, before training
-    mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
-
-    print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
-    
-    # Train the agent
-    model.learn(total_timesteps=2e6)
-    
-    # Save the agent
-    model.save("TD3_goddard")
-    # del model  # delete trained model to demonstrate loading
-
-    #model = TD3.load("TD3_goddard")
-    # Evaluate the trained agent
-    mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
-
-    print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
-
-    showAgent(env, model)
-
-    env.close()
-    input()
