@@ -15,6 +15,7 @@ from renderer_utils import blitRotate
 
 MAX_SIZE_RENDER = 10e3      # Max size in meters of the rendering window
 
+
 class Rocket(Env):
 
     """ Simple environment simulating a 3DOF rocket
@@ -73,7 +74,7 @@ class Rocket(Env):
         """
 
         self.window = None
-        self.clock = None            
+        self.clock = None
 
         # The following line uses the util class Renderer to gather a collection of frames
         # using a method that computes a single frame. We will define _render_frame below.
@@ -86,7 +87,7 @@ class Rocket(Env):
 
         self.y, info, isterminal = self.SIM.step(u)
 
-        reward = - self.y[1]
+        reward = - self.SIM.t
 
         # Done if the rocket is at ground
         done = (isterminal or self._checkTerminal(self.y.astype(np.float32)))
@@ -165,6 +166,7 @@ class Rocket(Env):
             # We need to ensure that human-rendering occurs at the predefined framerate.
             # The following line will automatically add a delay to keep the framerate stable.
             self.clock.tick(self.metadata["render_fps"])
+
         elif mode == "rgb_array":
             return None
             """ np.transpose(
@@ -174,6 +176,10 @@ class Rocket(Env):
         else:
             return None
 
+    def plotStates(self, showFig):
+        fig1, fig2 = self.SIM._plotStates(showFig)
+        return (fig1, fig2)
+
     def close(self) -> None:
         if self.window is not None:
             import pygame
@@ -182,7 +188,6 @@ class Rocket(Env):
             pygame.quit()
             self.isopen = False
 
-        
         self.plotStates()
         pass
 
@@ -205,8 +210,8 @@ class Rocket(Env):
             between [-1,+1]. The first element of the 
             array action is the gimbal angle while the
             second is the throttle"""
-        
-        assert isinstance(action, (np.ndarray)) and action.shape==(2,),\
+
+        assert isinstance(action, (np.ndarray)) and action.shape == (2,),\
             f"Action is of type {type(action)}, shape: {action.shape}"
 
         gimbal = action[0]*self.maxGimbal
@@ -252,14 +257,14 @@ class Rocket1D(GoalEnv, gym.Wrapper):
             high=1,
             shape=(1,),
             dtype=np.float32
-            )
+        )
 
         self.desired_goal = np.float32([0, 0])
         self.rewardType = rewardType
         self.distanceThreshold = distanceThreshold
 
     def step(self, thrust):
-        
+
         action = np.float32([0.0, thrust[0]])
         obs, rew, done, info = self.env.step(action)
         obs = self._modify_obs(obs)

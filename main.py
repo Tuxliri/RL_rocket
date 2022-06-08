@@ -11,7 +11,7 @@ from genericpath import exists
 from gym.wrappers.filter_observation import FilterObservation
 from gym.wrappers.flatten_observation import FlattenObservation
 from gym.wrappers.time_limit import TimeLimit
-from stable_baselines3 import DDPG, TD3, HerReplayBuffer
+from stable_baselines3 import DDPG, TD3, HerReplayBuffer, PPO
 from stable_baselines3.common.callbacks import BaseCallback, EveryNTimesteps
 from stable_baselines3.common.logger import Figure
 from tensorboard import program
@@ -76,23 +76,15 @@ if __name__ == "__main__":
     # Choose the folder to store tensorboard logs 
     TENSORBOARD_LOGS_DIR = "RL_tests/my_environment/logs"
 
-    # Create the environment and the training model
     env = make1Drocket()
     env = FlattenObservation(FilterObservation(env,['observation']))
-    model = TD3(
-        'MultiInputPolicy',
+    model = PPO(
+        'MlpPolicy',
         env,
-        replay_buffer_class=HerReplayBuffer,
-        replay_buffer_kwargs=dict(
-            n_sampled_goal=8,
-            goal_selection_strategy='future',
-            online_sampling=False,
-            max_episode_length=400,
-        ),
-        tensorboard_log="RL_tests/my_environment/logs/HER",
+        tensorboard_log=TENSORBOARD_LOGS_DIR,
         verbose=1,
         )
-        
+
     # Start tensorboard server
     tb = program.TensorBoard()
     tb.configure(argv=[None, '--logdir', TENSORBOARD_LOGS_DIR])
@@ -101,10 +93,11 @@ if __name__ == "__main__":
     
     # Show the random agent 
     
-    # showAgent(env, model)
+    showAgent(env, model)
     
+    # model = PPO.load("PPO_goddard")
     # Train the agent
-    TRAINING_TIMESTEPS = 5e3
+    TRAINING_TIMESTEPS = 12e6
 
     model.learn(
         total_timesteps=TRAINING_TIMESTEPS,
@@ -119,7 +112,7 @@ if __name__ == "__main__":
     if not exists(savefolder):
         os.mkdir(savefolder)
 
-    filename = "HER_" + date.strftime("%Y-%m-%d_%H-%M")
+    filename = "PPO_" + date.strftime("%Y-%m-%d_%H-%M")
 
     model.save(os.path.join(savefolder,filename))
 

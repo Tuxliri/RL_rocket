@@ -1,6 +1,7 @@
 # In this file the dynamics are simulated using
 # different kind of simulators. A 3DOF simulator,
 # a linearized 3DOF and a 6DOF simulink simulator
+from cProfile import label
 import numpy as np
 from scipy.integrate import RK45, solve_ivp
 from math import fmod
@@ -68,7 +69,11 @@ class Simulator3DOF():
         # Keep track of all states
         self.states.append(self.state)
         self.actions.append(u)
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> 1D_Rocket_Different_Observations
         return self.state, {'states': self.states, 'derivatives': self.derivatives}, solution.status
 
     def RHS(self, t, state, u):
