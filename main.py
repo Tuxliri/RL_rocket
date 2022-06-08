@@ -36,6 +36,7 @@ def showAgent(env, model):
 
     return None
 
+
 class FigureRecorderCallback(BaseCallback):
     def __init__(self, verbose: int = 0):
         super(FigureRecorderCallback, self).__init__(verbose)
@@ -44,28 +45,33 @@ class FigureRecorderCallback(BaseCallback):
 
         showFig = False
         # [0] needed as the method returns a list containing the tuple of figures
-        states_fig, thrust_fig = self.training_env.env_method("plotStates", showFig)[0]
+        states_fig, thrust_fig = self.training_env.env_method("plotStates", showFig)[
+            0]
 
         # Close the figure after logging it
-        
-        self.logger.record("States", Figure(states_fig, close=True), exclude=("stdout", "log", "json", "csv"))
-        self.logger.record("Thrust", Figure(thrust_fig, close=True), exclude=("stdout", "log", "json", "csv"))
 
-        
+        self.logger.record("States", Figure(states_fig, close=True),
+                           exclude=("stdout", "log", "json", "csv"))
+        self.logger.record("Thrust", Figure(thrust_fig, close=True),
+                           exclude=("stdout", "log", "json", "csv"))
+
         return super()._on_step()
 
+
 def make1Drocket():
-    initialConditions = np.float32([500, 3e3, np.pi/2 , 0, -300, 0, 30e3])
+    initialConditions = np.float32([500, 3e3, np.pi/2, 0, -300, 0, 30e3])
     initialConditionsRange = np.zeros_like(initialConditions)
 
-    env = Rocket(initialConditions, initialConditionsRange, 0.1, render_mode="None")
+    env = Rocket(initialConditions, initialConditionsRange,
+                 0.1, render_mode="None")
     env = Rocket1D(env, distanceThreshold=500)
-    env = TimeLimit(env, max_episode_steps=400)    
+    env = TimeLimit(env, max_episode_steps=400)
 
     return env
 
+
 if __name__ == "__main__":
-    
+
     from gym.envs.registration import register
 
     register(
@@ -73,48 +79,50 @@ if __name__ == "__main__":
         entry_point='main:make1Drocket'
     )
 
-    # Choose the folder to store tensorboard logs 
+    # Choose the folder to store tensorboard logs
     TENSORBOARD_LOGS_DIR = "RL_tests/my_environment/logs"
 
     env = make1Drocket()
-    env = FlattenObservation(FilterObservation(env,['observation']))
+    env = FlattenObservation(FilterObservation(env, ['observation']))
+
     model = PPO(
         'MlpPolicy',
         env,
         tensorboard_log=TENSORBOARD_LOGS_DIR,
         verbose=1,
-        )
+    )
 
     # Start tensorboard server
     tb = program.TensorBoard()
     tb.configure(argv=[None, '--logdir', TENSORBOARD_LOGS_DIR])
     url = tb.launch()
     print(f"Tensorboard listening on {url}")
-    
-    # Show the random agent 
-    
+
+    # Show the random agent
+
     showAgent(env, model)
-    
+
     # model = PPO.load("PPO_goddard")
     # Train the agent
     TRAINING_TIMESTEPS = 12e6
 
     model.learn(
         total_timesteps=TRAINING_TIMESTEPS,
-        callback=EveryNTimesteps(n_steps=TRAINING_TIMESTEPS/10, callback=FigureRecorderCallback())
+        callback=EveryNTimesteps(
+            n_steps=TRAINING_TIMESTEPS/10, callback=FigureRecorderCallback())
     )
 
     # Save the agent in the 'models' folder
     date = datetime.now()
-    pathname = os.path.dirname(sys.argv[0]) 
-    savefolder = os.path.join(pathname,'models')
+    pathname = os.path.dirname(sys.argv[0])
+    savefolder = os.path.join(pathname, 'models')
 
     if not exists(savefolder):
         os.mkdir(savefolder)
 
     filename = "PPO_" + date.strftime("%Y-%m-%d_%H-%M")
 
-    model.save(os.path.join(savefolder,filename))
+    model.save(os.path.join(savefolder, filename))
 
     # Load the model
     # model = PPO.load("PPO_goddard")

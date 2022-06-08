@@ -221,7 +221,6 @@ class Rocket(Env):
         # Add lower bound on thrust with self.minThrust
         return np.float32([gimbal, thrust])
 
-    
     def plotStates(self, showFig):
         fig1, fig2 = self.SIM._plotStates(showFig)
         return (fig1, fig2)
@@ -231,25 +230,25 @@ class Rocket1D(GoalEnv, gym.Wrapper):
     def __init__(self, env: Env, rewardType='sparse', distanceThreshold=5) -> None:
         super().__init__(env)
         self.env = env
-        self.observation_space = spaces.Dict({'observation' : spaces.Box(
+        self.observation_space = spaces.Dict({'observation': spaces.Box(
             low=-np.inf,
             high=np.inf,
             shape=(2,),
             dtype=np.float32
-            ), 
-            'desired_goal' : spaces.Box(
+        ),
+            'desired_goal': spaces.Box(
             low=-1.,
             high=1.,
             shape=(2,),
             dtype=np.float32
-            ), 
-            'achieved_goal' : spaces.Box(
+        ),
+            'achieved_goal': spaces.Box(
             low=-np.inf,
             high=np.inf,
             shape=(2,),
             dtype=np.float32
-            )
-            }
+        )
+        }
 
         )
         self._action_space = spaces.Box(
@@ -272,8 +271,7 @@ class Rocket1D(GoalEnv, gym.Wrapper):
         rew = 0
 
         if done is True:
-            rew = self.compute_reward(obs, self.desired_goal,{})
-            
+            rew = self.compute_reward(obs, self.desired_goal, {})
 
         """
         Return the height and vertical velocity
@@ -281,9 +279,9 @@ class Rocket1D(GoalEnv, gym.Wrapper):
         available 
         """
         observation = dict({
-            'observation' : obs,
-            'achieved_goal' : obs,
-            'desired_goal' : self.desired_goal
+            'observation': obs,
+            'achieved_goal': obs,
+            'desired_goal': self.desired_goal
         })
 
         return observation, rew, done, info
@@ -293,27 +291,26 @@ class Rocket1D(GoalEnv, gym.Wrapper):
         obs = self._modify_obs(obs_full)
 
         observation = dict({
-            'observation' : obs,
-            'achieved_goal' : obs,
-            'desired_goal' : self.desired_goal
+            'observation': obs,
+            'achieved_goal': obs,
+            'desired_goal': self.desired_goal
         })
 
         return observation
 
     def _modify_obs(self, obs_original):
-        
+
         height, velocity = obs_original[1], obs_original[4]
         return np.float32([height, velocity])
 
     def compute_reward(self, achieved_goal: object, desired_goal: object, info: dict, p: float = 0.5) -> float:
-        
+
         d = self.goal_distance(achieved_goal, desired_goal)
 
         if self.rewardType == 'sparse':
             return -(d > self.distanceThreshold).astype(np.float32)
         else:
             return -d
-
 
     def goal_distance(self, goal_a, goal_b):
         assert goal_a.shape == goal_b.shape

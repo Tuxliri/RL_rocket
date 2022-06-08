@@ -51,7 +51,7 @@ class Simulator3DOF():
             _event.terminal = True
 
             solution = solve_ivp(
-                fun=lambda t,y: self.RHS(t, y, u),
+                fun=lambda t, y: self.RHS(t, y, u),
                 t_span=[self.t, self.t+self.timestep],
                 y0=self.state,
                 events=_event
@@ -69,11 +69,7 @@ class Simulator3DOF():
         # Keep track of all states
         self.states.append(self.state)
         self.actions.append(u)
-<<<<<<< HEAD
-        
-=======
 
->>>>>>> 1D_Rocket_Different_Observations
         return self.state, {'states': self.states, 'derivatives': self.derivatives}, solution.status
 
     def RHS(self, t, state, u):
@@ -89,7 +85,7 @@ class Simulator3DOF():
         T = u[1]
 
         # Implement getting it from the height (y)
-        rho = 1.225 #*exp(-y/H) scaling due to height
+        rho = 1.225  # *exp(-y/H) scaling due to height
 
         alfa = 0
         #alfa = self._computeAoA(y)
@@ -111,15 +107,16 @@ class Simulator3DOF():
         # Compute state derivatives
         ax = (T*np.cos(delta+phi) - N*np.sin(phi) - A*np.cos(phi))/mass
         ay = (T*np.sin(delta+phi) + N*np.cos(phi) - A*np.cos(phi))/mass - g
-        dom = (N*(self.x_CG - self.x_CP) - T*np.sin(delta)*(self.x_T - self.x_CG))/self.I
-        
+        dom = (N*(self.x_CG - self.x_CP) - T*np.sin(delta)
+               * (self.x_T - self.x_CG))/self.I
+
         dm = -T/(self.Isp*self.g0)
 
         dstate = np.array([vx, vz, om, ax, ay, dom, dm])
 
         return dstate
 
-    def _computeAoA(self, state): # CHECK
+    def _computeAoA(self, state):  # CHECK
         if self.dynamics == 'std3DOF':
             phi = state[2]
             vx = state[3]
@@ -127,7 +124,7 @@ class Simulator3DOF():
 
             gamma = np.arctan2(vy, vx)
 
-            if not( vx == 0 and vy == 0):
+            if not(vx == 0 and vy == 0):
                 alfa = phi - gamma
             else:
                 alfa = 0
@@ -166,7 +163,7 @@ class Simulator3DOF():
 
         return fmod(fmod(angle, np.pi) + np.pi, np.pi)
 
-    def _plotStates(self, VISIBLE : bool = False):
+    def _plotStates(self, VISIBLE: bool = False):
         heights = []
         downranges = []
         ths = []
@@ -186,10 +183,11 @@ class Simulator3DOF():
             vzs.append(state[4])
             oms.append(state[5])
             mass.append(state[6])
-        
+
         for action in self.actions:
-            thrusts.append(action[1])   # Improvement: allow logging of both thrust and gimbaling
-        
+            # Improvement: allow logging of both thrust and gimbaling
+            thrusts.append(action[1])
+
         line1, = ax.plot(downranges, label='Downrange (x)')
         line2, = ax.plot(heights, label='Height (y)')
         line3, = ax.plot(ths, label='phi')
@@ -197,7 +195,7 @@ class Simulator3DOF():
         #line4, = ax.plot(vxs, label='Cross velocity (v_x)')
         line5, = ax.plot(vzs, label='Vertical velocity (v_z)')
         #line6, = ax.plot(mass, label='mass')
-        
+
         ax.legend()
 
         fig2, ax2 = plt.subplots()
@@ -206,5 +204,5 @@ class Simulator3DOF():
 
         if VISIBLE:
             plt.show(block=False)
-      
+
         return fig, fig2
