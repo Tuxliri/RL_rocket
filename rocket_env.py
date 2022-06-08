@@ -183,7 +183,7 @@ class Rocket(Env):
             self.isopen = False
 
         
-        self.SIM._plotStates()
+        self.plotStates()
         pass
 
     def reset(self):
@@ -215,6 +215,12 @@ class Rocket(Env):
 
         # Add lower bound on thrust with self.minThrust
         return np.float32([gimbal, thrust])
+
+    
+    def plotStates(self, showFig):
+        fig1, fig2 = self.SIM._plotStates(showFig)
+        return (fig1, fig2)
+
 
 class Rocket1D(GoalEnv, gym.Wrapper):
     def __init__(self, env: Env, rewardType='sparse', distanceThreshold=5) -> None:
@@ -256,12 +262,12 @@ class Rocket1D(GoalEnv, gym.Wrapper):
         
         action = np.float32([0.0, thrust[0]])
         obs, rew, done, info = self.env.step(action)
-        obs = self._get_obs(obs)
+        obs = self._modify_obs(obs)
 
         rew = 0
 
         if done is True:
-            rew = self.compute_reward(obs, self.desired_goal)
+            rew = self.compute_reward(obs, self.desired_goal,{})
             
 
         """
@@ -279,7 +285,7 @@ class Rocket1D(GoalEnv, gym.Wrapper):
 
     def reset(self):
         obs_full = self.env.reset()
-        obs = self._get_obs(obs_full)
+        obs = self._modify_obs(obs_full)
 
         observation = dict({
             'observation' : obs,
@@ -289,12 +295,13 @@ class Rocket1D(GoalEnv, gym.Wrapper):
 
         return observation
 
-    def _get_obs(self, obs_original):
+    def _modify_obs(self, obs_original):
         
         height, velocity = obs_original[1], obs_original[4]
         return np.float32([height, velocity])
 
     def compute_reward(self, achieved_goal: object, desired_goal: object, info: dict, p: float = 0.5) -> float:
+        
         d = self.goal_distance(achieved_goal, desired_goal)
 
         if self.rewardType == 'sparse':
@@ -302,7 +309,18 @@ class Rocket1D(GoalEnv, gym.Wrapper):
         else:
             return -d
 
+
     def goal_distance(self, goal_a, goal_b):
         assert goal_a.shape == goal_b.shape
         return np.linalg.norm(goal_a - goal_b, axis=-1)
 
+    def close(self) -> None:
+        if self.window is not None:
+            import pygame
+
+            pygame.display.quit()
+            pygame.quit()
+            self.isopen = False
+
+        self.plotStates()
+        pass

@@ -18,6 +18,7 @@ class Simulator3DOF():
         self.state = IC                     # state is in GLOBAL COORDINATES
 
         self.states = [IC]
+        self.actions = []
         self.derivatives = []
 
         # Define environment properties
@@ -66,6 +67,7 @@ class Simulator3DOF():
 
         # Keep track of all states
         self.states.append(self.state)
+        self.actions.append(u)
         
         return self.state, {'states': self.states, 'derivatives': self.derivatives}, solution.status
 
@@ -159,37 +161,45 @@ class Simulator3DOF():
 
         return fmod(fmod(angle, np.pi) + np.pi, np.pi)
 
-    def _plotStates(self):
-        height = []
-        downrange = []
+    def _plotStates(self, VISIBLE : bool = False):
+        heights = []
+        downranges = []
         ths = []
         vxs = []
         vzs = []
         oms = []
         mass = []
+        thrusts = []
+
         fig, ax = plt.subplots()
 
         for state in self.states:
-            downrange.append(state[0])
-            height.append(state[1])
+            downranges.append(state[0])
+            heights.append(state[1])
             ths.append(state[2])
             vxs.append(state[3])
             vzs.append(state[4])
             oms.append(state[5])
             mass.append(state[6])
         
+        for action in self.actions:
+            thrusts.append(action[1])   # Improvement: allow logging of both thrust and gimbaling
         
-        #analytical_velz = 9.81*ts*np.cos(0.1*ts)
-        line1, = ax.plot(downrange, label='Downrange (x)')
-        line2, = ax.plot(height, label='Height (y)')
+        line1, = ax.plot(downranges, label='Downrange (x)')
+        line2, = ax.plot(heights, label='Height (y)')
         line3, = ax.plot(ths, label='phi')
 
         #line4, = ax.plot(vxs, label='Cross velocity (v_x)')
         line5, = ax.plot(vzs, label='Vertical velocity (v_z)')
-        line6, = ax.plot(mass, label='mass')
+        #line6, = ax.plot(mass, label='mass')
         
         ax.legend()
-        plt.show()
 
-       
-        return height, downrange
+        fig2, ax2 = plt.subplots()
+        __, = ax2.plot(thrusts, label='Thrust (N)')
+        ax.legend()
+
+        if VISIBLE:
+            plt.show(block=False)
+      
+        return fig, fig2

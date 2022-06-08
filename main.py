@@ -8,8 +8,10 @@ from datetime import datetime
 
 import numpy as np
 from genericpath import exists
+from gym.wrappers.filter_observation import FilterObservation
+from gym.wrappers.flatten_observation import FlattenObservation
 from gym.wrappers.time_limit import TimeLimit
-from stable_baselines3 import DDPG, HerReplayBuffer, TD3
+from stable_baselines3 import DDPG, TD3, HerReplayBuffer
 from stable_baselines3.common.callbacks import BaseCallback, EveryNTimesteps
 from stable_baselines3.common.logger import Figure
 from tensorboard import program
@@ -57,8 +59,8 @@ def make1Drocket():
     initialConditionsRange = np.zeros_like(initialConditions)
 
     env = Rocket(initialConditions, initialConditionsRange, 0.1, render_mode="None")
-    env = Rocket1D(env)
-    env = TimeLimit(env, max_episode_steps=400)
+    env = Rocket1D(env, distanceThreshold=500)
+    env = TimeLimit(env, max_episode_steps=400)    
 
     return env
 
@@ -76,7 +78,7 @@ if __name__ == "__main__":
 
     # Create the environment and the training model
     env = make1Drocket()
-
+    env = FlattenObservation(FilterObservation(env,['observation']))
     model = TD3(
         'MultiInputPolicy',
         env,
@@ -102,7 +104,7 @@ if __name__ == "__main__":
     # showAgent(env, model)
     
     # Train the agent
-    TRAINING_TIMESTEPS = 15e6
+    TRAINING_TIMESTEPS = 5e3
 
     model.learn(
         total_timesteps=TRAINING_TIMESTEPS,
