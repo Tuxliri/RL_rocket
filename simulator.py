@@ -1,16 +1,17 @@
 # In this file the dynamics are simulated using
 # different kind of simulators. A 3DOF simulator,
 # a linearized 3DOF and a 6DOF simulink simulator
+from cProfile import label
 import numpy as np
-from scipy.integrate import RK45, odeint
+from scipy.integrate import RK45, solve_ivp
 from math import fmod
 
 from matplotlib import pyplot as plt
 
 
-class Simulator():
+class Simulator3DOF():
     def __init__(self, IC, dt=0.5, dynamics='std3DOF') -> None:
-        super(Simulator, self).__init__()
+        super(Simulator3DOF, self).__init__()
 
         self.dynamics = dynamics
         self.timestep = dt
@@ -18,6 +19,7 @@ class Simulator():
         self.state = IC                     # state is in GLOBAL COORDINATES
 
         self.states = [IC]
+        self.actions = []
         self.derivatives = []
 
         # Define environment properties
@@ -25,12 +27,10 @@ class Simulator():
 
         # Define rocket properties
         self.m = 45000                      # rocket initial mass
-        self.maxGimbal = np.deg2rad(20)     # [rad]
-        self.maxThrust = 9*1e6                # [N]
-        self.minThrust = 1e5                # [N]
         self.Cdalfa = 2                     # drag coefficient [-]
         self.Cnalfa = 1                     # normal force coefficient [-]
         self.I = 6.04e6                     # inertia moment [kg*m^2]
+        self.Isp = 360                      # Specific impulse [s]
 
         # Geometric properties NB: REDEFINE THEM FROM THE TIP OF THE BOOSTER!! (or change torque equation in RHS)
         self.x_CG = 10                      # Center of gravity [m]
@@ -44,29 +44,37 @@ class Simulator():
     def step(self, u):
 
         if self.dynamics == 'std3DOF':
-            
-            fx = self.RHS(self.t, self.state, u)
-            
-            #euler integration
-            self.state = self.state + self.timestep*fx
-            self.derivatives.append(fx)
+            def _event(t, y):
+                return y[1]
+
+            # RK integration
+            _event.terminal = True
+
+            solution = solve_ivp(
+                fun=lambda t,y: self.RHS(t, y, u),
+                t_span=[self.t, self.t+self.timestep],
+                y0=self.state,
+                events=_event
+            )
+
+            self.state = np.array([var[-1] for var in solution.y])
 
             self.t += self.timestep
 
             self.state[2] = self._wrapTo2Pi(self.state[2])
-
-        elif self.dynamics == '6DOF':
-            # Implement the Simulink interface
-            # here, with the step() method
-            raise NotImplementedError
 
         else:
             raise NotImplementedError()
 
         # Keep track of all states
         self.states.append(self.state)
+        self.actions.append(u)
+<<<<<<< HEAD
         
-        return self.state
+=======
+
+>>>>>>> 1D_Rocket_Different_Observations
+        return self.state, {'states': self.states, 'derivatives': self.derivatives}, solution.status
 
     def RHS(self, t, state, u):
         """ 
@@ -74,7 +82,7 @@ class Simulator():
         in inertial coordinates
         """
         # extract dynamics variables
-        x, y, phi, vx, vz, om = state
+        x, y, phi, vx, vz, om, mass = state
 
         # Get control variables
         delta = u[0]
@@ -101,17 +109,17 @@ class Simulator():
         g = self.g0
 
         # Compute state derivatives
-        ax = (T*np.cos(delta+phi) - N*np.sin(phi) - A*np.cos(phi))/self.m
-        ay = (T*np.sin(delta+phi) + N*np.cos(phi) - A*np.cos(phi))/self.m - g
+        ax = (T*np.cos(delta+phi) - N*np.sin(phi) - A*np.cos(phi))/mass
+        ay = (T*np.sin(delta+phi) + N*np.cos(phi) - A*np.cos(phi))/mass - g
         dom = (N*(self.x_CG - self.x_CP) - T*np.sin(delta)*(self.x_T - self.x_CG))/self.I
         
-        # dm = T/(self.Isp*self.g0)
+        dm = -T/(self.Isp*self.g0)
 
-        dstate = np.array([vx, vz, om, ax, ay, dom])
+        dstate = np.array([vx, vz, om, ax, ay, dom, dm])
 
         return dstate
 
-    def _computeAoA(self, state): # CHANGE
+    def _computeAoA(self, state): # CHECK
         if self.dynamics == 'std3DOF':
             phi = state[2]
             vx = state[3]
@@ -129,31 +137,6 @@ class Simulator():
 
         return self._normalize(alfa)
 
-    def _normalize(self, num, lower=-np.pi, upper=np.pi):
-    
-        from math import floor, ceil
-        # abs(num + upper) and abs(num - lower) are needed, instead of
-        # abs(num), since the lower and upper limits need not be 0. We need
-        # to add half size of the range, so that the final result is lower +
-        # <value> or upper - <value>, respectively.
-        res = num
-        
-        if lower >= upper:
-            raise ValueError("Invalid lower and upper limits: (%s, %s)" %
-                            (lower, upper))
-
-        res = num
-        if num > upper or num == lower:
-            num = lower + abs(num + upper) % (abs(lower) + abs(upper))
-        if num < lower or num == upper:
-            num = upper - abs(num - lower) % (abs(lower) + abs(upper))
-
-        res = lower if res == upper else num
-        
-        res = num * 1.0  # Make all numbers float, to be consistent
-
-        return res
-
     def _wrapTo2Pi(self, angle):
         """
         Wrap the angle between 0 and 2 * pi.
@@ -169,54 +152,59 @@ class Simulator():
 
         return fmod(fmod(angle, pi_2) + pi_2, pi_2)
 
-    def _plotStates(self):
-        height = []
-        downrange = []
+    def _wrapToPi(self, angle):
+        """
+        Wrap the angle between 0 and pi.
+
+        Args:
+            angle (float): angle to wrap.
+
+        Returns:
+            The wrapped angle.
+
+        """
+
+        return fmod(fmod(angle, np.pi) + np.pi, np.pi)
+
+    def _plotStates(self, VISIBLE : bool = False):
+        heights = []
+        downranges = []
         ths = []
         vxs = []
         vzs = []
         oms = []
-        ddzs = []
+        mass = []
+        thrusts = []
+
         fig, ax = plt.subplots()
 
         for state in self.states:
-            downrange.append(state[0])
-            height.append(state[1])
+            downranges.append(state[0])
+            heights.append(state[1])
             ths.append(state[2])
             vxs.append(state[3])
             vzs.append(state[4])
             oms.append(state[5])
-
-        for dy in self.derivatives:
-            ddzs.append(dy[4])
+            mass.append(state[6])
         
+        for action in self.actions:
+            thrusts.append(action[1])   # Improvement: allow logging of both thrust and gimbaling
         
-        #analytical_velz = 9.81*ts*np.cos(0.1*ts)
-        line1, = ax.plot(downrange, label='Downrange (x)')
-        line2, = ax.plot(height, label='Height (y)')
+        line1, = ax.plot(downranges, label='Downrange (x)')
+        line2, = ax.plot(heights, label='Height (y)')
         line3, = ax.plot(ths, label='phi')
 
         #line4, = ax.plot(vxs, label='Cross velocity (v_x)')
-        #line5, = ax.plot(vzs, label='Cross velocity (v_z)')
-        #line6, = ax.plot(analytical_velz, label='Analytical v_bz')
+        line5, = ax.plot(vzs, label='Vertical velocity (v_z)')
+        #line6, = ax.plot(mass, label='mass')
         
-        #line7, = ax.plot(ddzs, label='ddz')
-        #line8, = ax.plot(RHS, label='RHS')
         ax.legend()
-        plt.show()
 
-       
-        return height, downrange
+        fig2, ax2 = plt.subplots()
+        __, = ax2.plot(thrusts, label='Thrust (N)')
+        ax.legend()
 
-
-if __name__ == "__main__" :
-    IC = np.array([0, 0, np.pi/2, 0, 0, 1])
-    RKT1 = Simulator(IC, 0.1)
-    states = []
-    times = []
-    u = np.array([0,1])
-    while RKT1.t < 100:
-        states.append(RKT1.step(u))
-        times.append(RKT1.t)
-
-    heights = RKT1._plotStates()
+        if VISIBLE:
+            plt.show(block=False)
+      
+        return fig, fig2
