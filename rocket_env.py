@@ -9,7 +9,6 @@ from gym import spaces, Env, GoalEnv
 from gym.wrappers.time_limit import TimeLimit
 
 from simulator import Simulator3DOF
-from matplotlib import pyplot as plt
 
 from renderer_utils import blitRotate
 
