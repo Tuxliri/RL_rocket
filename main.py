@@ -76,7 +76,8 @@ if __name__ == "__main__":
 
     register(
         'Falcon-v0',
-        entry_point='main:make1Drocket'
+        entry_point='main:make1Drocket',
+        max_episode_steps=400
     )
 
     # Choose the folder to store tensorboard logs
@@ -85,12 +86,31 @@ if __name__ == "__main__":
     env = make1Drocket()
     env = FlattenObservation(FilterObservation(env, ['observation']))
 
-    model = PPO(
+    if env.observation_space.dtype.name == 'float32' :
+        model = PPO(
         'MlpPolicy',
         env,
         tensorboard_log=TENSORBOARD_LOGS_DIR,
         verbose=1,
     )
+
+    else:
+        model = TD3(
+            'MultiInputPolicy',
+            env,
+            replay_buffer_class=HerReplayBuffer,
+            replay_buffer_kwargs=dict(
+                n_sampled_goal=4,
+                goal_selection_strategy="future",
+                online_sampling=True,
+                max_episode_length=400
+            ),
+            verbose=1,
+            buffer_size=int(1e6),
+            learning_rate=1e-3,
+            gamma=0.95,
+            batch_size=256,
+        )
 
     # Start tensorboard server
     tb = program.TensorBoard()
@@ -125,5 +145,4 @@ if __name__ == "__main__":
     model.save(os.path.join(savefolder, filename))
 
     # Load the model
-    # model = PPO.load("PPO_goddard")
     showAgent(env, model)
