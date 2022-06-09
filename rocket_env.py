@@ -109,22 +109,16 @@ class Rocket(Env):
         return bool(heightCheck or massCheck)
 
     def render(self, mode="human"):
-        if (self.window is None) and mode is "human":
-            import pygame  # import here to avoid pygame dependency with no render
+        import pygame  # import here to avoid pygame dependency with no render
 
+        if (self.window is None) and mode is "human":
             pygame.init()
             pygame.display.init()
             self.window = pygame.display.set_mode(
                 (self.window_size, self.window_size))
             self.clock = pygame.time.Clock()
 
-        return self._render_frame(mode)
-
-    def _render_frame(self, mode: str):
-        # avoid global pygame dependency. This method is not called with no-render.
-        import pygame
-
-        # The number of pixels per each meter
+         # The number of pixels per each meter
         step_size = self.window_size / MAX_SIZE_RENDER
 
         # position of the CoM of the rocket
@@ -151,29 +145,30 @@ class Rocket(Env):
         h = image.get_height()
         w = image.get_width()
 
+        # Draw on a canvas surface
+        canvas = pygame.Surface((self.window_size, self.window_size))
+        canvas.fill((255, 255, 255))
+        image.set_colorkey((246, 246, 246))
+
+        blitRotate(canvas, image, tuple(
+            agent_location), (w/2, h/2), angleDeg)
         if mode == "human":
             assert self.window is not None
             # Draw the image on the screen and update the window
-            self.window.fill((255, 255, 255))
-            image.set_colorkey((246, 246, 246))
+            self.window.blit(canvas, (0, 0))
 
-            blitRotate(self.window, image, tuple(
-                agent_location), (w/2, h/2), angleDeg)
-
-            pygame.display.flip()
+            pygame.event.pump()
+            pygame.display.update()
 
             # We need to ensure that human-rendering occurs at the predefined framerate.
             # The following line will automatically add a delay to keep the framerate stable.
             self.clock.tick(self.metadata["render_fps"])
 
-        elif mode == "rgb_array":
             return None
-            """ np.transpose(
-                np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)
-            ) """
 
-        else:
-            return None
+        return np.transpose(
+            np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)
+        )
 
     def plotStates(self, showFig):
         fig1, fig2 = self.SIM._plotStates(showFig)
