@@ -22,7 +22,7 @@ class Rocket(Env):
         two axis """
 
     metadata = {"render_modes": [
-        "human", "rgb_array", "plot"], "render_fps": 40}
+        "human", "rgb_array"], "render_fps": 40}
 
     def __init__(
         self,
@@ -141,7 +141,7 @@ class Rocket(Env):
         # Add gridlines?
 
         # load image of rocket
-        image = pygame.image.load("rocket.jpg")
+        image = pygame.image.load("rocket.png")
         h = image.get_height()
         w = image.get_width()
 
