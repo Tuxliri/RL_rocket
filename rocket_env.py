@@ -272,11 +272,6 @@ class Rocket1D(GoalEnv, gym.Wrapper):
         if done is True:
             rew = self.compute_reward(obs, self.desired_goal, {})
 
-        """
-        Return the height and vertical velocity
-        of the rocket as the only observations
-        available 
-        """
         observation = dict({
             'observation': obs,
             'achieved_goal': obs,

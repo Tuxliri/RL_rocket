@@ -73,7 +73,7 @@ def make1Drocket():
 if __name__ == "__main__":
 
     from gym.envs.registration import register
-
+    from wrappers import DiscreteActions
     register(
         'Falcon-v0',
         entry_point='main:make1Drocket',
@@ -85,6 +85,7 @@ if __name__ == "__main__":
 
     env = make1Drocket()
     env = FlattenObservation(FilterObservation(env, ['observation']))
+    env = DiscreteActions(env)
 
     if env.observation_space.dtype.name == 'float32' :
         model = PPO(
@@ -120,11 +121,11 @@ if __name__ == "__main__":
 
     # Show the random agent
 
-    showAgent(env, model)
+    # showAgent(env, model)
 
     # model = PPO.load("PPO_goddard")
     # Train the agent
-    TRAINING_TIMESTEPS = 12e6
+    TRAINING_TIMESTEPS = 5e5
 
     model.learn(
         total_timesteps=TRAINING_TIMESTEPS,
