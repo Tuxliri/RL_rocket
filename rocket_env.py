@@ -103,7 +103,7 @@ class Rocket(Env):
         heightCheck : check that we have not reached ground
         """
 
-        massCheck = (self.y[6] <= self.dryMass)
+        massCheck = 0*(self.y[6] <= self.dryMass)
         heightCheck = (self.y[1] <= 0)
 
         return bool(heightCheck or massCheck)
