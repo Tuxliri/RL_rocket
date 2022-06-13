@@ -11,7 +11,7 @@ from genericpath import exists
 from gym.wrappers.filter_observation import FilterObservation
 from gym.wrappers.flatten_observation import FlattenObservation
 from gym.wrappers.time_limit import TimeLimit
-from stable_baselines3 import DDPG, TD3, HerReplayBuffer, PPO
+from stable_baselines3 import A2C, DDPG, SAC, TD3, HerReplayBuffer, PPO, DQN
 from stable_baselines3.common.callbacks import BaseCallback, EveryNTimesteps
 from stable_baselines3.common.logger import Figure
 from tensorboard import program
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     env = DiscreteActions(env)
 
     if env.observation_space.dtype.name == 'float32' :
-        model = PPO(
+        model = DQN(
         'MlpPolicy',
         env,
         tensorboard_log=TENSORBOARD_LOGS_DIR,
@@ -119,11 +119,6 @@ if __name__ == "__main__":
     url = tb.launch()
     print(f"Tensorboard listening on {url}")
 
-    # Show the random agent
-
-    # showAgent(env, model)
-
-    # model = PPO.load("PPO_goddard")
     # Train the agent
     TRAINING_TIMESTEPS = 5e5
 
