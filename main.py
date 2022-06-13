@@ -8,8 +8,11 @@ from datetime import datetime
 
 import numpy as np
 from genericpath import exists
+
 from gym.wrappers.filter_observation import FilterObservation
 from gym.wrappers.flatten_observation import FlattenObservation
+from gym.wrappers.record_video import RecordVideo
+
 from gym.wrappers.time_limit import TimeLimit
 from stable_baselines3 import A2C, DDPG, SAC, TD3, HerReplayBuffer, PPO, DQN
 from stable_baselines3.common.callbacks import BaseCallback, EveryNTimesteps
@@ -21,8 +24,6 @@ from rocket_env import Rocket, Rocket1D
 
 def showAgent(env, model):
     # Show the trained agent
-    # env = model.get_env()
-
     obs = env.reset()
     env.render(mode="human")
     done = False
