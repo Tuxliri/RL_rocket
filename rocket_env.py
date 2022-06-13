@@ -46,7 +46,7 @@ class Rocket(Env):
         # Actuators bounds
         self.maxGimbal = np.deg2rad(20)     # [rad]
         self.maxThrust = 981e3              # [N]
-        self.minThrust = 0.4*981e3          # [N]
+        self.minThrust = 0.4*self.maxThrust # [N]
         self.dryMass = 25.6e3               # [kg]
 
         # Define observation space

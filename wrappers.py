@@ -6,7 +6,7 @@ class DiscreteActions(gym.ActionWrapper):
     def __init__(
         self,
         env,
-        disc_to_cont= [np.array([0]), np.array([1])]
+        disc_to_cont= [np.array([-1]), np.array([1])]
         ):
         super().__init__(env)
         self.disc_to_cont = disc_to_cont
