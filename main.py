@@ -64,7 +64,7 @@ def make1Drocket():
 
     env = Rocket(initialConditions, initialConditionsRange,
                  0.1, render_mode="None")
-    env = Rocket1D(env, distanceThreshold=500)
+    env = Rocket1D(env, distanceThreshold=100)
     env = TimeLimit(env, max_episode_steps=400)
 
     return env
@@ -86,6 +86,11 @@ if __name__ == "__main__":
     env = make1Drocket()
     env = FlattenObservation(FilterObservation(env, ['observation']))
     env = DiscreteActions(env)
+
+    import pygame
+    from gym.utils.play import play
+    mapping = {(pygame.K_DOWN,): 0, (pygame.K_UP,): 1}
+    play(env, keys_to_action=mapping)
 
     if env.observation_space.dtype.name == 'float32' :
         model = DQN(
