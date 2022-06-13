@@ -22,7 +22,7 @@ class Rocket(Env):
         two axis """
 
     metadata = {"render_modes": [
-        "human", "rgb_array", "plot"], "render_fps": 40}
+        "human", "rgb_array"], "render_fps": 40}
 
     def __init__(
         self,
@@ -75,11 +75,6 @@ class Rocket(Env):
         self.window = None
         self.clock = None
 
-        # The following line uses the util class Renderer to gather a collection of frames
-        # using a method that computes a single frame. We will define _render_frame below.
-        # ???WHERE IS THIS Renderer utils function???
-        #self.renderer = Renderer(render_mode, self._render_frame)
-
     def step(self, action):
 
         u = self._denormalizeAction(action)
@@ -100,13 +95,13 @@ class Rocket(Env):
     def _checkTerminal(self, state):
         """
         massCheck : check that the current stage mass is greater than the dryMass
-        heightCheck : check that we have not reached ground
+        touchdown : check if the rocket has reached ground
         """
 
         massCheck = 0*(self.y[6] <= self.dryMass)
-        heightCheck = (self.y[1] <= 0)
+        touchdown = (self.y[1] <= 0)
 
-        return bool(heightCheck or massCheck)
+        return bool(touchdown or massCheck)
 
     def render(self, mode="human"):
         if (self.window is None) and mode is "human":
@@ -226,7 +221,7 @@ class Rocket(Env):
 
 
 class Rocket1D(GoalEnv, gym.Wrapper):
-    def __init__(self, env: Env, rewardType='sparse', distanceThreshold=5) -> None:
+    def __init__(self, env: Env, rewardType='sparse', distanceThreshold=50) -> None:
         super().__init__(env)
         self.env = env
         self.observation_space = spaces.Dict({'observation': spaces.Box(
@@ -269,8 +264,8 @@ class Rocket1D(GoalEnv, gym.Wrapper):
 
         rew = 0
 
-        if done is True:
-            rew = self.compute_reward(obs, self.desired_goal, {})
+        #if done is True:
+        rew = self.compute_reward(obs, self.desired_goal, {})
 
         observation = dict({
             'observation': obs,
@@ -302,7 +297,7 @@ class Rocket1D(GoalEnv, gym.Wrapper):
         d = self.goal_distance(achieved_goal, desired_goal)
 
         if self.rewardType == 'sparse':
-            return -(d > self.distanceThreshold).astype(np.float32)
+            return (d < self.distanceThreshold).astype(np.float32)
         else:
             return -d
 
