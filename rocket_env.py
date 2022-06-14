@@ -6,7 +6,6 @@ from turtle import distance
 import numpy as np
 import gym
 from gym import spaces, Env, GoalEnv
-from gym.wrappers.time_limit import TimeLimit
 
 from simulator import Simulator3DOF
 
@@ -22,13 +21,13 @@ class Rocket(Env):
         two axis """
 
     metadata = {"render_modes": [
-        "human", "rgb_array"], "render_fps": 10}
+        "human", "rgb_array"], "render_fps" : 5}
 
     def __init__(
         self,
         IC,
         ICRange,
-        timestep=0.5,
+        timestep=0.1,
         render_mode="human"
     ) -> None:
 
@@ -46,8 +45,8 @@ class Rocket(Env):
         # Actuators bounds
         self.maxGimbal = np.deg2rad(20)     # [rad]
         self.maxThrust = 981e3              # [N]
-        self.minThrust = 0.4*self.maxThrust # [N]
-        self.dryMass = 25.6e3               # [kg]
+        # self.minThrust = 0.4*self.maxThrust # [N]
+        
 
         # Define observation space
         self.observation_space = spaces.Box(
@@ -79,31 +78,20 @@ class Rocket(Env):
 
         u = self._denormalizeAction(action)
 
-        self.y, info, isterminal = self.SIM.step(u)
+        self.y, states_derivatives_history, isterminal = self.SIM.step(u)
 
         reward = - self.SIM.t
 
         # Done if the rocket is at ground
-        done = (isterminal or self._checkTerminal(self.y.astype(np.float32)))
+        done = bool(isterminal)
 
         assert done is not bool, "done is not of type bool!"
 
         obs = self.y.astype(np.float32)
 
-        return obs, reward, done, info
+        return obs, reward, done, states_derivatives_history
 
-    def _checkTerminal(self, state):
-        """
-        massCheck : check that the current stage mass is greater than the dryMass
-        touchdown : check if the rocket has reached ground
-        """
-
-        massCheck = 0*(self.y[6] <= self.dryMass)
-        touchdown = (self.y[1] <= 0)
-
-        return bool(touchdown or massCheck)
-
-    def render(self, mode="human"):
+    def render(self, mode : str="human"):
         import pygame  # import here to avoid pygame dependency with no render
 
         if (self.window is None) and mode is "human":
@@ -113,8 +101,10 @@ class Rocket(Env):
                 (self.window_size, self.window_size))
             self.clock = pygame.time.Clock()
 
-         # The number of pixels per each meter
-        step_size = self.window_size / MAX_SIZE_RENDER
+         
+        # The number of pixels per each meter
+        MAX_HEIGHT = 1.1 * self.ICMean[1]
+        step_size = self.window_size / MAX_HEIGHT
 
         # position of the CoM of the rocket
         agent_location = self.y[0:2] * step_size
@@ -139,6 +129,7 @@ class Rocket(Env):
         image = pygame.image.load("rocket.png")
         h = image.get_height()
         w = image.get_width()
+        # pygame.transform.scale(image, )
 
         # Draw on a canvas surface
         canvas = pygame.Surface((self.window_size, self.window_size))
@@ -157,7 +148,7 @@ class Rocket(Env):
 
             # We need to ensure that human-rendering occurs at the predefined framerate.
             # The following line will automatically add a delay to keep the framerate stable.
-            self.clock.tick(self.metadata["render_fps"])
+            self.clock.tick(1/self.timestep)
 
             return None
 

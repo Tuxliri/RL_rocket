@@ -5,22 +5,26 @@
 import os
 import sys
 from datetime import datetime
+import time
 
 import numpy as np
 from genericpath import exists
 
 from gym.wrappers.filter_observation import FilterObservation
 from gym.wrappers.flatten_observation import FlattenObservation
-from gym.wrappers.record_video import RecordVideo
 
 from gym.wrappers.time_limit import TimeLimit
-from stable_baselines3 import A2C, DDPG, SAC, TD3, HerReplayBuffer, PPO, DQN
+from stable_baselines3 import A2C, DDPG, SAC, TD3, PPO, DQN, HerReplayBuffer
 from stable_baselines3.common.callbacks import BaseCallback, EveryNTimesteps
 from stable_baselines3.common.logger import Figure
 from tensorboard import program
 
-from rocket_env import Rocket, Rocket1D
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
+from stable_baselines3.common.utils import set_random_seed
+from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.env_util import make_vec_env
 
+from rocket_env import Rocket, Rocket1D
 
 def showAgent(env, model):
     # Show the trained agent
@@ -60,21 +64,25 @@ class FigureRecorderCallback(BaseCallback):
 
 
 def make1Drocket():
+    from wrappers import DiscreteActions
+
     initialConditions = np.float32([500, 3e3, np.pi/2, 0, -300, 0, 30e3])
     initialConditionsRange = np.zeros_like(initialConditions)
 
     env = Rocket(initialConditions, initialConditionsRange,
-                 0.1, render_mode="None")
+                 timestep = 0.1, render_mode="None")
     env = Rocket1D(env, distanceThreshold=100)
-    env = TimeLimit(env, max_episode_steps=400)
+    env = TimeLimit(env, max_episode_steps=4000)
+    env = FlattenObservation(FilterObservation(env, ['observation']))
+    env = DiscreteActions(env)
 
     return env
 
 
 if __name__ == "__main__":
 
+    # Register the environment
     from gym.envs.registration import register
-    from wrappers import DiscreteActions
     register(
         'Falcon-v0',
         entry_point='main:make1Drocket',
@@ -83,17 +91,18 @@ if __name__ == "__main__":
 
     # Choose the folder to store tensorboard logs
     TENSORBOARD_LOGS_DIR = "RL_tests/my_environment/logs"
+    
 
-    env = make1Drocket()
-    env = FlattenObservation(FilterObservation(env, ['observation']))
-    env = DiscreteActions(env)
+    # TEST vec env speed
+    # By default, we use a DummyVecEnv as it is usually faster (cf doc)
+    num_cpu = 8
+    env_id = "Falcon-v0"
+    vec_env = make_vec_env(env_id, n_envs=num_cpu)
 
-    import pygame
-    from gym.utils.play import play
-    mapping = {(pygame.K_DOWN,): 0, (pygame.K_UP,): 1}
-    play(env, keys_to_action=mapping)
+    model = A2C('MlpPolicy', vec_env, verbose=0)
 
-    if env.observation_space.dtype.name == 'float32' :
+
+    if vec_env.observation_space.dtype.name == 'float32' :
         model = DQN(
         'MlpPolicy',
         env,
@@ -126,13 +135,16 @@ if __name__ == "__main__":
     print(f"Tensorboard listening on {url}")
 
     # Train the agent
-    TRAINING_TIMESTEPS = 5e5
+    TRAINING_TIMESTEPS = 5e6
 
     model.learn(
         total_timesteps=TRAINING_TIMESTEPS,
         callback=EveryNTimesteps(
             n_steps=TRAINING_TIMESTEPS/10, callback=FigureRecorderCallback())
     )
+
+    # Load the model
+    showAgent(vec_env, model)
 
     # Save the agent in the 'models' folder
     date = datetime.now()
@@ -146,5 +158,3 @@ if __name__ == "__main__":
 
     model.save(os.path.join(savefolder, filename))
 
-    # Load the model
-    showAgent(env, model)

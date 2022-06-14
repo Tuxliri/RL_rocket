@@ -17,6 +17,13 @@ class Simulator3DOF():
         self.timestep = dt
         self.t = 0
         self.state = IC                     # state is in GLOBAL COORDINATES
+                                            # state[0] : x axis position
+                                            # state[1] : y axis position
+                                            # state[2] : attitude angle
+                                            # state[3] : x axis velocity
+                                            # state[4] : y axis velocity
+                                            # state[5] : angular velocity
+                                            # state[6] : rocket mass
 
         self.states = [IC]
         self.actions = []
@@ -26,11 +33,12 @@ class Simulator3DOF():
         self.g0 = 9.81
 
         # Define rocket properties
-        self.m = 45000                      # rocket initial mass
+        self.m = 45e3                       # rocket initial mass [kg]
         self.Cdalfa = 2                     # drag coefficient [-]
         self.Cnalfa = 1                     # normal force coefficient [-]
         self.I = 6.04e6                     # inertia moment [kg*m^2]
         self.Isp = 360                      # Specific impulse [s]
+        self.dryMass = 25.6e3               # dry mass of the stage [kg]
 
         # Geometric properties NB: REDEFINE THEM FROM THE TIP OF THE BOOSTER!! (or change torque equation in RHS)
         self.x_CG = 10                      # Center of gravity [m]
@@ -39,22 +47,27 @@ class Simulator3DOF():
         self.x_PVP = 0                      # Thrust gimbal point [m]
         self.x_T = 40
 
-        pass
+        return None
 
     def step(self, u):
 
         if self.dynamics == 'std3DOF':
-            def _event(t, y):
+            def _height_event(t, y):
                 return y[1]
 
+            def _mass_event(t, y):
+                return y[6]-self.dryMass
+
+
             # RK integration
-            _event.terminal = True
+            _height_event.terminal = True
+            _mass_event.terminal = True
 
             solution = solve_ivp(
                 fun=lambda t, y: self.RHS(t, y, u),
                 t_span=[self.t, self.t+self.timestep],
                 y0=self.state,
-                events=_event
+                events=[_height_event, _mass_event]
             )
 
             self.state = np.array([var[-1] for var in solution.y])
@@ -194,7 +207,7 @@ class Simulator3DOF():
 
         #line4, = ax.plot(vxs, label='Cross velocity (v_x)')
         line5, = ax.plot(vzs, label='Vertical velocity (v_z)')
-        #line6, = ax.plot(mass, label='mass')
+        line6, = ax.plot(mass, label='mass')
 
         ax.legend()
 
