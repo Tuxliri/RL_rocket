@@ -136,6 +136,13 @@ class Rocket(Env):
         canvas.fill((255, 255, 255))
         image.set_colorkey((246, 246, 246))
 
+        font = pygame.font.SysFont(None, 16)
+
+        stringToDisplay = f"height: {self.y[1]:5.1f}  Speed: {self.y[4]:4.1f} Time: {self.SIM.t:4.1f}"
+
+        img = font.render(stringToDisplay, True, (0,0,0))
+        canvas.blit(img, (20, 20))
+
         blitRotate(canvas, image, tuple(
             agent_location), (w/2, h/2), angleDeg)
         if mode == "human":
