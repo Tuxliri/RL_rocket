@@ -7,9 +7,9 @@ import numpy as np
 import gym
 from gym import spaces, Env, GoalEnv
 
-from simulator import Simulator3DOF
+from my_environment.utils.simulator import Simulator3DOF
 
-from renderer_utils import blitRotate
+from my_environment.utils.renderer_utils import blitRotate
 
 MAX_SIZE_RENDER = 10e3      # Max size in meters of the rendering window
 
@@ -28,6 +28,7 @@ class Rocket(Env):
         IC,
         ICRange,
         timestep=0.1,
+        maxTime=300,
         render_mode="human"
     ) -> None:
 
@@ -37,6 +38,7 @@ class Rocket(Env):
         self.ICMean = IC
         self.ICRange = ICRange  # +- range
         self.timestep = timestep
+        self.maxTime = maxTime
 
         # Initial condition space
         self.init_space = spaces.Box(low=self.ICMean-self.ICRange/2,
@@ -45,7 +47,6 @@ class Rocket(Env):
         # Actuators bounds
         self.maxGimbal = np.deg2rad(20)     # [rad]
         self.maxThrust = 981e3              # [N]
-        # self.minThrust = 0.4*self.maxThrust # [N]
         
 
         # Define observation space
@@ -61,6 +62,7 @@ class Rocket(Env):
         # Environment state variable and simulator object
         self.y = None
         self.SIM = None
+        self.action = np.array([0. , 0.])
 
         # Renderer variables (pygame)
         self.window_size = 900  # The size of the PyGame window
@@ -77,19 +79,21 @@ class Rocket(Env):
     def step(self, action):
 
         u = self._denormalizeAction(action)
+        self.action = u
 
-        self.y, states_derivatives_history, isterminal = self.SIM.step(u)
+        self.y, __, isterminal, currentTime = self.SIM.step(u)
 
-        reward = - self.SIM.t
+        reward = 0
 
         # Done if the rocket is at ground
-        done = bool(isterminal)
+        done = bool(isterminal) or currentTime>self.maxTime
 
         assert done is not bool, "done is not of type bool!"
 
+        info = {'isTruncated' : currentTime>self.maxTime}
         obs = self.y.astype(np.float32)
 
-        return obs, reward, done, states_derivatives_history
+        return obs, reward, done, info
 
     def render(self, mode : str="human"):
         import pygame  # import here to avoid pygame dependency with no render
@@ -136,7 +140,7 @@ class Rocket(Env):
         canvas.fill((255, 255, 255))
         image.set_colorkey((246, 246, 246))
 
-        font = pygame.font.SysFont(None, 16)
+        font = pygame.font.SysFont(None, 24)
 
         stringToDisplay = f"height: {self.y[1]:5.1f}  Speed: {self.y[4]:4.1f} Time: {self.SIM.t:4.1f}"
 
@@ -166,8 +170,8 @@ class Rocket(Env):
     def plotStates(self, showFig):
         fig1, fig2 = self.SIM._plotStates(showFig)
         return (fig1, fig2)
-
-    def close(self) -> None:
+    
+    def close(self, showPlots : bool = False) -> None:
         if self.window is not None:
             import pygame
 
@@ -175,7 +179,7 @@ class Rocket(Env):
             pygame.quit()
             self.isopen = False
 
-        self.plotStates()
+        self.plotStates(showPlots)
         pass
 
     def reset(self):
@@ -208,13 +212,20 @@ class Rocket(Env):
         # Add lower bound on thrust with self.minThrust
         return np.float32([gimbal, thrust])
 
-    def plotStates(self, showFig):
+    def plotStates(self, showFig : bool = False):
         fig1, fig2 = self.SIM._plotStates(showFig)
         return (fig1, fig2)
 
 
 class Rocket1D(GoalEnv, gym.Wrapper):
-    def __init__(self, env: Env, rewardType='sparse', distanceThreshold=5) -> None:
+    def __init__(
+        self,
+        env: Env,
+        rewardType='shaped_terminal',
+        goalThreshold=5,
+        velocityThreshold=5
+        ) -> None:
+
         super().__init__(env)
         self.env = env
         self.observation_space = spaces.Dict({'observation': spaces.Box(
@@ -247,18 +258,35 @@ class Rocket1D(GoalEnv, gym.Wrapper):
 
         self.desired_goal = np.float32([0, 0])
         self.rewardType = rewardType
-        self.distanceThreshold = distanceThreshold
+        self.goalThreshold = goalThreshold
+        self.velocityThreshold = velocityThreshold
 
     def step(self, thrust):
 
         action = np.float32([0.0, thrust[0]])
         obs, rew, done, info = self.env.step(action)
-        obs = self._modify_obs(obs)
+        obs = self._shrink_obs(obs)
 
-        rew = 0
+        rew = - 0.1*self.env.SIM.t
 
-        #if done is True:
-        rew = self.compute_reward(obs, self.desired_goal, {})
+        if self.rewardType == 'shaped_terminal':
+            if done:
+                rew = 50 - np.linalg.norm(obs)
+
+        elif self.rewardType == 'sparse_terminal':
+            if done:
+                rew = float(np.linalg.norm(obs) < self.velocityThreshold)
+
+        elif self.rewardType == 'shaped_landing':
+            rew -= (np.linalg.norm(obs) + 0.1)
+
+        elif self.rewardType == 'hovering':
+            rew -= np.abs(obs[1])
+
+        if info['isTruncated']:
+            rew -= 500
+        # Test for PPO only, possibly breaking HER compatibility
+        # rew = self.compute_reward(obs, self.desired_goal, {})
 
         observation = dict({
             'observation': obs,
@@ -270,7 +298,7 @@ class Rocket1D(GoalEnv, gym.Wrapper):
 
     def reset(self):
         obs_full = self.env.reset()
-        obs = self._modify_obs(obs_full)
+        obs = self._shrink_obs(obs_full)
 
         observation = dict({
             'observation': obs,
@@ -280,7 +308,7 @@ class Rocket1D(GoalEnv, gym.Wrapper):
 
         return observation
 
-    def _modify_obs(self, obs_original):
+    def _shrink_obs(self, obs_original):
 
         height, velocity = obs_original[1], obs_original[4]
         return np.float32([height, velocity])
@@ -290,21 +318,10 @@ class Rocket1D(GoalEnv, gym.Wrapper):
         d = self.goal_distance(achieved_goal, desired_goal)
 
         if self.rewardType == 'sparse':
-            return (d < self.distanceThreshold).astype(np.float32)
+            return (d < self.goalThreshold).astype(np.float32)
         else:
             return -d
 
     def goal_distance(self, goal_a, goal_b):
         assert goal_a.shape == goal_b.shape
         return np.linalg.norm(goal_a - goal_b, axis=-1)
-
-    def close(self) -> None:
-        if self.window is not None:
-            import pygame
-
-            pygame.display.quit()
-            pygame.quit()
-            self.isopen = False
-
-        self.plotStates()
-        pass

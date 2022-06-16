@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 
 
 class Simulator3DOF():
-    def __init__(self, IC, dt=0.5, dynamics='std3DOF') -> None:
+    def __init__(self, IC, dt=0.5, dynamics='std3DOF', constantMass = True) -> None:
         super(Simulator3DOF, self).__init__()
 
         self.dynamics = dynamics
@@ -29,6 +29,10 @@ class Simulator3DOF():
         self.actions = []
         self.derivatives = []
 
+        # Define a parameter to simulate or not mass depletion
+        self.constantMass = constantMass
+
+        # Define height treshold
         # Define environment properties
         self.g0 = 9.81
 
@@ -83,7 +87,7 @@ class Simulator3DOF():
         self.states.append(self.state)
         self.actions.append(u)
 
-        return self.state, {'states': self.states, 'derivatives': self.derivatives}, solution.status
+        return self.state, {'states': self.states, 'derivatives': self.derivatives}, solution.status, self.t
 
     def RHS(self, t, state, u):
         """ 
@@ -123,7 +127,11 @@ class Simulator3DOF():
         dom = (N*(self.x_CG - self.x_CP) - T*np.sin(delta)
                * (self.x_T - self.x_CG))/self.I
 
-        dm = -T/(self.Isp*self.g0)
+        if self.constantMass:
+            dm = 0
+
+        else:
+            dm = -T/(self.Isp*self.g0)
 
         dstate = np.array([vx, vz, om, ax, ay, dom, dm])
 
@@ -207,7 +215,8 @@ class Simulator3DOF():
 
         #line4, = ax.plot(vxs, label='Cross velocity (v_x)')
         line5, = ax.plot(vzs, label='Vertical velocity (v_z)')
-        line6, = ax.plot(mass, label='mass')
+        if not self.constantMass:
+            line6, = ax.plot(mass, label='mass')
 
         ax.legend()
 
