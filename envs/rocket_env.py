@@ -82,16 +82,24 @@ class Rocket(Env):
         self.action = u
 
         self.y, __, isterminal, currentTime = self.SIM.step(u)
-
-        reward = 0
+        obs = self.y.astype(np.float32)
 
         # Done if the rocket is at ground
         done = bool(isterminal) or currentTime>self.maxTime
 
         assert done is not bool, "done is not of type bool!"
 
+        reward = 0
+        
+        if done:
+            posNorm = np.linalg.norm(obs[0:2])
+            velNorm = np.linalg.norm(obs[3:5])
+            angle = obs[2]
+
+            reward = 50 - posNorm - velNorm #- angle NO ANGLE FOR NOW
+
         info = {'isTruncated' : currentTime>self.maxTime}
-        obs = self.y.astype(np.float32)
+        
 
         return obs, reward, done, info
 
@@ -267,8 +275,7 @@ class Rocket1D(GoalEnv, gym.Wrapper):
         obs, rew, done, info = self.env.step(action)
         obs = self._shrink_obs(obs)
 
-        rew = - 0.1*self.env.SIM.t
-
+        rew = 0
         if self.rewardType == 'shaped_terminal':
             if done:
                 rew = 50 - np.linalg.norm(obs)
