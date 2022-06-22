@@ -118,9 +118,12 @@ class Rocket(Env):
         MAX_HEIGHT = 1.1 * self.ICMean[1]
         step_size = self.window_size / MAX_HEIGHT
 
+        SHIFT_RIGHT = self.window_size/2
+
         # position of the CoM of the rocket
         agent_location = self.y[0:2] * step_size
 
+        agent_location[0] = agent_location[0] + SHIFT_RIGHT
         agent_location[1] = self.window_size - agent_location[1]
         """
         Since the 0 in pygame is in the TOP-LEFT corner, while the
@@ -164,7 +167,8 @@ class Rocket(Env):
 
         # Draw on a canvas surface
         canvas = pygame.Surface((self.window_size, self.window_size))
-        canvas.fill((255, 255, 255))
+        backgroundColour = (255, 255, 255)
+        canvas.fill(backgroundColour)
         image.set_colorkey((246, 246, 246))
 
         pygame.font.init()
@@ -183,7 +187,7 @@ class Rocket(Env):
 
         # Draw a rectangle at the landing pad
         landing_pad = pygame.Rect(0,0,30,30)
-        landing_pad_x = 0
+        landing_pad_x = 0 + SHIFT_RIGHT
 
         landing_pad.center=(landing_pad_x,self.window_size)
 
@@ -192,7 +196,7 @@ class Rocket(Env):
         if mode == "human":
             assert self.window is not None
             # Draw the image on the screen and update the window
-            self.window.blit(canvas, (0, 0))
+            self.window.blit(canvas, dest=(0,0))
 
             pygame.event.pump()
             pygame.display.update()
