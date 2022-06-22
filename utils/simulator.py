@@ -1,9 +1,8 @@
 # In this file the dynamics are simulated using
 # different kind of simulators. A 3DOF simulator,
 # a linearized 3DOF and a 6DOF simulink simulator
-from cProfile import label
 import numpy as np
-from scipy.integrate import RK45, solve_ivp
+from scipy.integrate import solve_ivp
 from math import fmod
 
 from matplotlib import pyplot as plt
@@ -26,8 +25,9 @@ class Simulator3DOF():
                                             # state[6] : rocket mass
 
         self.states = [IC]
-        self.actions = []
+        self.actions = [[0,0]]
         self.derivatives = []
+        self.times = [0]
 
         # Define a parameter to simulate or not mass depletion
         self.constantMass = constantMass
@@ -213,7 +213,7 @@ class Simulator3DOF():
         for action in self.actions:
             gimbals.append(action[0])
             thrusts.append(action[1])
-
+            
 
         line1, = ax.plot(timesteps, downranges, label='Downrange (x)')
         line2, = ax.plot(timesteps, heights, label='Height (y)')
