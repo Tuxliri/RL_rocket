@@ -41,6 +41,6 @@ class DiscreteActions3DOF(gym.ActionWrapper):
 
     def get_keys_to_action(self):
         import pygame
-        mapping = {(pygame.K_LEFT,): 8, (pygame.K_RIGHT,): 2,
+        mapping = {(pygame.K_LEFT,): 2, (pygame.K_RIGHT,): 8,
             (pygame.K_UP,): 5, (pygame.K_MODE,): 3}
         return mapping
