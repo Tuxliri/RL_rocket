@@ -76,7 +76,9 @@ class Simulator3DOF():
 
             self.state = np.array([var[-1] for var in solution.y])
 
-            self.t += self.timestep
+            self.t = round(self.t+self.timestep,3)
+            
+            self.times.append(self.t)
 
             self.state[2] = self._wrapTo2Pi(self.state[2])
 
