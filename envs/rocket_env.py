@@ -176,6 +176,15 @@ class Rocket(Env):
 
         blitRotate(canvas, image, tuple(
             agent_location), (w/2, h/2), angleDeg)
+
+        # Draw a rectangle at the landing pad
+        landing_pad = pygame.Rect(0,0,30,30)
+        landing_pad_x = 0
+
+        landing_pad.center=(landing_pad_x,self.window_size)
+
+        pygame.draw.rect(canvas, (255,0,0), landing_pad)
+
         if mode == "human":
             assert self.window is not None
             # Draw the image on the screen and update the window
