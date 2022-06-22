@@ -195,8 +195,11 @@ class Simulator3DOF():
         oms = []
         mass = []
         thrusts = []
+        gimbals = []
 
         fig, ax = plt.subplots()
+
+        timesteps = self.times
 
         for state in self.states:
             downranges.append(state[0])
@@ -208,23 +211,25 @@ class Simulator3DOF():
             mass.append(state[6])
 
         for action in self.actions:
-            # Improvement: allow logging of both thrust and gimbaling
+            gimbals.append(action[0])
             thrusts.append(action[1])
 
-        line1, = ax.plot(downranges, label='Downrange (x)')
-        line2, = ax.plot(heights, label='Height (y)')
-        line3, = ax.plot(ths, label='phi')
+
+        line1, = ax.plot(timesteps, downranges, label='Downrange (x)')
+        line2, = ax.plot(timesteps, heights, label='Height (y)')
+        line3, = ax.plot(timesteps, ths, label='phi')
 
         #line4, = ax.plot(vxs, label='Cross velocity (v_x)')
-        line5, = ax.plot(vzs, label='Vertical velocity (v_z)')
+        line5, = ax.plot(timesteps, vzs, label='Vertical velocity (v_z)')
         if not self.constantMass:
-            line6, = ax.plot(mass, label='mass')
+            line6, = ax.plot(timesteps, mass, label='mass')
 
         ax.legend()
 
         fig2, ax2 = plt.subplots()
-        __, = ax2.plot(thrusts, label='Thrust (N)')
-        ax.legend()
+        __, = ax2.plot(timesteps, thrusts, label='Thrust (kN)')
+        __, = ax2.plot(timesteps,gimbals, label='Gimbals (rad)')
+        ax2.legend()
 
         if VISIBLE:
             plt.show(block=False)
