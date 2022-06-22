@@ -21,14 +21,14 @@ class Rocket(Env):
         two axis """
 
     metadata = {"render_modes": [
-        "human", "rgb_array"], "render_fps" : 5}
+        "human", "rgb_array"], "render_fps" : 10}
 
     def __init__(
         self,
         IC,
         ICRange,
         timestep=0.1,
-        maxTime=300,
+        maxTime=30,
         render_mode="human"
     ) -> None:
 
@@ -90,13 +90,21 @@ class Rocket(Env):
         assert done is not bool, "done is not of type bool!"
 
         reward = 0
-        
-        if done:
-            posNorm = np.linalg.norm(obs[0:2])
-            velNorm = np.linalg.norm(obs[3:5])
-            angle = obs[2]
+        dist_norm = np.linalg.norm(obs[0:2])/np.linalg.norm(self.ICMean[0:2])
 
-            reward = 50 - posNorm - velNorm #- angle NO ANGLE FOR NOW
+        reward = 0.1*(1-dist_norm)
+
+        if done:    
+            velNorm = np.linalg.norm(obs[3:5])
+            reward = (1 + 5*np.exp(-velNorm/10.) + np.exp(-np.abs(obs[0])/10.))
+
+        # TERMINAL REWARD
+        # if done:
+        #     posNorm = np.linalg.norm(obs[0:2])
+        #     velNorm = np.linalg.norm(obs[3:5])
+        #     angle = obs[2]
+
+        #     reward = 50 - posNorm - velNorm #- angle NO ANGLE FOR NOW
 
         info = {'isTruncated' : currentTime>self.maxTime}
         
