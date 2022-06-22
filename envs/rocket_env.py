@@ -167,12 +167,16 @@ class Rocket(Env):
         canvas.fill((255, 255, 255))
         image.set_colorkey((246, 246, 246))
 
+        pygame.font.init()
         font = pygame.font.SysFont(None, 24)
 
-        stringToDisplay = f"height: {self.y[1]:5.1f}  Speed: {self.y[4]:4.1f} Time: {self.SIM.t:4.1f}"
+        stringToDisplay1 = f"x: {self.y[0]:5.1f}  y: {self.y[1]:4.1f} Angle: {self.y[2]:4.1f}"
+        stringToDisplay2 = f"vx: {self.y[3]:5.1f}  vy: {self.y[4]:4.1f} Time: {self.SIM.t:4.1f} Action: {np.array2string(self.action,precision=2)}"
 
-        img = font.render(stringToDisplay, True, (0,0,0))
-        canvas.blit(img, (20, 20))
+        img1 = font.render(stringToDisplay1, True, (0,0,0))
+        img2 = font.render(stringToDisplay2, True, (0,0,0))
+        canvas.blit(img1, (20, 20))
+        canvas.blit(img2, (20, 40))
 
         blitRotate(canvas, image, tuple(
             agent_location), (w/2, h/2), angleDeg)
