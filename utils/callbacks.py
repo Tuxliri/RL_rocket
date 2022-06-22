@@ -8,18 +8,18 @@ class FigureRecorderCallback(BaseCallback):
 
     def _on_step(self) -> bool:
         return super()._on_step()
-        
+
     def _on_rollout_end(self) -> None:
         showFig = False
         # [0] needed as the method returns a list containing the tuple of figures
-        states_fig, thrust_fig = self.training_env.env_method("plotStates", showFig)[
+        states_fig, action_fig = self.training_env.env_method("plotStates", showFig)[
             0]
 
         # Close the figure after logging it
 
         self.logger.record("States", Figure(states_fig, close=True),
                            exclude=("stdout", "log", "json", "csv"))
-        self.logger.record("Thrust", Figure(thrust_fig, close=True),
+        self.logger.record("Thrust", Figure(action_fig, close=True),
                            exclude=("stdout", "log", "json", "csv"))
 
         return super()._on_rollout_end()
