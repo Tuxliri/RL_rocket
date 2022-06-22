@@ -141,6 +141,25 @@ class Rocket(Env):
         image = pygame.image.load("rocket.png")
         h = image.get_height()
         w = image.get_width()
+
+        # Extend the surface, add arrow
+        if self.action[1]>0:
+            old_image = image
+            image = pygame.Surface(
+                (image.get_width(), image.get_height()+20))
+            image.fill((255,255,255))
+            image.blit(old_image,(0,0))
+
+            start_pos = (w/2,h)
+            gimbalRad = self.action[0]
+
+            thrustArrowLength = 20
+            end_pos = (
+                w/2+thrustArrowLength*np.sin(gimbalRad),
+                h+thrustArrowLength*np.cos(gimbalRad)
+                )
+            pygame.draw.line(image, (255,0,0), start_pos=start_pos, end_pos=end_pos)
+
         # pygame.transform.scale(image, )
 
         # Draw on a canvas surface
