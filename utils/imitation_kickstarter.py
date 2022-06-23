@@ -98,3 +98,60 @@ def heuristic(env : Rocket, s):
         
     return a
 
+class RecordTrajectoryCallback():
+    def __init__(self) -> None:
+        self.trajectories = []  # List of recorded trajectories containig tuples (obs, acts)
+        self.trajectoryObs = []
+        self.trajectoryAct = []
+        self.trajectoryInfos = []
+        self.numTrajectories = 0
+        
+        pass
+
+    def callback(
+        self,
+        obs_t,
+        obs_tp1,
+        action,
+        rew,
+        done: bool,
+        info: dict,
+    ):
+        self.trajectoryObs.append(obs_t)
+        self.trajectoryAct.append(action)
+        self.trajectoryInfos.append(info)
+
+        if done:
+            self.trajectoryObs.append(obs_tp1)
+            
+            self.trajectories.append(
+                (np.array(self.trajectoryObs),
+                np.array(self.trajectoryAct),
+                self.trajectoryInfos,
+                True) # Terminal flag
+                )
+            self.trajectoryObs, self.trajectoryAct, self.trajectoryInfos = [], [], []
+
+            self.numTrajectories += 1
+        pass
+
+    def returnTrajectories(self):
+        from imitation.data.types import Trajectory
+
+        imitationTrajectories = []
+
+        for traj in self.trajectories:
+            observations, actions, infos, isterminal = traj
+            
+            assert observations.shape[0] == actions.shape[0]+1,\
+                f"There needs to be {actions.shape[0]+1} observations"\
+                    " but there are {observations.shape[0]}"
+                    
+            imitationTrajectories.append(Trajectory(
+                observations,
+                actions,
+                infos,
+                terminal=isterminal)
+                )
+
+        return imitationTrajectories
