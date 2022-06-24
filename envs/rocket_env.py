@@ -265,7 +265,78 @@ class Rocket(Env):
         return np.float32([gimbal, thrust])
 
     def plotStates(self, showFig : bool = False):
-        fig1, fig2 = self.SIM._plotStates(showFig)
+        import matplotlib.pyplot as plt
+
+        heights = []
+        downranges = []
+        ths = []
+        vxs = []
+        vzs = []
+        oms = []
+        mass = []
+        thrusts = []
+        gimbals = []
+        timesteps = self.SIM.times
+
+        fig1, ax1 = plt.subplots()
+        ax1_1 = ax1.twinx()
+        
+
+        for state in self.SIM.states:
+            downranges.append(state[0])
+            heights.append(state[1])
+            ths.append(state[2])
+            vxs.append(state[3])
+            vzs.append(state[4])
+            oms.append(state[5])
+            mass.append(state[6])
+
+        __, = ax1.plot(timesteps, downranges, label='Downrange (x)')
+        __, = ax1.plot(timesteps, heights, label='Height (y)')
+        line_theta, = ax1_1.plot(timesteps, ths,'b-')
+        
+        # __, = ax1.plot(vxs, label='Cross velocity (v_x)')
+        __, = ax1.plot(timesteps, vzs, label='Vertical velocity (v_z)')
+        
+        if not self.SIM.constantMass:
+            __, = ax1.plot(timesteps, mass, label='mass')
+
+        if self.infos[-1]["TimeLimit.truncated"]:
+            ax1.text(0,0,'Truncated episode')
+
+        elif self.infos[-1]["EpisodeDone"]:
+            ax1.text(0,0,'Terminated episode')
+        
+        else:
+            ax1.text(0,0,'NOT-truncated episode')
+
+        ax1.legend()
+        ax1_1.set_ylabel('theta',color='b')
+        ax1_1.tick_params('y', colors='b')
+        ax1.set_xlabel('Time [s]')
+
+        # Plotting actions
+        for action in self.SIM.actions:
+            gimbals.append(action[0])
+            thrusts.append(action[1])
+            
+
+        fig2, ax2 = plt.subplots()
+        ax2_1 = ax2.twinx()
+        
+        __, = ax2.plot(timesteps, thrusts, 'bx')
+        ax2.set_ylabel('Thrust (kN)', color='b')
+        ax2.tick_params('y', colors='b')
+
+        ax2.set_xlabel('Time [s]')
+
+        __, = ax2_1.plot(timesteps, gimbals, 'r.')
+        ax2_1.set_ylabel('Gimbals [rad]', color='r')
+        ax2_1.tick_params('y', colors='r')
+
+        if showFig:
+            plt.show(block=False)
+
         return (fig1, fig2)
 
 
