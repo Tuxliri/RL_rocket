@@ -10,6 +10,7 @@ from gym import spaces, Env, GoalEnv
 from my_environment.utils.simulator import Simulator3DOF
 
 from my_environment.utils.renderer_utils import blitRotate
+from numpy.typing import ArrayLike
 
 MAX_SIZE_RENDER = 10e3      # Max size in meters of the rendering window
 
@@ -70,6 +71,7 @@ class Rocket(Env):
 
         # Environment state variable and simulator object
         self.y = None
+        self.infos = []
         self.SIM = None
         self.action = np.array([0. , 0.])
 
@@ -94,29 +96,62 @@ class Rocket(Env):
         obs = self.y.astype(np.float32)
 
         # Done if the rocket is at ground
-        done = bool(isterminal) or currentTime>self.maxTime
+        done = bool(isterminal) or currentTime>=self.maxTime or self._checkBounds(self.y)
+
 
         assert done is not bool, "done is not of type bool!"
 
         reward = 0
         dist_norm = np.linalg.norm(obs[0:2])/np.linalg.norm(self.ICMean[0:2])
 
-        reward = 0.1*(1-dist_norm)
+        # Increasing reward as we get closer to the landing pad,
+        # to 'guide' the rocket towards it
+        dist_reward = 0.1*(1-dist_norm)
 
-        if done:    
-            velNorm = np.linalg.norm(obs[3:5])
-            reward = (1 + 5*np.exp(-velNorm/10.) + np.exp(-np.abs(obs[0])/10.))
-
-        # TERMINAL REWARD
-        # if done:
-        #     posNorm = np.linalg.norm(obs[0:2])
-        #     velNorm = np.linalg.norm(obs[3:5])
-        #     angle = obs[2]
-
-        #     reward = 50 - posNorm - velNorm #- angle NO ANGLE FOR NOW
-
-        info = {'isTruncated' : currentTime>self.maxTime}
+        """
+        Modified the normalizing angle,
+        to have pose reward = 1 when the
+        rocket is vertical (th=pi/2 on)
+        """
         
+        th_prime = self.y[2] - 0.5*np.pi
+
+        if abs(th_prime) <= np.pi / 6.0:
+            pose_reward = 0.1
+        else:
+            pose_reward = abs(th_prime) / (0.5*np.pi)     
+            pose_reward = 0.1 * (1.0 - pose_reward)
+
+        reward = dist_reward + pose_reward
+
+        info = {
+            'stateHistory': self.SIM.states,
+            'actionHistory': self.SIM.actions,
+            "TimeLimit.truncated": False,
+            "EpisodeDone": False
+            }
+
+        
+        if done:
+            info["EpisodeDone"] = True
+            velNorm = np.linalg.norm(obs[3:5])
+
+            if self._checkBounds(self.y):
+                reward = -3
+
+            elif currentTime>=self.maxTime:
+                info["TimeLimit.truncated"] = True
+                reward = reward + 5*np.exp(-velNorm/10.) - 10*dist_norm
+            
+            # TERMINAL REWARD
+            elif self._checkCrash(self.y):
+                reward = reward + 5*np.exp(-velNorm/10.)
+            else:
+                reward = (1 + 5*np.exp(-velNorm/10.))#*(self.maxTime-self.SIM.t)
+        
+        # assert ((self.y[1]>1e-6) ^ (done is True)), f"Episode terminated but height is {self.y[1]}"
+
+        self.infos.append(info)
 
         return obs, reward, done, info
 
@@ -132,7 +167,7 @@ class Rocket(Env):
 
          
         # The number of pixels per each meter
-        MAX_HEIGHT = 1.1 * self.ICMean[1]
+        MAX_HEIGHT = self.y_bound_up
         step_size = self.window_size / MAX_HEIGHT
 
         SHIFT_RIGHT = self.window_size/2
@@ -227,20 +262,15 @@ class Rocket(Env):
         return np.transpose(
             np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)
         )
-
-    def plotStates(self, showFig):
-        fig1, fig2 = self.SIM._plotStates(showFig)
-        return (fig1, fig2)
     
-    def close(self, showPlots : bool = False) -> None:
+    def close(self) -> None:
         if self.window is not None:
             import pygame
 
             pygame.display.quit()
             pygame.quit()
             self.isopen = False
-
-        self.plotStates(showPlots)
+        
         pass
 
     def reset(self):
@@ -461,7 +491,7 @@ class Rocket1D(GoalEnv, gym.Wrapper):
         elif self.rewardType == 'hovering':
             rew -= np.abs(obs[1])
 
-        if info['isTruncated']:
+        if info["TimeLimit.truncated"]:
             rew -= 500
         # Test for PPO only, possibly breaking HER compatibility
         # rew = self.compute_reward(obs, self.desired_goal, {})
