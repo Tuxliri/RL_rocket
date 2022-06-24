@@ -48,6 +48,15 @@ class Rocket(Env):
         self.maxGimbal = np.deg2rad(20)     # [rad]
         self.maxThrust = 981e3              # [N]
         
+        """
+        Define realistic bounds for episode termination
+        they are computed in the reset() method, when
+        initial conditions are 
+        """
+        self.x_bound_right = None
+        self.x_bound_left = None
+        self.y_bound_up = None
+        self.y_bound_down = None
 
         # Define observation space
         self.observation_space = spaces.Box(
@@ -338,6 +347,47 @@ class Rocket(Env):
             plt.show(block=False)
 
         return (fig1, fig2)
+
+    def _checkBounds(self, state : ArrayLike):
+        """
+        :param state: state of the rocket, np.ndarray() shape(7,)
+        
+        Check if the rocket goes outside the side or upper bounds
+        of the environment
+        """
+        outside = False
+        x,y = state[0:2]
+
+        if x<=self.x_bound_left or x>=self.x_bound_right:
+            outside = True
+        
+        if y>=self.y_bound_up:
+            outside = True
+
+        return outside
+
+    def _checkCrash(self, state):
+        x,y = state[0:2]
+        vx,vy = state[3:5]
+
+        # Measure the angular deviation from vertical orientation
+        theta, vtheta = state[2]-np.pi/2, state[5]
+
+        v = (vx**2 + vy**2)**0.5
+        crash = False
+
+        if y >= self.y_bound_up:
+            crash = True
+        if y <= 1e-3 and v >= 15.0:
+            crash = True
+        if y <= 1e-3 and abs(x) >= 30:
+            crash = True
+        if y <= 1e-3 and abs(theta) >= 10/180*np.pi:
+            crash = True
+        if y <= 1e-3 and abs(vtheta) >= 10/180*np.pi:
+            crash = True
+
+        return crash
 
 
 class Rocket1D(GoalEnv, gym.Wrapper):
