@@ -252,6 +252,12 @@ class Rocket(Env):
         initialCondition = self.init_space.sample()
         self.y = initialCondition
 
+        # Set environment bounds
+        self.x_bound_left = -1.5*abs(initialCondition[0])
+        self.x_bound_right = +1.5*abs(initialCondition[0])
+        self.y_bound_up = 1.1*abs(initialCondition[1])
+        self.y_bound_down = -30
+
         # instantiate the simulator object
         self.SIM = Simulator3DOF(initialCondition, self.timestep)
 
