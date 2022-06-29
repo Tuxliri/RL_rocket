@@ -33,21 +33,26 @@ class FigureRecorderCallback(BaseCallback):
         import imageio
         images = []
         show_plots = False
-        
-        env = model.get_env()        
+
+        env = model.get_env()    
+
+        # Check if environment is vectorized
+        env = env.envs[0]
+
         obs = env.reset()
         img = env.render(mode='rgb_array')
 
-        done = [False]
+        done = False
         reward_list = []
         rewards_log_list = []
         
-        while not any(done):
+        while not done:
             images.append(img)
             action, _ = model.predict(obs)
             obs, rew, done, info = env.step(action)
             reward_list.append(rew)
-            rewards_log_list.append(info[0]["rewards_log"])
+
+            rewards_log_list.append(info["rewards_log"])
             img = env.render(mode='rgb_array')
 
         gif_name = os.path.join(self.mydir, f"lander_{self.n_calls}.gif")
@@ -64,7 +69,9 @@ class FigureRecorderCallback(BaseCallback):
             ax=ax_rew, legend=True
             )
 
-        states_fig, action_fig = env.env_method('plotStates', show_plots)[0]
+        states_fig, action_fig = env.plotStates(show_plots)
+        env.reset()
+        
         # [0] needed as the method returns a list containing the tuple of figures
         # states_fig, action_fig = env.env_method('plotStates', show_fig)[0]
         fig1, ax1 = plt.subplots()
