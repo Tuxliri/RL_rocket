@@ -135,8 +135,9 @@ class Rocket(Env):
         rotation_rew = - 0.1*abs(self.y[5])
         
         # Penalize the rocket going upward
-        
-        upward_vel_rew = - np.maximum(0., 1e-5*np.exp(self.y[4])-10.)
+        vy = self.y[4]
+        if vy > 5.:
+            upward_vel_rew = - np.log(vy - 5.)
 
         reward = dist_reward + pose_reward + upward_vel_rew
 
