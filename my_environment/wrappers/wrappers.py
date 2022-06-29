@@ -24,10 +24,11 @@ class DiscreteActions3DOF(gym.ActionWrapper):
     def __init__(
         self,
         env,
-        disc_to_cont = [[-1, -1], [-1, 0], [-1, +1],
-                        [0, -1], [0, 0], [0, +1],
-                        [+1, -1], [+1, 0], [+1, +1]]
-        ):
+        disc_to_cont = [
+        [0, -1], [-1, +1],
+        [0, +1], [+1, +1]
+                    ]
+    ):
         super().__init__(env)
         # Create an action table for all possible 
         # combinations of the values of thrust and
@@ -41,6 +42,6 @@ class DiscreteActions3DOF(gym.ActionWrapper):
 
     def get_keys_to_action(self):
         import pygame
-        mapping = {(pygame.K_LEFT,): 2, (pygame.K_RIGHT,): 8,
-            (pygame.K_UP,): 5, (pygame.K_MODE,): 3}
+        mapping = {(pygame.K_LEFT,): 1, (pygame.K_RIGHT,): 3,
+            (pygame.K_UP,): 2, (pygame.K_MODE,): 0}
         return mapping

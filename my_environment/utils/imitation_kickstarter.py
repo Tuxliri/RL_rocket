@@ -1,10 +1,8 @@
-from imitation.algorithms import bc, dagger
+from imitation.algorithms import bc
 import numpy as np
 from stable_baselines3.common import policies
 import gym
 from gym.utils.play import play
-
-from my_environment.envs.rocket_env import Rocket
 
 class imitationKickstarter():
     def __init__(self, env : gym.Env = None, obs=None, actions=None,

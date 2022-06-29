@@ -2,6 +2,7 @@
 # on the rocket landing control problem. It is a simplified
 # 3DOF version of the real 6DOF dynamics
 
+import importlib
 from turtle import distance
 import numpy as np
 import gym
@@ -11,8 +12,6 @@ from my_environment.utils.simulator import Simulator3DOF
 
 from my_environment.utils.renderer_utils import blitRotate
 from numpy.typing import ArrayLike
-
-MAX_SIZE_RENDER = 10e3      # Max size in meters of the rendering window
 
 
 class Rocket(Env):
@@ -26,18 +25,17 @@ class Rocket(Env):
 
     def __init__(
         self,
-        IC,
-        ICRange,
+        IC = [100, 500, np.pi/2, -10, -50, 0, 50e3],
+        ICRange = [0,0,0,0,0,0,0],
         timestep=0.1,
-        maxTime=30,
-        render_mode="human"
+        maxTime=40,
     ) -> None:
 
         super(Rocket, self).__init__()
 
         # Initial conditions mean values and +- range
-        self.ICMean = IC
-        self.ICRange = ICRange  # +- range
+        self.ICMean = np.float32(IC)
+        self.ICRange = np.float32(ICRange)  # +- range
         self.timestep = timestep
         self.maxTime = maxTime
 
@@ -75,6 +73,9 @@ class Rocket(Env):
         self.SIM = None
         self.action = np.array([0. , 0.])
 
+        # Landing zone parameters
+        self.target_x = 30
+
         # Renderer variables (pygame)
         self.window_size = 900  # The size of the PyGame window
         """
@@ -98,15 +99,19 @@ class Rocket(Env):
         # Done if the rocket is at ground
         done = bool(isterminal) or currentTime>=self.maxTime or self._checkBounds(self.y)
 
-
-        assert done is not bool, "done is not of type bool!"
-
         reward = 0
-        dist_norm = np.linalg.norm(obs[0:2])/np.linalg.norm(self.ICMean[0:2])
+        reward, info = self._compute_reward(currentTime, obs, done)
+        
+        self.infos.append(info)
+
+        return obs, reward, done, info
+
+    def _compute_reward(self, currentTime, obs, done):
+        dist_norm = np.linalg.norm(obs[0:2])/np.linalg.norm(self.SIM.states[0][0:2])
 
         # Increasing reward as we get closer to the landing pad,
         # to 'guide' the rocket towards it
-        dist_reward = 0.1*(1-dist_norm)
+        dist_reward = 0.1*(1.0 - dist_norm)
 
         """
         Modified the normalizing angle,
@@ -122,38 +127,42 @@ class Rocket(Env):
             pose_reward = abs(th_prime) / (0.5*np.pi)     
             pose_reward = 0.1 * (1.0 - pose_reward)
 
-        reward = dist_reward + pose_reward
+        rotation_rew = - abs(self.y[5])
+
+        reward = dist_reward + pose_reward + rotation_rew
 
         info = {
             'stateHistory': self.SIM.states,
             'actionHistory': self.SIM.actions,
             "TimeLimit.truncated": False,
-            "EpisodeDone": False
+            "EpisodeDone": False,
             }
 
-        
-        if done:
-            info["EpisodeDone"] = True
-            velNorm = np.linalg.norm(obs[3:5])
+        rewards_log = {
+            "dist_reward": dist_reward,
+            "pose_reward": pose_reward,
+            "rotation_rew": rotation_rew
+        }
 
-            if self._checkBounds(self.y):
-                reward = -3
+        if currentTime>=self.maxTime:
+            info["TimeLimit.truncated"] = True
 
-            elif currentTime>=self.maxTime:
-                info["TimeLimit.truncated"] = True
-                reward = reward + 5*np.exp(-velNorm/10.) - 10*dist_norm
-            
-            # TERMINAL REWARD
-            elif self._checkCrash(self.y):
-                reward = reward + 5*np.exp(-velNorm/10.)
-            else:
-                reward = (1 + 5*np.exp(-velNorm/10.))#*(self.maxTime-self.SIM.t)
-        
-        # assert ((self.y[1]>1e-6) ^ (done is True)), f"Episode terminated but height is {self.y[1]}"
+        velNorm = np.linalg.norm(obs[3:5])
 
-        self.infos.append(info)
+        rewards_log["terminal_rew_vel"] = 0
+        rewards_log["time_reward"] = 0
 
-        return obs, reward, done, info
+        if self._checkCrash(self.y):
+            reward = (reward + 5*np.exp(-velNorm/10.))*(self.maxTime-self.SIM.t)
+            rewards_log["terminal_rew_vel"] = 5*np.exp(-velNorm/10.)
+
+        if self._checkLanding(self.y):
+            reward = (1.0 + 5*np.exp(-velNorm/10.))*(self.maxTime-self.SIM.t)
+            rewards_log["time_reward"] =  (self.maxTime-self.SIM.t)      
+
+        info["rewards_log"] = rewards_log
+
+        return reward, info
 
     def render(self, mode : str="human"):
         import pygame  # import here to avoid pygame dependency with no render
@@ -193,7 +202,10 @@ class Rocket(Env):
         # Add gridlines?
 
         # load image of rocket
-        image = pygame.image.load("rocket.png")
+        with importlib.resources.path('my_environment', 'res') as data_path:
+            image_path = data_path / "rocket.png"
+            image = pygame.image.load(image_path)
+
         h = image.get_height()
         w = image.get_width()
 
@@ -225,9 +237,11 @@ class Rocket(Env):
 
         pygame.font.init()
         font = pygame.font.SysFont(None, 24)
+        action = self.action
+        action[0] = action[0]*180/np.pi
 
-        stringToDisplay1 = f"x: {self.y[0]:5.1f}  y: {self.y[1]:4.1f} Angle: {self.y[2]:4.1f}"
-        stringToDisplay2 = f"vx: {self.y[3]:5.1f}  vy: {self.y[4]:4.1f} Time: {self.SIM.t:4.1f} Action: {np.array2string(self.action,precision=2)}"
+        stringToDisplay1 = f"x: {self.y[0]:5.1f}  y: {self.y[1]:4.1f} Angle: {self.y[2]*180/np.pi:4.1f}"
+        stringToDisplay2 = f"vx: {self.y[3]:5.1f}  vy: {self.y[4]:4.1f} Time: {self.SIM.t:4.1f} Action: {np.array2string(action,precision=2)}"
 
         img1 = font.render(stringToDisplay1, True, (0,0,0))
         img2 = font.render(stringToDisplay2, True, (0,0,0))
@@ -309,7 +323,11 @@ class Rocket(Env):
         # Add lower bound on thrust with self.minThrust
         return np.float32([gimbal, thrust])
 
-    def plotStates(self, showFig : bool = False):
+    def plotStates(self, showFig : bool = False,
+    states = None):
+        """
+        :param states: list of observations
+        """
         import matplotlib.pyplot as plt
 
         heights = []
@@ -326,8 +344,10 @@ class Rocket(Env):
         fig1, ax1 = plt.subplots()
         ax1_1 = ax1.twinx()
         
+        if states is None:
+            states = self.SIM.states
 
-        for state in self.SIM.states:
+        for state in states:
             downranges.append(state[0])
             heights.append(state[1])
             ths.append(state[2])
@@ -416,7 +436,7 @@ class Rocket(Env):
             crash = True
         if y <= 1e-3 and v >= 15.0:
             crash = True
-        if y <= 1e-3 and abs(x) >= 30:
+        if y <= 1e-3 and abs(x) >= self.target_x:
             crash = True
         if y <= 1e-3 and abs(theta) >= 10/180*np.pi:
             crash = True
@@ -425,14 +445,30 @@ class Rocket(Env):
 
         return crash
 
+    def _checkLanding(self, state):
+        x,y = state[0:2]
+        vx,vy = state[3:5]
 
-class Rocket1D(GoalEnv, gym.Wrapper):
+        # Measure the angular deviation from vertical orientation
+        theta, vtheta = state[2]-np.pi/2, state[5]
+
+        v = (vx**2 + vy**2)**0.5
+
+        if y<=1e-3 and v<15.0 and abs(x)<self.target_x\
+            and abs(theta)<10/180*np.pi and abs(vtheta) < 10/180*np.pi:
+            return True
+
+        else:
+            return False
+
+
+class Rocket1D(gym.Wrapper):
     def __init__(
         self,
         env: Env,
-        rewardType='shaped_terminal',
-        goalThreshold=5,
-        velocityThreshold=5
+        reward_type='shaped_terminal',
+        goal_threshold=5,
+        velocity_threshold=5
         ) -> None:
 
         super().__init__(env)
@@ -466,33 +502,36 @@ class Rocket1D(GoalEnv, gym.Wrapper):
         )
 
         self.desired_goal = np.float32([0, 0])
-        self.rewardType = rewardType
-        self.goalThreshold = goalThreshold
-        self.velocityThreshold = velocityThreshold
+        self.reward_type = reward_type
+        self.goal_threshold = goal_threshold
+        self.velocity_threshold = velocity_threshold
 
     def step(self, thrust):
 
         action = np.float32([0.0, thrust[0]])
-        obs, rew, done, info = self.env.step(action)
+        obs, reward3dof, done, info = self.env.step(action)
         obs = self._shrink_obs(obs)
 
         rew = 0
-        if self.rewardType == 'shaped_terminal':
+        if self.reward_type == 'shaped_terminal':
             if done:
                 rew = 50 - np.linalg.norm(obs)
 
-        elif self.rewardType == 'sparse_terminal':
+        elif self.reward_type == 'sparse_terminal':
             if done:
-                rew = float(np.linalg.norm(obs) < self.velocityThreshold)
+                rew = float(np.linalg.norm(obs) < self.velocity_threshold)
 
-        elif self.rewardType == 'shaped_landing':
+        elif self.reward_type == 'shaped_landing':
             rew -= (np.linalg.norm(obs) + 0.1)
 
-        elif self.rewardType == 'hovering':
+        elif self.reward_type == 'hovering':
             rew -= np.abs(obs[1])
+        elif self.reward_type == 'test3dof':
+            rew = reward3dof
 
         if info["TimeLimit.truncated"]:
             rew -= 500
+
         # Test for PPO only, possibly breaking HER compatibility
         # rew = self.compute_reward(obs, self.desired_goal, {})
 
@@ -525,8 +564,8 @@ class Rocket1D(GoalEnv, gym.Wrapper):
 
         d = self.goal_distance(achieved_goal, desired_goal)
 
-        if self.rewardType == 'sparse':
-            return (d < self.goalThreshold).astype(np.float32)
+        if self.reward_type == 'sparse':
+            return (d < self.goal_threshold).astype(np.float32)
         else:
             return -d
 
