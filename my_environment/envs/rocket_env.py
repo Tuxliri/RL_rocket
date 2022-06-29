@@ -162,7 +162,7 @@ class Rocket(Env):
         rewards_log["time_reward"] = 0
 
         if self._checkCrash(self.y):
-            reward = ((reward) + 5*np.exp(-velNorm/10.))*(self.maxTime-self.SIM.t)
+            reward = ((reward))# + 5*np.exp(-velNorm/10.))*(self.maxTime-self.SIM.t)
             rewards_log["terminal_rew_vel"] = 5*np.exp(-velNorm/10.)
 
         if self._checkLanding(self.y):
