@@ -136,6 +136,7 @@ class Rocket(Env):
         
         # Penalize the rocket going upward
         vy = self.y[4]
+        upward_vel_rew=0
         if vy > 5.:
             upward_vel_rew = - np.log(vy - 5.)
 
