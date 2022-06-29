@@ -107,7 +107,12 @@ class Rocket(Env):
         return obs, reward, done, info
 
     def _compute_reward(self, currentTime, obs, done):
-        dist_norm = np.linalg.norm(obs[0:2])/np.linalg.norm(self.SIM.states[0][0:2])
+        """
+        In this function a shaping of the reward is defined
+        in order to guide the rocket towards the
+        """
+        initial_conditions = self.SIM.states[0]
+        dist_norm = np.linalg.norm(obs[0:2])/np.linalg.norm(initial_conditions[0:2])
 
         # Increasing reward as we get closer to the landing pad,
         # to 'guide' the rocket towards it
@@ -122,14 +127,18 @@ class Rocket(Env):
         th_prime = self.y[2] - 0.5*np.pi
 
         if abs(th_prime) <= np.pi / 6.0:
-            pose_reward = 0.1
+            pose_reward = 0.01
         else:
             pose_reward = abs(th_prime) / (0.5*np.pi)     
-            pose_reward = 0.1 * (1.0 - pose_reward)
+            pose_reward = 0.01 * (1.0 - pose_reward)
 
-        rotation_rew = - abs(self.y[5])
+        rotation_rew = - 0.1*abs(self.y[5])
+        
+        # Penalize the rocket going upward
+        
+        upward_vel_rew = - np.maximum(0., 1e-5*np.exp(self.y[4])-10.)
 
-        reward = dist_reward + pose_reward + rotation_rew
+        reward = dist_reward + pose_reward + upward_vel_rew
 
         info = {
             'stateHistory': self.SIM.states,
@@ -153,7 +162,7 @@ class Rocket(Env):
         rewards_log["time_reward"] = 0
 
         if self._checkCrash(self.y):
-            reward = (reward + 5*np.exp(-velNorm/10.))*(self.maxTime-self.SIM.t)
+            reward = ((reward) + 5*np.exp(-velNorm/10.))*(self.maxTime-self.SIM.t)
             rewards_log["terminal_rew_vel"] = 5*np.exp(-velNorm/10.)
 
         if self._checkLanding(self.y):
