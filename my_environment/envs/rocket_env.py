@@ -139,7 +139,7 @@ class Rocket(Env):
         if vy > 5.:
             upward_vel_rew = - np.log(vy - 5.)
 
-        reward = dist_reward + pose_reward + upward_vel_rew
+        reward = dist_reward + pose_reward + upward_vel_rew + rotation_rew
 
         info = {
             'stateHistory': self.SIM.states,
