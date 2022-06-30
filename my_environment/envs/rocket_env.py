@@ -12,7 +12,7 @@ from my_environment.utils.simulator import Simulator3DOF
 
 from my_environment.utils.renderer_utils import blitRotate
 from numpy.typing import ArrayLike
-
+from gym.utils import seeding
 
 class Rocket(Env):
 
@@ -29,6 +29,7 @@ class Rocket(Env):
         ICRange = [0,0,0,0,0,0,0],
         timestep=0.1,
         maxTime=40,
+        seed=42
     ) -> None:
 
         super(Rocket, self).__init__()
@@ -38,10 +39,13 @@ class Rocket(Env):
         self.ICRange = np.float32(ICRange)  # +- range
         self.timestep = timestep
         self.maxTime = maxTime
-
+        
         # Initial condition space
-        self.init_space = spaces.Box(low=self.ICMean-self.ICRange/2,
-                                     high=self.ICMean+self.ICRange/2)
+        self.init_space = spaces.Box(
+            low=self.ICMean-self.ICRange/2,
+            high=self.ICMean+self.ICRange/2,
+            )
+        self.seed(seed)
 
         # Actuators bounds
         self.maxGimbal = np.deg2rad(20)     # [rad]
@@ -302,7 +306,6 @@ class Rocket(Env):
         """ Function defining the reset method of gym
             It returns an initial observation drawn randomly
             from the uniform distribution of the ICs"""
-
         # Initialize the state of the system (sample randomly within the IC space)
         initialCondition = self.init_space.sample()
         self.y = initialCondition
@@ -472,7 +475,9 @@ class Rocket(Env):
         else:
             return False
 
-
+    def seed(self, seed: int = 42):
+        self.init_space.seed(42)
+        return super().seed(seed)
 class Rocket1D(gym.Wrapper):
     def __init__(
         self,
