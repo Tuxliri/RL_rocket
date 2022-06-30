@@ -78,7 +78,7 @@ class Rocket(Env):
         self.action = np.array([0. , 0.])
 
         # Landing zone parameters
-        self.target_x = 101.
+        self.target_x = 50.
 
         # Renderer variables (pygame)
         self.window_size = 900  # The size of the PyGame window
