@@ -80,7 +80,7 @@ class Simulator3DOF():
             
             self.times.append(self.t)
 
-            self.state[2] = self._wrapTo2Pi(self.state[2])
+            # self.state[2] = self._wrapTo2Pi(self.state[2])
 
         else:
             raise NotImplementedError()
