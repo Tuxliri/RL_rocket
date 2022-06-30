@@ -138,7 +138,7 @@ class Rocket(Env):
         vy = self.y[4]
         upward_vel_rew=0
         if vy > 6.:
-            upward_vel_rew = - np.log(vy - 5.)
+            upward_vel_rew = - np.log(vy - 5.)/40
 
         reward = dist_reward + pose_reward + upward_vel_rew + rotation_rew
 
