@@ -144,7 +144,7 @@ class Rocket(Env):
         if vy > 6.:
             upward_vel_rew = - np.log(vy - 5.)/40
 
-        reward = dist_reward + pose_reward + upward_vel_rew + rotation_rew
+        reward = dist_reward + pose_reward + upward_vel_rew #+ rotation_rew
 
         info = {
             'stateHistory': self.SIM.states,
@@ -478,6 +478,7 @@ class Rocket(Env):
     def seed(self, seed: int = 42):
         self.init_space.seed(42)
         return super().seed(seed)
+
 class Rocket1D(gym.Wrapper):
     def __init__(
         self,
