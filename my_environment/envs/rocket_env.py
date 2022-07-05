@@ -109,75 +109,55 @@ class Rocket(Env):
         
         self.infos.append(info)
 
+        if done and not currentTime>=self.maxTime:
+            assert self._checkCrash or self._checkLanding, f"self._checkCrash is {self._checkCrash} and self._checkLanding is f{self._checkLanding}"
+
         return obs, reward, done, info
 
     def _compute_reward(self, currentTime, obs, done):
-        """
-        In this function a shaping of the reward is defined
-        in order to guide the rocket towards the
-        """
-        initial_conditions = self.SIM.states[0]
-        dist_norm = np.linalg.norm(obs[0:2])/np.linalg.norm(initial_conditions[0:2])
-
-        # Increasing reward as we get closer to the landing pad,
-        # to 'guide' the rocket towards it
-        dist_reward = 0.1*(1.0 - dist_norm)
-
-        """
-        Modified the normalizing angle,
-        to have pose reward = 1 when the
-        rocket is vertical (th=pi/2 on)
-        """
-        
-        th_prime = self.y[2] - 0.5*np.pi
-
-        if abs(th_prime) <= np.pi / 6.0:
-            pose_reward = 0.01
-        else:
-            pose_reward = abs(th_prime) / (0.5*np.pi)     
-            pose_reward = 0.01 * (1.0 - pose_reward)
-
-        rotation_rew = - 0.1*abs(self.y[5])
-        
-        # Penalize the rocket going upward
-        vy = self.y[4]
-        upward_vel_rew=0
-        if vy > 6.:
-            upward_vel_rew = - np.log(vy - 5.)/40
-
-        reward = dist_reward + pose_reward + upward_vel_rew #+ rotation_rew
+        reward = 0
 
         info = {
             'stateHistory': self.SIM.states,
             'actionHistory': self.SIM.actions,
             "TimeLimit.truncated": False,
             "EpisodeDone": False,
-            }
+            }        
 
-        rewards_log = {
-            "dist_reward": dist_reward,
-            "pose_reward": pose_reward,
-            "rotation_rew": rotation_rew
-        }
+        # give a reward if we're going in the correct direction,
+        # i.e. if the velocity points in a cone towards the origin bounded by the original glideslope angle
+        r = obs[0:2]
+        v = obs[3:5]
+
+        r_hat = r/np.linalg.norm(r)
+        v_hat = v/np.linalg.norm(v)
+
+        
+        glideslope_limit = 0.5*np.pi - self.a_0 +10./180.*np.pi
+        if np.arccos(np.dot(v_hat,-r_hat)) <= glideslope_limit:
+            reward = +1
+            
+            if obs[2]-0.5*np.pi < np.pi/6:
+                reward+=1
+        
+        
+
+        # give a bonus reward
+        if self._checkCrash(obs) is True:
+            reward = -30
+
+        if self._checkLanding(obs) is True:
+            reward = 30
 
         if currentTime>=self.maxTime:
             info["TimeLimit.truncated"] = True
 
-        velNorm = np.linalg.norm(obs[3:5])
-
-        rewards_log["terminal_rew_vel"] = 0
-        rewards_log["time_reward"] = 0
-
-        if self._checkCrash(self.y):
-            reward = ((reward))# + 5*np.exp(-velNorm/10.))*(self.maxTime-self.SIM.t)
-            rewards_log["terminal_rew_vel"] = 5*np.exp(-velNorm/10.)
-
-        if self._checkLanding(self.y):
-            reward = (1.0 + 5*np.exp(-velNorm/10.))*(self.maxTime-self.SIM.t)
-            rewards_log["time_reward"] =  (self.maxTime-self.SIM.t)      
-
+        rewards_log = {
+            "reward": reward,
+            
+        }
         info["rewards_log"] = rewards_log
-
+        
         return reward, info
 
     def render(self, mode : str="human"):
