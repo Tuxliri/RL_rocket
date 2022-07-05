@@ -25,8 +25,8 @@ class Rocket(Env):
 
     def __init__(
         self,
-        IC = [100, 500, np.pi/2, -10, -50, 0, 50e3],
-        ICRange = [0,0,0,0,0,0,0],
+        IC = [100, 500, np.pi/2, -10, -50, 0],
+        ICRange = [0,0,0,0,0,0],
         timestep=0.1,
         maxTime=40,
         seed=42
@@ -45,25 +45,42 @@ class Rocket(Env):
             low=self.ICMean-self.ICRange/2,
             high=self.ICMean+self.ICRange/2,
             )
-        self.seed(seed)
 
+        self.seed(seed)
+        
+        
         # Actuators bounds
         self.maxGimbal = np.deg2rad(20)     # [rad]
         self.maxThrust = 981e3              # [N]
         
+        # State normalizer and bounds
+        t_free_fall = (-self.ICMean[4]+np.sqrt(self.ICMean[4]**2+2*9.81*self.ICMean[1]))/9.81
+        inertia = 6.04e6
+        lever_arm = 30.
+
+        self.state_normalizer = np.array([
+            1.5*max(abs(self.ICMean[0]),200),
+            1.5*max(abs(self.ICMean[1]),200),
+            2*np.pi,
+            2*9.81*t_free_fall,
+            2*9.81*t_free_fall,
+            self.maxThrust*np.sin(self.maxGimbal)*lever_arm/(inertia)*t_free_fall*1.5
+            ])
+
         """
         Define realistic bounds for episode termination
         they are computed in the reset() method, when
         initial conditions are 
         """
-        self.x_bound_right = None
-        self.x_bound_left = None
-        self.y_bound_up = None
-        self.y_bound_down = None
+        # Set environment bounds
+        self.x_bound_right = 0.9*self.state_normalizer[0]
+        self.x_bound_left = -self.x_bound_right
+        self.y_bound_up = 0.9*abs(self.state_normalizer[1])
+        self.y_bound_down = -30
 
         # Define observation space
         self.observation_space = spaces.Box(
-            low=-np.inf, high=np.inf, shape=(7,))
+            low=-1, high=1, shape=(6,))
 
         # Two valued vector in the range -1,+1, both for the
         # gimbal angle and the thrust command. It will then be
@@ -112,7 +129,10 @@ class Rocket(Env):
         if done and not currentTime>=self.maxTime:
             assert self._checkCrash or self._checkLanding, f"self._checkCrash is {self._checkCrash} and self._checkLanding is f{self._checkLanding}"
 
-        return obs, reward, done, info
+        return self.normalize_obs(obs), reward, done, info
+
+    def normalize_obs(self, obs):
+        return obs/self.state_normalizer
 
     def _compute_reward(self, currentTime, obs, done):
         reward = 0
@@ -234,12 +254,15 @@ class Rocket(Env):
         action[0] = action[0]*180/np.pi
 
         stringToDisplay1 = f"x: {self.y[0]:5.1f}  y: {self.y[1]:4.1f} Angle: {self.y[2]*180/np.pi:4.1f}"
-        stringToDisplay2 = f"vx: {self.y[3]:5.1f}  vy: {self.y[4]:4.1f} Time: {self.SIM.t:4.1f} Action: {np.array2string(action,precision=2)}"
+        stringToDisplay2 = f"vx: {self.y[3]:5.1f}  vy: {self.y[4]:4.1f} omega: {self.y[5]:4.1f}"
+        stringToDisplay3 = f"Time: {self.SIM.t:4.1f} Action: {np.array2string(action,precision=2)}"
 
         img1 = font.render(stringToDisplay1, True, (0,0,0))
         img2 = font.render(stringToDisplay2, True, (0,0,0))
+        img3 = font.render(stringToDisplay3, True, (0,0,0))
         canvas.blit(img1, (20, 20))
         canvas.blit(img2, (20, 40))
+        canvas.blit(img3, (20, 60))
 
         blitRotate(canvas, image, tuple(
             agent_location), (w/2, h/2), angleDeg)
@@ -290,16 +313,10 @@ class Rocket(Env):
 
         self.a_0 = np.arctan2(initialCondition[1],initialCondition[0])
 
-        # Set environment bounds
-        self.x_bound_right = 1.5*max(abs(initialCondition[0]),200)
-        self.x_bound_left = -self.x_bound_right
-        self.y_bound_up = 1.1*abs(initialCondition[1])
-        self.y_bound_down = -30
-
         # instantiate the simulator object
         self.SIM = Simulator3DOF(initialCondition, self.timestep)
 
-        return self.y.astype(np.float32)
+        return self.normalize_obs(self.y.astype(np.float32))
 
     def _denormalizeAction(self, action):
         """ Denormalize the action as we've bounded it
@@ -330,7 +347,6 @@ class Rocket(Env):
         vxs = []
         vzs = []
         oms = []
-        mass = []
         thrusts = []
         gimbals = []
         timesteps = self.SIM.times
@@ -348,7 +364,6 @@ class Rocket(Env):
             vxs.append(state[3])
             vzs.append(state[4])
             oms.append(state[5])
-            mass.append(state[6])
 
         __, = ax1.plot(timesteps, downranges, label='Downrange (x)')
         __, = ax1.plot(timesteps, heights, label='Height (y)')
@@ -357,9 +372,6 @@ class Rocket(Env):
         # __, = ax1.plot(vxs, label='Cross velocity (v_x)')
         __, = ax1.plot(timesteps, vzs, label='Vertical velocity (v_z)')
         
-        if not self.SIM.constantMass:
-            __, = ax1.plot(timesteps, mass, label='mass')
-
         if self.infos[-1]["TimeLimit.truncated"]:
             ax1.text(0,0,'Truncated episode')
 
