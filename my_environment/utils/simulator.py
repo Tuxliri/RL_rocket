@@ -58,19 +58,14 @@ class Simulator3DOF():
             def _height_event(t, y):
                 return y[1]
 
-            def _mass_event(t, y):
-                return y[6]-self.dryMass
-
-
             # RK integration
             _height_event.terminal = True
-            _mass_event.terminal = True
 
             solution = solve_ivp(
                 fun=lambda t, y: self.RHS(t, y, u),
                 t_span=[self.t, self.t+self.timestep],
                 y0=self.state,
-                events=[_height_event, _mass_event]
+                events=_height_event
             )
 
             self.state = np.array([var[-1] for var in solution.y])
