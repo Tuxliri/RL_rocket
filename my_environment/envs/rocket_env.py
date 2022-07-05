@@ -155,7 +155,7 @@ class Rocket(Env):
         
         glideslope_limit = 0.5*np.pi - self.a_0 + 10./180.*np.pi
 
-        if np.arccos(np.dot(v_hat,-r_hat)) <= glideslope_limit:
+        if np.arccos(np.clip(np.dot(v_hat,-r_hat),-1.,+1.)) <= glideslope_limit:
             reward = +0.1
             
             if obs[2]-0.5*np.pi < np.pi/6:
