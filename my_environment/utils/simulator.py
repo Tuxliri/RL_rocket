@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 
 
 class Simulator3DOF():
-    def __init__(self, IC, dt=0.5, dynamics='std3DOF', constantMass = True) -> None:
+    def __init__(self, IC, dt=0.5, dynamics='std3DOF', mass = 50e3) -> None:
         super(Simulator3DOF, self).__init__()
 
         self.dynamics = dynamics
@@ -29,8 +29,6 @@ class Simulator3DOF():
         self.derivatives = []
         self.times = [0]
 
-        # Define a parameter to simulate or not mass depletion
-        self.constantMass = constantMass
 
         # Define height treshold
         # Define environment properties
@@ -43,6 +41,7 @@ class Simulator3DOF():
         self.I = 6.04e6                     # inertia moment [kg*m^2]
         self.Isp = 360                      # Specific impulse [s]
         self.dryMass = 25.6e3               # dry mass of the stage [kg]
+        self.mass = mass
 
         # Geometric properties NB: REDEFINE THEM FROM THE TIP OF THE BOOSTER!! (or change torque equation in RHS)
         self.x_CG = 10                      # Center of gravity [m]
@@ -97,8 +96,8 @@ class Simulator3DOF():
         in inertial coordinates
         """
         # extract dynamics variables
-        x, y, phi, vx, vz, om, mass = state
-
+        x, y, phi, vx, vz, om = state
+        mass = self.mass
         # Get control variables
         delta = u[0]
         T = u[1]
@@ -129,13 +128,7 @@ class Simulator3DOF():
         dom = (N*(self.x_CG - self.x_CP) - T*np.sin(delta)
                * (self.x_T - self.x_CG))/self.I
 
-        if self.constantMass:
-            dm = 0
-
-        else:
-            dm = -T/(self.Isp*self.g0)
-
-        dstate = np.array([vx, vz, om, ax, ay, dom, dm])
+        dstate = np.array([vx, vz, om, ax, ay, dom])
 
         return dstate
 
