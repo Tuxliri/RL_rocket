@@ -223,8 +223,6 @@ class Rocket(Env):
                 )
             pygame.draw.line(image, (255,0,0), start_pos=start_pos, end_pos=end_pos)
 
-        # pygame.transform.scale(image, )
-
         # Draw on a canvas surface
         canvas = pygame.Surface((self.window_size, self.window_size))
         backgroundColour = (255, 255, 255)
@@ -248,7 +246,7 @@ class Rocket(Env):
             agent_location), (w/2, h/2), angleDeg)
 
         # Draw a rectangle at the landing pad
-        landing_pad = pygame.Rect(0,0,30,30)
+        landing_pad = pygame.Rect(0,0,step_size*self.target_r,30)
         landing_pad_x = 0 + SHIFT_RIGHT
 
         landing_pad.center=(landing_pad_x,self.window_size)
