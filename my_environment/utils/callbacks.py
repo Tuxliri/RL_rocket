@@ -62,12 +62,17 @@ class FigureRecorderCallback(BaseCallback):
         fig_rew_time, ax_rew_time = plt.subplots()
 
         df = pd.DataFrame(rewards_log_list)
-        
-        ax_rew_time.plot(df['time_reward'])
-
-        df.drop(['time_reward'], axis=1).plot(
+        try:
+            ax_rew_time.plot(df['time_reward'])
+            self.logger.record("Time ep. reward", Figure(fig_rew_time, close=True),
+                        exclude=("stdout", "log", "json", "csv"))
+            df.drop(['time_reward'], axis=1).plot(
             ax=ax_rew, legend=True
             )
+        except:
+            pass
+
+        
 
         states_fig, action_fig = env.plotStates(show_plots)
         env.reset()
@@ -81,10 +86,9 @@ class FigureRecorderCallback(BaseCallback):
         # Close the figure after logging it
         self.logger.record("Evaluation ep. rewards", Figure(fig1, close=True),
                         exclude=("stdout", "log", "json", "csv"))
-        self.logger.record("Individual ep. rewards", Figure(fig_rew, close=True),
-                        exclude=("stdout", "log", "json", "csv"))
-        self.logger.record("Time ep. reward", Figure(fig_rew_time, close=True),
-                        exclude=("stdout", "log", "json", "csv"))
+        # self.logger.record("Individual ep. rewards", Figure(fig_rew, close=True),
+        #                 exclude=("stdout", "log", "json", "csv"))
+        
         self.logger.record("States", Figure(states_fig, close=True),
                         exclude=("stdout", "log", "json", "csv"))
         self.logger.record("Thrust", Figure(action_fig, close=True),
