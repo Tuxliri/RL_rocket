@@ -431,12 +431,12 @@ class Rocket(Env):
             crash = True
         if y <= 1e-3 and v >= 15.0:
             crash = True
-        if y <= 1e-3 and abs(x) >= self.target_x:
+        if y <= 1e-3 and abs(x) >= self.target_r:
             crash = True
-        if y <= 1e-3 and abs(theta) >= 10/180*np.pi:
-            crash = True
-        if y <= 1e-3 and abs(vtheta) >= 10/180*np.pi:
-            crash = True
+        # if y <= 1e-3 and abs(theta) >= 10/180*np.pi:
+        #     crash = True
+        # if y <= 1e-3 and abs(vtheta) >= 10/180*np.pi:
+        #     crash = True
 
         return crash
 
@@ -449,8 +449,7 @@ class Rocket(Env):
 
         v = (vx**2 + vy**2)**0.5
 
-        if y<=1e-3 and v<15.0 and abs(x)<self.target_x\
-            and abs(theta)<10/180*np.pi and abs(vtheta) < 10/180*np.pi:
+        if y<1e-3 and v < 15.0 and abs(x)<self.target_r:
             return True
 
         else:
@@ -460,7 +459,7 @@ class Rocket(Env):
         self.init_space.seed(42)
         return super().seed(seed)
 
-class Rocket1D(gym.Wrapper):
+class Rocket1D(gym.Wrapper, GoalEnv):
     def __init__(
         self,
         env: Env,
