@@ -77,8 +77,9 @@ class Rocket(Env):
         self.SIM = None
         self.action = np.array([0. , 0.])
 
-        # Landing zone parameters
-        self.target_x = 50.
+        # Landing parameters
+        self.target_r = 50.
+        self.a_0 = None # Initial glideslope angle
 
         # Renderer variables (pygame)
         self.window_size = 900  # The size of the PyGame window
