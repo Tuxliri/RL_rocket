@@ -291,9 +291,11 @@ class Rocket(Env):
         initialCondition = self.init_space.sample()
         self.y = initialCondition
 
+        self.a_0 = np.arctan2(initialCondition[1],initialCondition[0])
+
         # Set environment bounds
-        self.x_bound_left = -1.5*abs(initialCondition[0])
-        self.x_bound_right = +1.5*abs(initialCondition[0])
+        self.x_bound_right = 1.5*max(abs(initialCondition[0]),200)
+        self.x_bound_left = -self.x_bound_right
         self.y_bound_up = 1.1*abs(initialCondition[1])
         self.y_bound_down = -30
 
