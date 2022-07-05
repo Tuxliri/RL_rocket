@@ -133,21 +133,20 @@ class Rocket(Env):
         v_hat = v/np.linalg.norm(v)
 
         
-        glideslope_limit = 0.5*np.pi - self.a_0 +10./180.*np.pi
+        glideslope_limit = 0.5*np.pi - self.a_0 + 10./180.*np.pi
+
         if np.arccos(np.dot(v_hat,-r_hat)) <= glideslope_limit:
-            reward = +1
+            reward = +0.1
             
             if obs[2]-0.5*np.pi < np.pi/6:
-                reward+=1
+                reward+=0.1
         
-        
-
         # give a bonus reward
         if self._checkCrash(obs) is True:
-            reward = -30
+            reward = -10.
 
         if self._checkLanding(obs) is True:
-            reward = 30
+            reward = 10.
 
         if currentTime>=self.maxTime:
             info["TimeLimit.truncated"] = True
