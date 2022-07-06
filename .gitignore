@@ -163,3 +163,5 @@ cython_debug/
 
 # Video logging
 Videos
+
+.csv
