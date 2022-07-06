@@ -149,8 +149,11 @@ class Rocket(Env):
         r = obs[0:2]
         v = obs[3:5]
 
-        r_hat = r/np.linalg.norm(r)
-        v_hat = v/np.linalg.norm(v)
+        r_norm = np.linalg.norm(r)
+        v_norm = np.linalg.norm(v)
+
+        r_hat = r/r_norm
+        v_hat = v/v_norm
 
         
         glideslope_limit = 0.5*np.pi - self.a_0 + 10./180.*np.pi
@@ -161,19 +164,25 @@ class Rocket(Env):
             if obs[2]-0.5*np.pi < np.pi/6:
                 reward+=0.1
         
-        # give a bonus reward
-        if self._checkCrash(obs) is True:
-            reward = -10.
+        # give a bonus final reward
+        if done:
+            if currentTime>=self.maxTime:
+                info["TimeLimit.truncated"] = True
+                reward = -10
+            elif self._checkBounds(obs):
+                info["Bounds violated"] = True
 
-        if self._checkLanding(obs) is True:
-            reward = 10.
+        else:
+            time_reward = .5/(1+np.exp(-.2*(currentTime-20)))
+            reward = np.exp(-v_norm/10)+np.exp(-r_norm/30)*(time_reward + .2)
 
-        if currentTime>=self.maxTime:
-            info["TimeLimit.truncated"] = True
+        
+
+        # Add a penalty term to have the   
+        reward += -.5
 
         rewards_log = {
             "reward": reward,
-            
         }
         info["rewards_log"] = rewards_log
         
@@ -428,7 +437,7 @@ class Rocket(Env):
 
         return outside
 
-    def _checkCrash(self, state):
+    def _checkCrash(self, state : ArrayLike):
         x,y = state[0:2]
         vx,vy = state[3:5]
 
