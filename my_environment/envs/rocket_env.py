@@ -176,11 +176,6 @@ class Rocket(Env):
             time_reward = .5/(1+np.exp(-.2*(currentTime-20)))
             reward = np.exp(-v_norm/10)+np.exp(-r_norm/30)*(time_reward + .2)
 
-        
-
-        # Add a penalty term to have the   
-        reward += -.5
-
         rewards_log = {
             "reward": reward,
         }
