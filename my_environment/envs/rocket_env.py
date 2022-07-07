@@ -164,6 +164,9 @@ class Rocket(Env):
             if obs[2]-0.5*np.pi < np.pi/6:
                 reward+=0.1
         
+        time_reward = 1/(1+np.exp(.2*(currentTime-20)))
+        reward = reward*time_reward
+
         # give a bonus final reward
         if done:
             if currentTime>=self.maxTime:
@@ -171,10 +174,9 @@ class Rocket(Env):
                 reward = -10
             elif self._checkBounds(obs):
                 info["Bounds violated"] = True
-
-        else:
-            time_reward = .5/(1+np.exp(-.2*(currentTime-20)))
-            reward = np.exp(-v_norm/10)+np.exp(-r_norm/30)*(time_reward + .2)
+                reward = -10
+            else:
+                reward = (np.exp(-v_norm/10)+np.exp(-r_norm/30))*time_reward
 
         rewards_log = {
             "reward": reward,
