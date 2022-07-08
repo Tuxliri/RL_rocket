@@ -20,7 +20,7 @@ class Rocket(Env):
         with rotational dynamics and translation along
         two axis """
 
-    metadata = {"render_modes": [
+    metadata = {"render.modes": [
         "human", "rgb_array"], "render_fps" : 10}
 
     def __init__(
@@ -98,6 +98,9 @@ class Rocket(Env):
         self.target_r = 50.
         self.a_0 = None # Initial glideslope angle
 
+        # Shaping reward
+        self.prev_shaping = None
+        
         # Renderer variables (pygame)
         self.window_size = 900  # The size of the PyGame window
         """
@@ -122,7 +125,7 @@ class Rocket(Env):
         done = bool(isterminal) or currentTime>=self.maxTime or self._checkBounds(self.y)
 
         reward = 0
-        reward, info = self._compute_reward(currentTime, obs, done)
+        reward, info = self._compute_reward(currentTime, obs, done, u)
         
         self.infos.append(info)
 
@@ -134,7 +137,7 @@ class Rocket(Env):
     def normalize_obs(self, obs):
         return obs/self.state_normalizer
 
-    def _compute_reward(self, currentTime, obs, done):
+    def _compute_reward(self, currentTime, state, done, u):
         reward = 0
 
         info = {
@@ -144,40 +147,34 @@ class Rocket(Env):
             "EpisodeDone": False,
             }        
 
-        # give a reward if we're going in the correct direction,
-        # i.e. if the velocity points in a cone towards the origin bounded by the original glideslope angle
-        r = obs[0:2]
-        v = obs[3:5]
+        shaping = (
+            -100 * np.sqrt(state[0] * state[0] + state[1] * state[1])
+            - 100 * np.sqrt(state[3] * state[3] + state[4] * state[4])
+            - 100 * abs(state[2])
+        )
+        if self.prev_shaping is not None:
+            reward = shaping - self.prev_shaping
+        self.prev_shaping = shaping
 
-        r_norm = np.linalg.norm(r)
-        v_norm = np.linalg.norm(v)
+        reward -= (
+            (u[1]>0) * 0.30
+        )  # less fuel spent is better, about -30 for heuristic landing
 
-        r_hat = r/r_norm
-        v_hat = v/v_norm
+        done = False
+        if self._checkCrash(state) or self._checkBounds(state):
+            done = True
+            reward = -100
 
-        
-        glideslope_limit = 0.5*np.pi - self.a_0 + 10./180.*np.pi
+        if self._checkLanding(state):
+            done = True
+            reward = +100
 
-        if np.arccos(np.clip(np.dot(v_hat,-r_hat),-1.,+1.)) <= glideslope_limit:
-            reward = +0.1
-            
-            if obs[2]-0.5*np.pi < np.pi/6:
-                reward+=0.1
-        
-        time_reward = 1/(1+np.exp(.2*(currentTime-20)))
-        reward = reward*time_reward
 
         # give a bonus final reward
-        if done:
-            if currentTime>=self.maxTime:
-                info["TimeLimit.truncated"] = True
-                reward = -10
-            elif self._checkBounds(obs):
-                info["Bounds violated"] = True
-                reward = -10
-            else:
-                reward = (np.exp(-v_norm/10)+np.exp(-r_norm/30))*time_reward
-
+        
+        if currentTime>=self.maxTime:
+            info["TimeLimit.truncated"] = True
+            
         rewards_log = {
             "reward": reward,
         }
