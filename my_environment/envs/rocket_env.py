@@ -95,14 +95,14 @@ class Rocket(Env):
         self.action = np.array([0. , 0.])
 
         # Landing parameters
-        self.target_r = 50.
+        self.target_r = 30
         self.a_0 = None # Initial glideslope angle
 
         # Shaping reward
         self.prev_shaping = None
         
         # Renderer variables (pygame)
-        self.window_size = 900  # The size of the PyGame window
+        self.window_size = 600  # The size of the PyGame window
         """
         If human-rendering is used, `self.window` will be a reference
         to the window that we draw to. `self.clock` will be a clock that is used
@@ -119,10 +119,10 @@ class Rocket(Env):
         self.action = u
 
         self.y, __, isterminal, currentTime = self.SIM.step(u)
-        obs = self.y.astype(np.float32)
+        obs = self._normalize_obs(self.y)
 
         # Done if the rocket is at ground
-        done = bool(isterminal) or currentTime>=self.maxTime or self._checkBounds(self.y)
+        done = bool(isterminal) or currentTime>=self.maxTime or self._checkBounds(obs)
 
         reward = 0
         reward, info = self._compute_reward(currentTime, obs, done, u)
@@ -131,14 +131,17 @@ class Rocket(Env):
 
         if done and not currentTime>=self.maxTime:
             assert self._checkCrash or self._checkLanding, f"self._checkCrash is {self._checkCrash} and self._checkLanding is f{self._checkLanding}"
+            
+        return obs, reward, done, info
 
-        return self.normalize_obs(obs), reward, done, info
-
-    def normalize_obs(self, obs):
+    def _normalize_obs(self, obs):
         return obs/self.state_normalizer
 
-    def _compute_reward(self, currentTime, state, done, u):
-        reward = 0
+    def _denormalize_obs(self,obs):
+        return obs*self.state_normalizer
+        
+    def _compute_reward(self, currentTime, obs, done, u):
+        reward = 0      
 
         info = {
             'stateHistory': self.SIM.states,
@@ -148,9 +151,9 @@ class Rocket(Env):
             }        
 
         shaping = (
-            -100 * np.sqrt(state[0] * state[0] + state[1] * state[1])
-            - 100 * np.sqrt(state[3] * state[3] + state[4] * state[4])
-            - 100 * abs(state[2])
+            -100 * np.sqrt(obs[0] * obs[0] + obs[1] * obs[1])
+            - 100 * np.sqrt(obs[3] * obs[3] + obs[4] * obs[4])
+            - 100 * abs(obs[2])
         )
         if self.prev_shaping is not None:
             reward = shaping - self.prev_shaping
@@ -160,13 +163,10 @@ class Rocket(Env):
             (u[1]>0) * 0.30
         )  # less fuel spent is better, about -30 for heuristic landing
 
-        done = False
-        if self._checkCrash(state) or self._checkBounds(state):
-            done = True
+        if self._checkCrash(obs) or self._checkBounds(obs):
             reward = -100
 
-        if self._checkLanding(state):
-            done = True
+        if self._checkLanding(obs):
             reward = +100
 
 
@@ -313,13 +313,14 @@ class Rocket(Env):
         # Initialize the state of the system (sample randomly within the IC space)
         initialCondition = self.init_space.sample()
         self.y = initialCondition
-
+        self.prev_shaping = None
+        
         self.a_0 = np.arctan2(initialCondition[1],initialCondition[0])
 
         # instantiate the simulator object
         self.SIM = Simulator3DOF(initialCondition, self.timestep)
 
-        return self.normalize_obs(self.y.astype(np.float32))
+        return self._normalize_obs(self.y.astype(np.float32))
 
     def _denormalizeAction(self, action):
         """ Denormalize the action as we've bounded it
@@ -413,13 +414,14 @@ class Rocket(Env):
 
         return (fig1, fig2)
 
-    def _checkBounds(self, state : ArrayLike):
+    def _checkBounds(self, obs : ArrayLike):
         """
         :param state: state of the rocket, np.ndarray() shape(7,)
         
         Check if the rocket goes outside the side or upper bounds
         of the environment
         """
+        state = self._denormalize_obs(obs)
         outside = False
         x,y = state[0:2]
 
@@ -431,7 +433,9 @@ class Rocket(Env):
 
         return outside
 
-    def _checkCrash(self, state : ArrayLike):
+    def _checkCrash(self, obs : ArrayLike):
+        state = self._denormalize_obs(obs)
+
         x,y = state[0:2]
         vx,vy = state[3:5]
 
@@ -447,14 +451,12 @@ class Rocket(Env):
             crash = True
         if y <= 1e-3 and abs(x) >= self.target_r:
             crash = True
-        # if y <= 1e-3 and abs(theta) >= 10/180*np.pi:
-        #     crash = True
-        # if y <= 1e-3 and abs(vtheta) >= 10/180*np.pi:
-        #     crash = True
 
         return crash
 
-    def _checkLanding(self, state):
+    def _checkLanding(self, obs):
+        state = self._denormalize_obs(obs)
+
         x,y = state[0:2]
         vx,vy = state[3:5]
 
@@ -463,9 +465,8 @@ class Rocket(Env):
 
         v = (vx**2 + vy**2)**0.5
 
-        if y<1e-3 and v < 15.0 and abs(x)<self.target_r:
+        if y<=1e-3 and v <= 15.0 and abs(x)<=self.target_r:
             return True
-
         else:
             return False
 
