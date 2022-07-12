@@ -122,7 +122,7 @@ class Rocket(Env):
         done = bool(isterminal) or currentTime>=self.maxTime or self._checkBounds(obs)
 
         reward = 0
-        reward, info = self._compute_reward(currentTime, obs, done)
+        reward, info = self._compute_reward(currentTime, obs, done, action)
         
         self.infos.append(info)
 
@@ -137,7 +137,7 @@ class Rocket(Env):
     def _denormalize_obs(self,obs):
         return obs*self.state_normalizer
         
-    def _compute_reward(self, currentTime, obs, done):
+    def _compute_reward(self, currentTime, obs, done, action):
         reward = 0      
 
         info = {
@@ -167,6 +167,8 @@ class Rocket(Env):
             if obs[2]-0.5*np.pi < np.pi/6:
                 reward+=0.1
 
+        reward -= (action[0]>1e-3)*0.05
+
         # give a bonus final reward
         if done:
             if currentTime>=self.maxTime:
@@ -174,9 +176,9 @@ class Rocket(Env):
                 reward = -10
             elif self._checkBounds(obs):
                 info["Bounds violated"] = True
-                reward = -10
+                # reward = -10
             else:
-                reward = (np.exp(-v_norm/10)+np.exp(-r_norm/30))*time_reward
+                reward = 10*(np.exp(-v_norm/10)+np.exp(-r_norm/30))
 
         rewards_log = {
             "reward": reward,
