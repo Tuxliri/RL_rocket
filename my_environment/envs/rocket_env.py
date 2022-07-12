@@ -340,6 +340,9 @@ class Rocket(Env):
         # Add lower bound on thrust with self.minThrust
         return np.float32([gimbal, thrust])
 
+    def _get_obs(self):
+        return self._normalize_obs(self.y)
+
     def plotStates(self, showFig : bool = False,
     states = None):
         """
