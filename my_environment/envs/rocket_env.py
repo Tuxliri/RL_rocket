@@ -115,7 +115,7 @@ class Rocket(Env):
 
     def step(self, action):
 
-        u = self._denormalizeAction(action)
+        u = self._denormalize_action(action)
         self.action = u
 
         self.y, __, isterminal, currentTime = self.SIM.step(u)
@@ -322,18 +322,15 @@ class Rocket(Env):
 
         return self._normalize_obs(self.y.astype(np.float32))
 
-    def _denormalizeAction(self, action):
+    def _denormalize_action(self, action : ArrayLike):
         """ Denormalize the action as we've bounded it
             between [-1,+1]. The first element of the 
             array action is the gimbal angle while the
             second is the throttle"""
 
-        assert isinstance(action, (np.ndarray)) and action.shape == (2,),\
-            f"Action is of type {type(action)}, shape: {action.shape}"
-
         gimbal = action[0]*self.maxGimbal
 
-        thrust = (action[1] + 1)/2 * self.maxThrust
+        thrust = (action[1] + 1)/2. * self.maxThrust
 
         # Add lower bound on thrust with self.minThrust
         return np.float32([gimbal, thrust])
