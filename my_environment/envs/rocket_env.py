@@ -58,14 +58,14 @@ class Rocket(Env):
         inertia = 6.04e6
         lever_arm = 30.
 
-        self.state_normalizer = np.array([
-            1.5*max(abs(self.ICMean[0]),200),
-            1.5*max(abs(self.ICMean[1]),200),
+        self.state_normalizer = np.maximum(np.array([
+            1.5*abs(self.ICMean[0]),
+            1.5*abs(self.ICMean[1]),
             2*np.pi,
             2*9.81*t_free_fall,
             2*9.81*t_free_fall,
-            self.maxThrust*np.sin(self.maxGimbal)*lever_arm/(inertia)*t_free_fall*1.5
-            ])
+            self.maxThrust*np.sin(self.maxGimbal)*lever_arm/(inertia)*t_free_fall/5.
+            ]),1)
 
         """
         Define realistic bounds for episode termination
@@ -73,9 +73,9 @@ class Rocket(Env):
         initial conditions are 
         """
         # Set environment bounds
-        self.x_bound_right = 0.9*self.state_normalizer[0]
+        self.x_bound_right = 0.9*np.maximum(self.state_normalizer[0],100)
         self.x_bound_left = -self.x_bound_right
-        self.y_bound_up = 0.9*abs(self.state_normalizer[1])
+        self.y_bound_up = 0.9*np.maximum(self.state_normalizer[1],100)
         self.y_bound_down = -30
 
         # Define observation space
