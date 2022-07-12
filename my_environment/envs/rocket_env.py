@@ -164,10 +164,10 @@ class Rocket(Env):
         )  # less fuel spent is better, about -30 for heuristic landing
 
         if self._checkCrash(obs) or self._checkBounds(obs):
-            reward = -100
+            reward = -20
 
         if self._checkLanding(obs):
-            reward = +100
+            reward = +20
 
 
         # give a bonus final reward
