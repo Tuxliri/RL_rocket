@@ -166,9 +166,6 @@ class Rocket(Env):
             
             if obs[2]-0.5*np.pi < np.pi/6:
                 reward+=0.1
-        
-        time_reward = 1/(1+np.exp(.2*(currentTime-20)))
-        reward = reward*time_reward
 
         # give a bonus final reward
         if done:
