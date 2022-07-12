@@ -20,7 +20,7 @@ class Rocket(Env):
         with rotational dynamics and translation along
         two axis """
 
-    metadata = {"render_modes": [
+    metadata = {"render.modes": [
         "human", "rgb_array"], "render_fps" : 10}
 
     def __init__(
@@ -95,11 +95,11 @@ class Rocket(Env):
         self.action = np.array([0. , 0.])
 
         # Landing parameters
-        self.target_r = 50.
+        self.target_r = 30
         self.a_0 = None # Initial glideslope angle
 
         # Renderer variables (pygame)
-        self.window_size = 900  # The size of the PyGame window
+        self.window_size = 600  # The size of the PyGame window
         """
         If human-rendering is used, `self.window` will be a reference
         to the window that we draw to. `self.clock` will be a clock that is used
@@ -112,14 +112,14 @@ class Rocket(Env):
 
     def step(self, action):
 
-        u = self._denormalizeAction(action)
+        u = self._denormalize_action(action)
         self.action = u
 
         self.y, __, isterminal, currentTime = self.SIM.step(u)
         obs = self.y.astype(np.float32)
 
         # Done if the rocket is at ground
-        done = bool(isterminal) or currentTime>=self.maxTime or self._checkBounds(self.y)
+        done = bool(isterminal) or currentTime>=self.maxTime or self._checkBounds(obs)
 
         reward = 0
         reward, info = self._compute_reward(currentTime, obs, done)
@@ -129,13 +129,16 @@ class Rocket(Env):
         if done and not currentTime>=self.maxTime:
             assert self._checkCrash or self._checkLanding, f"self._checkCrash is {self._checkCrash} and self._checkLanding is f{self._checkLanding}"
 
-        return self.normalize_obs(obs), reward, done, info
+        return self._normalize_obs(obs), reward, done, info
 
-    def normalize_obs(self, obs):
+    def _normalize_obs(self, obs):
         return obs/self.state_normalizer
 
+    def _denormalize_obs(self,obs):
+        return obs*self.state_normalizer
+        
     def _compute_reward(self, currentTime, obs, done):
-        reward = 0
+        reward = 0      
 
         info = {
             'stateHistory': self.SIM.states,
@@ -322,20 +325,17 @@ class Rocket(Env):
         # instantiate the simulator object
         self.SIM = Simulator3DOF(initialCondition, self.timestep)
 
-        return self.normalize_obs(self.y.astype(np.float32))
+        return self._normalize_obs(self.y.astype(np.float32))
 
-    def _denormalizeAction(self, action):
+    def _denormalize_action(self, action : ArrayLike):
         """ Denormalize the action as we've bounded it
             between [-1,+1]. The first element of the 
             array action is the gimbal angle while the
             second is the throttle"""
 
-        assert isinstance(action, (np.ndarray)) and action.shape == (2,),\
-            f"Action is of type {type(action)}, shape: {action.shape}"
-
         gimbal = action[0]*self.maxGimbal
 
-        thrust = (action[1] + 1)/2 * self.maxThrust
+        thrust = (action[1] + 1)/2. * self.maxThrust
 
         # Add lower bound on thrust with self.minThrust
         return np.float32([gimbal, thrust])
@@ -450,10 +450,6 @@ class Rocket(Env):
             crash = True
         if y <= 1e-3 and abs(x) >= self.target_r:
             crash = True
-        # if y <= 1e-3 and abs(theta) >= 10/180*np.pi:
-        #     crash = True
-        # if y <= 1e-3 and abs(vtheta) >= 10/180*np.pi:
-        #     crash = True
 
         return crash
 
@@ -466,9 +462,8 @@ class Rocket(Env):
 
         v = (vx**2 + vy**2)**0.5
 
-        if y<1e-3 and v < 15.0 and abs(x)<self.target_r:
+        if y<=1e-3 and v <= 15.0 and abs(x)<=self.target_r:
             return True
-
         else:
             return False
 
