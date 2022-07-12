@@ -127,7 +127,7 @@ class Rocket(Env):
         self.infos.append(info)
 
         if done and not currentTime>=self.maxTime:
-            assert self._checkCrash or self._checkLanding, f"self._checkCrash is {self._checkCrash} and self._checkLanding is f{self._checkLanding}"
+            assert self._checkCrash(obs) or self._checkLanding(obs), f"self._checkCrash is {self._checkCrash} and self._checkLanding is f{self._checkLanding}"
 
         return self._normalize_obs(obs), reward, done, info
 
@@ -447,6 +447,8 @@ class Rocket(Env):
         v = (vx**2 + vy**2)**0.5
         crash = False
 
+        if self._checkBounds(state):
+            crash = True
         if y >= self.y_bound_up:
             crash = True
         if y <= 1e-3 and v >= 15.0:
