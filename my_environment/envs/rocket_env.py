@@ -488,7 +488,7 @@ class Rocket(Env):
 
         v_lim = 2
         r_lim = 5
-        glideslope_lim = 79
+        glideslope_lim = np.deg2rad(79)
         
         if y<=1e-3 and v<v_lim and r<r_lim and glideslope<glideslope_lim:
             return True
