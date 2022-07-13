@@ -152,10 +152,7 @@ class Rocket(Env):
         r = obs[0:2]
         v = obs[3:5]
 
-        r_norm = np.linalg.norm(r)
-        v_norm = np.linalg.norm(v)
-        
-        v_targ = self._compute_vtarg(r)
+        v_targ = self._compute_vtarg(r,v)
 
         thrust = action[0]
 
