@@ -154,39 +154,38 @@ class Rocket(Env):
 
         r_norm = np.linalg.norm(r)
         v_norm = np.linalg.norm(v)
-
-        r_hat = r/r_norm
-        v_hat = v/v_norm
-
         
-        glideslope_limit = 0.5*np.pi - self.a_0 + 10./180.*np.pi
+        v_targ = self._compute_vtarg(r)
 
-        if np.arccos(np.clip(np.dot(v_hat,-r_hat),-1.,+1.)) <= glideslope_limit:
-            reward = +0.1
-            
-            if obs[2]-0.5*np.pi < np.pi/6:
-                reward+=0.1
+        thrust = action[0]
 
-        reward -= (action[0]>1e-3)*0.05
+        alfa = -0.01
+        beta = -0.05
+        eta = 0.01
 
-        # give a bonus final reward
+        rew = alfa*np.linalg.norm(v-v_targ) + beta*thrust + eta
+        
+        k = 10
+
+        rew_terminal = k*self._check_landing(obs)
+
+        reward = rew + rew_terminal
+        
         if done:
             if currentTime>=self.maxTime:
                 info["TimeLimit.truncated"] = True
-                reward = -10
+                
             elif self._checkBounds(obs):
                 info["Bounds violated"] = True
-                # reward = -10
-            else:
-                reward = 10*(np.exp(-v_norm/10)+np.exp(-r_norm/30))
 
         rewards_log = {
             "reward": reward,
         }
+
         info["rewards_log"] = rewards_log
         
         return reward, info
-
+    
     def _compute_vtarg(self, r, v):
         tau_1 = 20
         tau_2 = 100
@@ -208,7 +207,7 @@ class Rocket(Env):
         v_targ = -v_0*(r_hat/np.linalg.norm(r_hat))*(1-np.exp(-t_go/tau))
         
         return v_targ
-        
+
     def render(self, mode : str="human"):
         import pygame  # import here to avoid pygame dependency with no render
 
