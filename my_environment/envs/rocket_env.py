@@ -12,7 +12,6 @@ from my_environment.utils.simulator import Simulator3DOF
 
 from my_environment.utils.renderer_utils import blitRotate
 from numpy.typing import ArrayLike
-from gym.utils import seeding
 
 class Rocket(Env):
 
@@ -50,8 +49,8 @@ class Rocket(Env):
         
         
         # Actuators bounds
-        self.maxGimbal = np.deg2rad(20)     # [rad]
-        self.maxThrust = 981e3              # [N]
+        self.max_gimbal = np.deg2rad(20)     # [rad]
+        self.max_thrust = 981e3              # [N]
         
         # State normalizer and bounds
         t_free_fall = (-self.ICMean[4]+np.sqrt(self.ICMean[4]**2+2*9.81*self.ICMean[1]))/9.81
@@ -64,7 +63,7 @@ class Rocket(Env):
             2*np.pi,
             2*9.81*t_free_fall,
             2*9.81*t_free_fall,
-            self.maxThrust*np.sin(self.maxGimbal)*lever_arm/(inertia)*t_free_fall/5.
+            self.max_thrust*np.sin(self.max_gimbal)*lever_arm/(inertia)*t_free_fall/5.
             ]),1)
 
         """
@@ -162,11 +161,9 @@ class Rocket(Env):
 
         rew = alfa*np.linalg.norm(v-v_targ) + beta*thrust + eta
         
-        k = 10
+        rew_goal = self._reward_goal(obs)
 
-        rew_terminal = k*self._check_landing(obs)
-
-        reward = rew + rew_terminal
+        reward = rew + rew_goal
         
         if done:
             if currentTime>=self.maxTime:
@@ -182,6 +179,10 @@ class Rocket(Env):
         info["rewards_log"] = rewards_log
         
         return reward, info
+
+    def _reward_goal(self, obs):
+        k = 10
+        return k*self._check_landing(obs)
     
     def _compute_vtarg(self, r, v):
         tau_1 = 20
@@ -350,9 +351,9 @@ class Rocket(Env):
             array action is the gimbal angle while the
             second is the throttle"""
 
-        gimbal = action[0]*self.maxGimbal
+        gimbal = action[0]*self.max_gimbal
 
-        thrust = (action[1] + 1)/2. * self.maxThrust
+        thrust = (action[1] + 1)/2. * self.max_thrust
 
         # Add lower bound on thrust with self.minThrust
         return np.float32([gimbal, thrust])
@@ -482,9 +483,9 @@ class Rocket(Env):
         # Measure the angular deviation from vertical orientation
         theta, vtheta = state[2]-np.pi/2, state[5]
 
-        y = state[1]
-        __, vy = state[3:5]
-        glideslope = np.arctan2(vy,v)
+        x,y = state[0:2]
+        vx, vy = state[3:5]
+        glideslope = np.arctan2(np.abs(vy),np.abs(vx))
 
         v_lim = 2
         r_lim = 5
