@@ -187,6 +187,28 @@ class Rocket(Env):
         
         return reward, info
 
+    def _compute_vtarg(self, r, v):
+        tau_1 = 20
+        tau_2 = 100
+        initial_conditions = self.SIM.states[0]
+
+        v_0 = np.linalg.norm(initial_conditions[3:5])
+
+        if r[1]>15:
+            r_hat = r-[0,15]
+            v_hat = v-[0,-2]
+            tau = tau_1
+
+        else:
+            r_hat = [0,15]
+            v_hat = v-[0,-1]
+            tau = tau_2
+
+        t_go = np.linalg.norm(r_hat)/np.linalg.norm(v_hat)
+        v_targ = -v_0*(r_hat/np.linalg.norm(r_hat))*(1-np.exp(-t_go/tau))
+        
+        return v_targ
+        
     def render(self, mode : str="human"):
         import pygame  # import here to avoid pygame dependency with no render
 
