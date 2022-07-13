@@ -478,16 +478,22 @@ class Rocket(Env):
 
         return crash
 
-    def _checkLanding(self, state):
-        x,y = state[0:2]
-        vx,vy = state[3:5]
+    def _check_landing(self, state):
+        r = np.linalg.norm(state[0:2])
+        v = np.linalg.norm(state[3:5])
 
         # Measure the angular deviation from vertical orientation
         theta, vtheta = state[2]-np.pi/2, state[5]
 
-        v = (vx**2 + vy**2)**0.5
+        y = state[1]
+        __, vy = state[3:5]
+        glideslope = np.arctan2(vy/v)
 
-        if y<=1e-3 and v <= 15.0 and abs(x)<=self.target_r:
+        v_lim = 2
+        r_lim = 5
+        glideslope_lim = 79
+        
+        if y<=1e-3 and v<v_lim and r<r_lim and glideslope<glideslope_lim:
             return True
         else:
             return False
