@@ -1,5 +1,5 @@
 import gym
-from gym.spaces import Discrete
+from gym.spaces import Discrete, Box
 import numpy as np
 
 class DiscreteActions(gym.ActionWrapper):
@@ -45,3 +45,10 @@ class DiscreteActions3DOF(gym.ActionWrapper):
         mapping = {(pygame.K_LEFT,): 1, (pygame.K_RIGHT,): 3,
             (pygame.K_UP,): 2, (pygame.K_MODE,): 0}
         return mapping
+
+    class gaudet_state_representation(gym.ObservationWrapper):
+        def __init__(self, env: gym.Env) -> None:
+            super().__init__(env)
+            self.observation_space = Box(low=-1, high=1, shape=(5,))
+
+        
