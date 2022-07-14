@@ -247,9 +247,6 @@ class Rocket(Env):
         h = image.get_height()
         w = image.get_width()
 
-        v_targ = self._compute_vtarg(r,v)
-        pygame.draw.line(image,(0,255,0), start_pos=(0,0),end_pos=(v_targ[0],v_targ[1]))
-        
         # Extend the surface, add arrow
         if self.action[1]>0:
             old_image = image
@@ -292,6 +289,26 @@ class Rocket(Env):
 
         blitRotate(canvas, image, tuple(
             agent_location), (w/2, h/2), angleDeg)
+
+        # Draw the target velocity vector
+        v_targ = self._compute_vtarg(r,v)
+        
+        pygame.draw.line(
+            canvas,
+            (0,0,0),
+            start_pos=tuple(agent_location),
+            end_pos=tuple(agent_location+[1,-1]*v_targ*5),
+            width=2
+            )
+        
+        # Draw the current velocity vector       
+        pygame.draw.line(
+            canvas,
+            (0,0,255),
+            start_pos=tuple(agent_location),
+            end_pos=tuple(agent_location+[1,-1]*v*5),
+            width=2
+            )
 
         # Draw a rectangle at the landing pad
         landing_pad = pygame.Rect(0,0,step_size*self.target_r,30)
