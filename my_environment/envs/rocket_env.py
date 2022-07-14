@@ -217,7 +217,10 @@ class Rocket(Env):
         SHIFT_RIGHT = self.window_size/2
 
         # position of the CoM of the rocket
-        agent_location = self.y[0:2] * step_size
+        r = self.y[0:2]
+        v = self.y[3:5]
+
+        agent_location = r * step_size
 
         agent_location[0] = agent_location[0] + SHIFT_RIGHT
         agent_location[1] = self.window_size - agent_location[1]
@@ -244,6 +247,9 @@ class Rocket(Env):
         h = image.get_height()
         w = image.get_width()
 
+        v_targ = self._compute_vtarg(r,v)
+        pygame.draw.line(image,(0,255,0), start_pos=(0,0),end_pos=(v_targ[0],v_targ[1]))
+        
         # Extend the surface, add arrow
         if self.action[1]>0:
             old_image = image
