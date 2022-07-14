@@ -3,7 +3,6 @@
 # 3DOF version of the real 6DOF dynamics
 
 import importlib
-from turtle import distance
 import numpy as np
 import gym
 from gym import spaces, Env, GoalEnv
@@ -36,7 +35,8 @@ class Rocket(Env):
         self.ICMean = np.float32(IC)
         self.ICRange = np.float32(ICRange)  # +- range
         self.timestep = timestep
-        
+        self.metadata["render_fps"] = 1/timestep
+
         # Initial condition space
         self.init_space = spaces.Box(
             low=self.ICMean-self.ICRange/2,
@@ -119,7 +119,6 @@ class Rocket(Env):
         # Done if the rocket is at ground
         done = bool(isterminal) or self._checkBounds(obs)
 
-        reward = 0
         reward, info = self._compute_reward( obs, done, action)
         
         self.infos.append(info)
@@ -138,8 +137,6 @@ class Rocket(Env):
         info = {
             'stateHistory': self.SIM.states,
             'actionHistory': self.SIM.actions,
-            "TimeLimit.truncated": False,
-            "EpisodeDone": False,
             }        
 
         # give a reward if we're going in the correct direction,
@@ -350,7 +347,7 @@ class Rocket(Env):
         """ Function defining the reset method of gym
             It returns an initial observation drawn randomly
             from the uniform distribution of the ICs"""
-        # Initialize the state of the system (sample randomly within the IC space)
+
         initialCondition = self.init_space.sample()
         self.y = initialCondition
 
