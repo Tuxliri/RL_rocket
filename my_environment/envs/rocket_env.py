@@ -27,7 +27,6 @@ class Rocket(Env):
         IC = [100, 500, np.pi/2, -10, -50, 0],
         ICRange = [0,0,0,0,0,0],
         timestep=0.1,
-        maxTime=40,
         seed=42
     ) -> None:
 
@@ -37,7 +36,6 @@ class Rocket(Env):
         self.ICMean = np.float32(IC)
         self.ICRange = np.float32(ICRange)  # +- range
         self.timestep = timestep
-        self.maxTime = maxTime
         
         # Initial condition space
         self.init_space = spaces.Box(
@@ -64,7 +62,9 @@ class Rocket(Env):
             2*9.81*t_free_fall,
             2*9.81*t_free_fall,
             self.max_thrust*np.sin(self.max_gimbal)*lever_arm/(inertia)*t_free_fall/5.
-            ]),1)
+            ]),
+            1
+            )
 
         """
         Define realistic bounds for episode termination
@@ -95,7 +95,6 @@ class Rocket(Env):
 
         # Landing parameters
         self.target_r = 30
-        self.a_0 = None # Initial glideslope angle
 
         # Renderer variables (pygame)
         self.window_size = 600  # The size of the PyGame window
@@ -114,20 +113,17 @@ class Rocket(Env):
         u = self._denormalize_action(action)
         self.action = u
 
-        self.y, __, isterminal, currentTime = self.SIM.step(u)
+        self.y, __, isterminal, __ = self.SIM.step(u)
         obs = self.y.astype(np.float32)
 
         # Done if the rocket is at ground
-        done = bool(isterminal) or currentTime>=self.maxTime or self._checkBounds(obs)
+        done = bool(isterminal) or self._checkBounds(obs)
 
         reward = 0
-        reward, info = self._compute_reward(currentTime, obs, done, action)
+        reward, info = self._compute_reward( obs, done, action)
         
         self.infos.append(info)
 
-        if done and not currentTime>=self.maxTime:
-            # assert self._checkCrash(obs) or self._checkLanding(obs), f"self._checkCrash is {self._checkCrash} and self._checkLanding is f{self._checkLanding}"
-            pass
         return self._normalize_obs(obs), reward, done, info
 
     def _normalize_obs(self, obs):
@@ -136,7 +132,7 @@ class Rocket(Env):
     def _denormalize_obs(self,obs):
         return obs*self.state_normalizer
         
-    def _compute_reward(self, currentTime, obs, done, action):
+    def _compute_reward(self, obs, done, action):
         reward = 0      
 
         info = {
@@ -165,11 +161,8 @@ class Rocket(Env):
 
         reward = rew + rew_goal
         
-        if done:
-            if currentTime>=self.maxTime:
-                info["TimeLimit.truncated"] = True
-                
-            elif self._checkBounds(obs):
+        if done:                
+            if self._checkBounds(obs):
                 info["Bounds violated"] = True
 
         rewards_log = {
@@ -337,8 +330,6 @@ class Rocket(Env):
         # Initialize the state of the system (sample randomly within the IC space)
         initialCondition = self.init_space.sample()
         self.y = initialCondition
-
-        self.a_0 = np.arctan2(initialCondition[1],initialCondition[0])
 
         # instantiate the simulator object
         self.SIM = Simulator3DOF(initialCondition, self.timestep)
