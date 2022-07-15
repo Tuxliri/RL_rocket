@@ -1,5 +1,8 @@
+__all__ = ['DiscreteActions', 'DiscreteActions3DOF', 'GaudetStateObs']
+
 import gym
 from gym.spaces import Discrete, Box
+from my_environment.envs.rocket_env import Rocket
 import numpy as np
 
 class DiscreteActions(gym.ActionWrapper):
@@ -46,9 +49,19 @@ class DiscreteActions3DOF(gym.ActionWrapper):
             (pygame.K_UP,): 2, (pygame.K_MODE,): 0}
         return mapping
 
-    class gaudet_state_representation(gym.ObservationWrapper):
-        def __init__(self, env: gym.Env) -> None:
-            super().__init__(env)
-            self.observation_space = Box(low=-1, high=1, shape=(5,))
+class GaudetStateObs(gym.ObservationWrapper):
+    def __init__(self, env: Rocket) -> None:
+        super().__init__(env)
+        self.observation_space = Box(low=-1, high=1, shape=(4,))
 
+    def observation(self, observation):
+        x,y,th = observation[0:3]
+        vx,vy,vth = observation[3:6]
+
+        r=np.array([x,y])
+        v=np.array([vx,vy])
+
+        v_targ, t_go = self.env.unwrapped.compute_vtarg(r,v)
+        vx_targ, vy_targ = v_targ
         
+        return np.float32([vx-vx_targ, vy-vy_targ, t_go,y])

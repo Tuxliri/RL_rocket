@@ -144,7 +144,7 @@ class Rocket(Env):
         r = obs[0:2]
         v = obs[3:5]
 
-        v_targ = self._compute_vtarg(r,v)
+        v_targ, __ = self.compute_vtarg(r,v)
 
         thrust = action[0]
 
@@ -174,7 +174,7 @@ class Rocket(Env):
         k = 10
         return k*self._check_landing(obs)
     
-    def _compute_vtarg(self, r, v):
+    def compute_vtarg(self, r, v):
         tau_1 = 20
         tau_2 = 100
         initial_conditions = self.SIM.states[0]
@@ -194,7 +194,7 @@ class Rocket(Env):
         t_go = np.linalg.norm(r_hat)/np.linalg.norm(v_hat)
         v_targ = -v_0*(r_hat/np.linalg.norm(r_hat))*(1-np.exp(-t_go/tau))
         
-        return v_targ
+        return v_targ, t_go
 
     def render(self, mode : str="human"):
         import pygame  # import here to avoid pygame dependency with no render
@@ -288,7 +288,7 @@ class Rocket(Env):
             agent_location), (w/2, h/2), angleDeg)
 
         # Draw the target velocity vector
-        v_targ = self._compute_vtarg(r,v)
+        v_targ, __ = self.compute_vtarg(r,v)
         
         pygame.draw.line(
             canvas,
