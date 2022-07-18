@@ -443,9 +443,6 @@ class Rocket(Env):
         ax2_1.set_ylabel('Gimbals [rad]', color='r')
         ax2_1.tick_params('y', colors='r')
 
-        if showFig:
-            plt.show(block=False)
-
         return (fig1, fig2)
 
     def _checkBounds(self, state : ArrayLike):
