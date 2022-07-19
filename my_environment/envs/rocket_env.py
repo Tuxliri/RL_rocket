@@ -466,9 +466,10 @@ class Rocket(Env):
         v = np.linalg.norm(state[3:5])
 
         # Measure the angular deviation from vertical orientation
-        theta, vtheta = state[2]-np.pi/2, state[5]
+        theta, vtheta = state[2], state[5]
+        theta = theta-np.pi/2
 
-        x,y = state[0:2]
+        __,y = state[0:2]
         vx, vy = state[3:5]
         glideslope = np.arctan2(np.abs(vy),np.abs(vx))
 
