@@ -379,8 +379,7 @@ class Rocket(Env):
     def _get_obs(self):
         return self._normalize_obs(self.y)
 
-    def plot_states(self, showFig : bool = False,
-    states = None):
+    def plot_states(self, states = None):
         """
         :param states: list of observations
         """
@@ -412,15 +411,16 @@ class Rocket(Env):
 
         __, = ax1.plot(timesteps, downranges, label='Downrange (x)')
         __, = ax1.plot(timesteps, heights, label='Height (y)')
-        line_theta, = ax1_1.plot(timesteps, np.rad2deg(ths),'b-')
+        __, = ax1_1.plot(timesteps, np.rad2deg(ths),'b-')
         
         # __, = ax1.plot(vxs, label='Cross velocity (v_x)')
         __, = ax1.plot(timesteps, vzs, label='Vertical velocity (v_z)')
 
         ax1.legend()
-        ax1_1.set_ylabel('theta',color='b')
+        ax1_1.set_ylabel('theta [deg]',color='b')
         ax1_1.tick_params('y', colors='b')
         ax1.set_xlabel('Time [s]')
+        ax1.set_ylabel('Position/Velocity [m]/[m/s]')
 
         # Plotting actions
         for action in self.SIM.actions:
