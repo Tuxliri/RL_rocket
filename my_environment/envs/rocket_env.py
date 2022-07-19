@@ -158,8 +158,8 @@ class Rocket(Env):
         theta_lim = np.pi/2
         theta_mgn = np.pi/4
 
-        rew = alfa*np.linalg.norm(v-v_targ) + beta*thrust +\
-            gamma*(np.abs(theta_prime)>theta_lim) + delta*np.maximum(0,np.abs(theta_prime)-theta_mgn) + eta
+        rew = alfa*np.linalg.norm(v-v_targ) + beta*thrust + eta +\
+            gamma*(np.abs(theta_prime)>theta_lim) + delta*np.maximum(0,np.abs(theta_prime)-theta_mgn)
         
         rew_goal = self._reward_goal(obs)
 
