@@ -67,7 +67,7 @@ class GaudetStateObs(gym.ObservationWrapper):
 
         r=np.array([x,y])
         v=np.array([vx,vy])
-
+        
         v_targ, t_go = self.env.unwrapped.compute_vtarg(r,v)
         vx_targ, vy_targ = v_targ
         
@@ -93,7 +93,7 @@ class RecordVideoFigure(RecordVideo):
         if self.episode_trigger(self.episode_id):
             if not self.is_vector_env:
                 if dones:
-                    fig_states,fig_actions = self.env.unwrapped.plotStates()
+                    fig_states,fig_actions = self.env.unwrapped.plot_states()
                     # Now we have the figures at the end of each logged video episode,
                     # we need to choose what to do with them. The best is to save them
                     # to a folder so that each time a video is logged wandb picks the
@@ -108,7 +108,7 @@ class RecordVideoFigure(RecordVideo):
                         self.save_figure(fig_actions, "actions_figure")
                     
             elif dones[0]:
-                fig_states,fig_actions = self.env.unwrapped.plotStates()
+                fig_states,fig_actions = self.env.unwrapped.plot_states()
                 plt.close()
                 plt.close()
 
