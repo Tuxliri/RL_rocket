@@ -143,6 +143,7 @@ class Rocket(Env):
         # i.e. if the velocity points in a cone towards the origin bounded by the original glideslope angle
         r = obs[0:2]
         v = obs[3:5]
+        theta_prime = obs[2]-np.pi/2
 
         v_targ, __ = self.compute_vtarg(r,v)
 
@@ -151,8 +152,14 @@ class Rocket(Env):
         alfa = -0.01
         beta = -0.05
         eta = 0.01
+        gamma = -100
+        delta = -20
 
-        rew = alfa*np.linalg.norm(v-v_targ) + beta*thrust + eta
+        theta_lim = np.pi/2
+        theta_mgn = np.pi/4
+
+        rew = alfa*np.linalg.norm(v-v_targ) + beta*thrust +\
+            gamma*(np.abs(theta_prime)>theta_lim) + delta*np.maximum(0,np.abs(theta_prime)-theta_mgn) + eta
         
         rew_goal = self._reward_goal(obs)
 
@@ -227,7 +234,7 @@ class Rocket(Env):
         to change between these two coordinate frames
         """
 
-        angleDeg = self.y[2]*180/np.pi - 90
+        angle_draw = self.y[2]*180/np.pi - 90
         """
         As the image is vertical when displayed with 0 rotation
         we need to align it with the convention of rocket horizontal
@@ -273,7 +280,7 @@ class Rocket(Env):
         action = self.action
         action[0] = action[0]*180/np.pi
 
-        stringToDisplay1 = f"x: {self.y[0]:5.1f}  y: {self.y[1]:4.1f} Angle: {self.y[2]*180/np.pi:4.1f}"
+        stringToDisplay1 = f"x: {self.y[0]:5.1f}  y: {self.y[1]:4.1f} Angle: {np.rad2deg(self.y[2]):4.1f}"
         stringToDisplay2 = f"vx: {self.y[3]:5.1f}  vy: {self.y[4]:4.1f} omega: {self.y[5]:4.1f}"
         stringToDisplay3 = f"Time: {self.SIM.t:4.1f} Action: {np.array2string(action,precision=2)}"
 
@@ -285,7 +292,7 @@ class Rocket(Env):
         canvas.blit(img3, (20, 60))
 
         blitRotate(canvas, image, tuple(
-            agent_location), (w/2, h/2), angleDeg)
+            agent_location), (w/2, h/2), angle_draw)
 
         # Draw the target velocity vector
         v_targ, __ = self.compute_vtarg(r,v)
@@ -372,7 +379,7 @@ class Rocket(Env):
     def _get_obs(self):
         return self._normalize_obs(self.y)
 
-    def plotStates(self, showFig : bool = False,
+    def plot_states(self, showFig : bool = False,
     states = None):
         """
         :param states: list of observations
@@ -405,19 +412,10 @@ class Rocket(Env):
 
         __, = ax1.plot(timesteps, downranges, label='Downrange (x)')
         __, = ax1.plot(timesteps, heights, label='Height (y)')
-        line_theta, = ax1_1.plot(timesteps, ths,'b-')
+        line_theta, = ax1_1.plot(timesteps, np.rad2deg(ths),'b-')
         
         # __, = ax1.plot(vxs, label='Cross velocity (v_x)')
         __, = ax1.plot(timesteps, vzs, label='Vertical velocity (v_z)')
-        
-        if self.infos[-1]["TimeLimit.truncated"]:
-            ax1.text(0,0,'Truncated episode')
-
-        elif self.infos[-1]["EpisodeDone"]:
-            ax1.text(0,0,'Terminated episode')
-        
-        else:
-            ax1.text(0,0,'NOT-truncated episode')
 
         ax1.legend()
         ax1_1.set_ylabel('theta',color='b')
@@ -463,27 +461,6 @@ class Rocket(Env):
 
         return outside
 
-    def _checkCrash(self, state : ArrayLike):
-        x,y = state[0:2]
-        vx,vy = state[3:5]
-
-        # Measure the angular deviation from vertical orientation
-        theta, vtheta = state[2]-np.pi/2, state[5]
-
-        v = (vx**2 + vy**2)**0.5
-        crash = False
-
-        if self._checkBounds(state):
-            crash = True
-        if y >= self.y_bound_up:
-            crash = True
-        if y <= 1e-3 and v >= 15.0:
-            crash = True
-        if y <= 1e-3 and abs(x) >= self.target_r:
-            crash = True
-
-        return crash
-
     def _check_landing(self, state):
         r = np.linalg.norm(state[0:2])
         v = np.linalg.norm(state[3:5])
@@ -498,8 +475,11 @@ class Rocket(Env):
         v_lim = 2
         r_lim = 5
         glideslope_lim = np.deg2rad(79)
-        
-        if y<=1e-3 and v<v_lim and r<r_lim and glideslope<glideslope_lim:
+        theta_lim = 0.2
+        omega_lim = 0.2
+
+        if y<=1e-3 and v<v_lim and r<r_lim and glideslope<glideslope_lim\
+            and np.abs(theta)<theta_lim and np.abs(vtheta)<omega_lim :
             return True
         else:
             return False
@@ -507,6 +487,9 @@ class Rocket(Env):
     def seed(self, seed: int = 42):
         self.init_space.seed(42)
         return super().seed(seed)
+
+    def _get_normalizer(self):
+        return self.state_normalizer
 
 class Rocket1D(gym.Wrapper, GoalEnv):
     def __init__(
