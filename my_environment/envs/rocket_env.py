@@ -462,23 +462,29 @@ class Rocket(Env):
 
         # Measure the angular deviation from vertical orientation
         theta, vtheta = state[2], state[5]
-        theta = theta-np.pi/2
+        zeta = theta-np.pi/2
 
         __,y = state[0:2]
         vx, vy = state[3:5]
         glideslope = np.arctan2(np.abs(vy),np.abs(vx))
 
+        # Set landing bounds
         v_lim = 2
         r_lim = 5
         glideslope_lim = np.deg2rad(79)
-        theta_lim = 0.2
+        zeta_lim = 0.2
         omega_lim = 0.2
 
-        if y<=1e-3 and v<v_lim and r<r_lim and glideslope<glideslope_lim\
-            and np.abs(theta)<theta_lim and np.abs(vtheta)<omega_lim :
-            return True
-        else:
-            return False
+        landing_conditions = {
+            "zero_height" : y<=1e-3,
+            "velocity_limit": v<v_lim,
+            "landing_radius" : r<r_lim,
+            "glideslope_limit" : glideslope<glideslope_lim,
+            "attitude_limit" : abs(zeta)<zeta_lim,
+            "omega_limit" : abs(vtheta)<omega_lim
+        }
+
+        return all(landing_conditions.values())
 
     def seed(self, seed: int = 42):
         self.init_space.seed(42)
