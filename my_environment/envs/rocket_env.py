@@ -103,9 +103,9 @@ class Rocket(Env):
         self.window = None
         self.clock = None
 
-    def step(self, action):
+    def step(self, normalized_action):
 
-        self.action = self._denormalize_action(action)
+        self.action = self._denormalize_action(normalized_action)
 
         self.y, __, isterminal, __ = self.SIM.step(self.action)
         obs = self.y.astype(np.float32)
@@ -113,15 +113,15 @@ class Rocket(Env):
         # Done if the rocket is at ground
         done = bool(isterminal) or self._checkBounds(obs)
 
-        reward, rewards_dict = self._compute_reward(obs, action)
-        
-        if done:                
-            info["bounds_violation"] = self._checkBounds(obs)
+        reward, rewards_dict = self._compute_reward(obs, self.action)
 
         info = {
             "rewards_dict" : rewards_dict,
             "is_done" : done
         }
+        
+        if done:                
+            info["bounds_violation"] = self._checkBounds(obs)
 
         return self._normalize_obs(obs), reward, done, info
 
@@ -138,7 +138,7 @@ class Rocket(Env):
 
         # Coefficients
         alfa = -0.01
-        beta = -0.05
+        beta = -5e-7
         eta = 0.01
         gamma = -10
         delta = -5
