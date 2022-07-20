@@ -138,26 +138,26 @@ class Rocket(Env):
 
         # Coefficients
         alfa = -0.01
-        beta = -5e-7
+        beta = -1e-8
         eta = 0.01
         gamma = -10
         delta = -5
 
         # Attitude constraints
         zeta_lim = 2*np.pi
-        zeta_mgn = np.pi/4        
+        zeta_mgn = np.pi/2        
         
         # Compute each reward term
         rewards_dict = {
             "velocity_tracking" : alfa*np.linalg.norm(v-v_targ),
             "thrust_penalty" : beta*thrust,
             "eta" : eta,
-            "attitude_constraint" : gamma*(np.abs(zeta)>zeta_lim),
-            "attitude_hint" : delta*np.maximum(0,np.abs(zeta)-zeta_mgn),
+            "attitude_constraint" : gamma*float(abs(zeta)>zeta_lim),
+            "attitude_hint" : delta*np.maximum(0,abs(zeta)-zeta_mgn),
             "rew_goal": self._reward_goal(obs),
         }
 
-        reward = sum(rewards_dict.values)
+        reward = sum(rewards_dict.values())
         
         return reward, rewards_dict
 
