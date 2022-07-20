@@ -105,20 +105,62 @@ class Rocket(Env):
 
     def step(self, action):
 
-        u = self._denormalize_action(action)
-        self.action = u
+        self.action = self._denormalize_action(action)
 
-        self.y, __, isterminal, __ = self.SIM.step(u)
+        self.y, __, isterminal, __ = self.SIM.step(self.action)
         obs = self.y.astype(np.float32)
 
         # Done if the rocket is at ground
         done = bool(isterminal) or self._checkBounds(obs)
 
-        reward, info = self._compute_reward( obs, done, action)
+        reward, rewards_dict = self._compute_reward(obs, action)
         
-        self.infos.append(info)
+        if done:                
+            info["bounds_violation"] = self._checkBounds(obs)
+
+        info = {
+            "rewards_dict" : rewards_dict,
+            "is_done" : done
+        }
 
         return self._normalize_obs(obs), reward, done, info
+
+    def _compute_reward(self, obs, action):
+        reward = 0              
+
+        r = obs[0:2]
+        v = obs[3:5]
+        zeta = obs[2]-np.pi/2
+
+        v_targ, __ = self.compute_vtarg(r,v)
+
+        thrust = action[0]
+
+        # Coefficients
+        alfa = -0.01
+        beta = -0.05
+        eta = 0.01
+        gamma = -10
+        delta = -5
+
+        # Attitude constraints
+        zeta_lim = 2*np.pi
+        zeta_mgn = np.pi/4        
+        
+        # Compute each reward term
+        rewards_dict = {
+            "velocity_tracking" : alfa*np.linalg.norm(v-v_targ),
+            "thrust_penalty" : beta*thrust,
+            "eta" : eta,
+            "attitude_constraint" : gamma*(np.abs(zeta)>zeta_lim),
+            "attitude_hint" : delta*np.maximum(0,np.abs(zeta)-zeta_mgn),
+            "rew_goal": self._reward_goal(obs),
+        }
+
+        reward = sum(rewards_dict.values)
+        
+        return reward, rewards_dict
+
 
     def _normalize_obs(self, obs):
         return obs/self.state_normalizer
@@ -126,52 +168,6 @@ class Rocket(Env):
     def _denormalize_obs(self,obs):
         return obs*self.state_normalizer
         
-    def _compute_reward(self, obs, done, action):
-        reward = 0      
-
-        info = {
-            'stateHistory': self.SIM.states,
-            'actionHistory': self.SIM.actions,
-            }        
-
-        # give a reward if we're going in the correct direction,
-        # i.e. if the velocity points in a cone towards the origin bounded by the original glideslope angle
-        r = obs[0:2]
-        v = obs[3:5]
-        theta_prime = obs[2]-np.pi/2
-
-        v_targ, __ = self.compute_vtarg(r,v)
-
-        thrust = action[0]
-
-        alfa = -0.01
-        beta = -0.05
-        eta = 0.01
-        gamma = -10
-        delta = -5
-
-        theta_lim = 2*np.pi
-        theta_mgn = np.pi/4
-
-        rew = alfa*np.linalg.norm(v-v_targ) + beta*thrust + eta +\
-            gamma*(np.abs(theta_prime)>theta_lim) + delta*np.maximum(0,np.abs(theta_prime)-theta_mgn)
-        
-        rew_goal = self._reward_goal(obs)
-
-        reward = rew + rew_goal
-        
-        if done:                
-            if self._checkBounds(obs):
-                info["Bounds violated"] = True
-
-        rewards_log = {
-            "reward": reward,
-        }
-
-        info["rewards_log"] = rewards_log
-        
-        return reward, info
-
     def _reward_goal(self, obs):
         k = 10
         return k*self._check_landing(obs)
