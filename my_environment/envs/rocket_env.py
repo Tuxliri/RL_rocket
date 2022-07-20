@@ -24,7 +24,7 @@ class Rocket(Env):
     def __init__(
         self,
         IC = [100, 500, np.pi/2, -10, -50, 0],
-        ICRange = [0,0,0,0,0,0],
+        ICRange = [10,50,0.1,1,10,0.1],
         timestep=0.1,
         seed=42
     ) -> None:
@@ -66,11 +66,6 @@ class Rocket(Env):
             1
             )
 
-        """
-        Define realistic bounds for episode termination
-        they are computed in the reset() method, when
-        initial conditions are 
-        """
         # Set environment bounds
         self.x_bound_right = 0.9*np.maximum(self.state_normalizer[0],100)
         self.x_bound_left = -self.x_bound_right
@@ -152,10 +147,10 @@ class Rocket(Env):
         alfa = -0.01
         beta = -0.05
         eta = 0.01
-        gamma = -100
-        delta = -20
+        gamma = -10
+        delta = -5
 
-        theta_lim = np.pi/2
+        theta_lim = 2*np.pi
         theta_mgn = np.pi/4
 
         rew = alfa*np.linalg.norm(v-v_targ) + beta*thrust + eta +\
