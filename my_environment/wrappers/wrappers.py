@@ -11,6 +11,7 @@ from my_environment.envs.rocket_env import Rocket
 import numpy as np
 from gym import logger
 import wandb
+import pandas as pd
 
 class DiscreteActions(gym.ActionWrapper):
     def __init__(
@@ -86,23 +87,28 @@ class RecordVideoFigure(RecordVideo):
                 f"Overwriting existing images at {self.image_folder} folder (try specifying a different `image_folder` for the `RecordVideoFigure` wrapper if this is not desired)"
             )
         os.makedirs(self.image_folder, exist_ok=True)
+        self.rewards_info = []
 
     def step(self, action):
         observations, rewards, dones, infos = super().step(action)
+        if not self.is_vector_env:
+            self.rewards_info.append(infos["rewards_dict"])
 
         if self.episode_trigger(self.episode_id):
             if not self.is_vector_env:
                 if dones:
                     fig_states,fig_actions = self.env.unwrapped.plot_states()
-                    # Now we have the figures at the end of each logged video episode,
-                    # we need to choose what to do with them. The best is to save them
-                    # to a folder so that each time a video is logged wandb picks the
-                    # corresponding picture from the folder and logs it
                     plt.close()
                     plt.close()
 
+                    fig_rew = pd.DataFrame(self.rewards_info).plot()
+
                     if wandb.run is not None:
-                        wandb.log({"states": fig_states, "actions" : fig_actions})
+                        wandb.log({
+                            "states": fig_states,
+                            "actions" : fig_actions,
+                            "rewards" : fig_rew
+                            })
                     else:
                         self.save_figure(fig_states, "states_figure")
                         self.save_figure(fig_actions, "actions_figure")
@@ -112,11 +118,18 @@ class RecordVideoFigure(RecordVideo):
                 plt.close()
                 plt.close()
 
+                fig_rew = pd.DataFrame(self.rewards_info).plot()
+
                 if wandb.run is not None:
-                        wandb.log({"states": fig_states, "actions" : fig_actions})
+                    wandb.log({
+                        "states": fig_states,
+                        "actions" : fig_actions,
+                        "rewards" : fig_rew
+                        })
                 else:
                     self.save_figure(fig_states, "states_figure")
                     self.save_figure(fig_actions, "actions_figure")
+
             pass
 
         return observations, rewards, dones, infos
