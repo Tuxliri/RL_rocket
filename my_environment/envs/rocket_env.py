@@ -120,8 +120,8 @@ class Rocket(Env):
             "is_done" : done,
             "perfect_landing" : rewards_dict["rew_goal"]>0
         }
-        
-            info["bounds_violation"] = self._checkBounds(obs)
+                        
+        info["bounds_violation"] = self._checkBounds(obs)
 
         return self._normalize_obs(obs), reward, done, info
 
