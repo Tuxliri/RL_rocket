@@ -134,6 +134,10 @@ class RecordVideoFigure(RecordVideo):
 
         return observations, rewards, dones, infos
 
+    def reset(self, **kwargs):
+        self.rewards_info = []
+        return super().reset(**kwargs)
+        
     def save_figure(self, figure: plt.Figure, prefix):
         figure_name = f"{prefix}-step-{self.step_id}"
         if self.episode_trigger:
