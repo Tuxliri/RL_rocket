@@ -134,11 +134,11 @@ class Rocket(Env):
 
         v_targ, __ = self.compute_vtarg(r,v)
 
-        thrust = action[0]
+        thrust = action[1]
 
         # Coefficients
         alfa = -0.01
-        beta = -1e-8
+        beta = -1e-6
         eta = 0.01
         gamma = -10
         delta = -5
