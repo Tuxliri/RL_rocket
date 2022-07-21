@@ -107,7 +107,8 @@ class RecordVideoFigure(RecordVideo):
                         wandb.log({
                             "states": fig_states,
                             "actions" : fig_actions,
-                            "rewards" : fig_rew
+                            "rewards" : fig_rew,
+                            "landing_success" : float(infos["perfect_landing"])
                             })
                     else:
                         self.save_figure(fig_states, "states_figure")
@@ -124,7 +125,7 @@ class RecordVideoFigure(RecordVideo):
                     wandb.log({
                         "states": fig_states,
                         "actions" : fig_actions,
-                        "rewards" : fig_rew
+                        "rewards" : fig_rew,
                         })
                 else:
                     self.save_figure(fig_states, "states_figure")
@@ -145,9 +146,6 @@ class RecordVideoFigure(RecordVideo):
         
         base_path = os.path.join(self.image_folder, figure_name)
 
-        #convert "figure" to png image and save to "base_path"
-        #or even better use the wandb option to store plots
-        # figure.
         figure.savefig(base_path)
 
         return None
