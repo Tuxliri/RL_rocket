@@ -7,6 +7,7 @@ import stable_baselines3
 from stable_baselines3.common.callbacks import BaseCallback, StopTrainingOnMaxEpisodes
 from stable_baselines3.common.logger import Figure
 
+### DEPRECATED ###
 class FigureRecorderCallback(BaseCallback):
     def __init__(self, verbose: int = 0):
         self.mydir = None

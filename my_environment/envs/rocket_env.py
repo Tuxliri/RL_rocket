@@ -3,7 +3,6 @@
 # 3DOF version of the real 6DOF dynamics
 
 import importlib
-from turtle import distance
 import numpy as np
 import gym
 from gym import spaces, Env, GoalEnv
@@ -12,7 +11,6 @@ from my_environment.utils.simulator import Simulator3DOF
 
 from my_environment.utils.renderer_utils import blitRotate
 from numpy.typing import ArrayLike
-from gym.utils import seeding
 
 class Rocket(Env):
 
@@ -26,9 +24,8 @@ class Rocket(Env):
     def __init__(
         self,
         IC = [100, 500, np.pi/2, -10, -50, 0],
-        ICRange = [0,0,0,0,0,0],
+        ICRange = [10,50,0.1,1,10,0.1],
         timestep=0.1,
-        maxTime=40,
         seed=42
     ) -> None:
 
@@ -38,8 +35,8 @@ class Rocket(Env):
         self.ICMean = np.float32(IC)
         self.ICRange = np.float32(ICRange)  # +- range
         self.timestep = timestep
-        self.maxTime = maxTime
-        
+        self.metadata["render_fps"] = 1/timestep
+
         # Initial condition space
         self.init_space = spaces.Box(
             low=self.ICMean-self.ICRange/2,
@@ -50,32 +47,29 @@ class Rocket(Env):
         
         
         # Actuators bounds
-        self.maxGimbal = np.deg2rad(20)     # [rad]
-        self.maxThrust = 981e3              # [N]
+        self.max_gimbal = np.deg2rad(20)     # [rad]
+        self.max_thrust = 981e3              # [N]
         
         # State normalizer and bounds
         t_free_fall = (-self.ICMean[4]+np.sqrt(self.ICMean[4]**2+2*9.81*self.ICMean[1]))/9.81
         inertia = 6.04e6
         lever_arm = 30.
 
-        self.state_normalizer = np.array([
-            1.5*max(abs(self.ICMean[0]),200),
-            1.5*max(abs(self.ICMean[1]),200),
+        self.state_normalizer = np.maximum(np.array([
+            1.5*abs(self.ICMean[0]),
+            1.5*abs(self.ICMean[1]),
             2*np.pi,
             2*9.81*t_free_fall,
             2*9.81*t_free_fall,
-            self.maxThrust*np.sin(self.maxGimbal)*lever_arm/(inertia)*t_free_fall*1.5
-            ])
+            self.max_thrust*np.sin(self.max_gimbal)*lever_arm/(inertia)*t_free_fall/5.
+            ]),
+            1
+            )
 
-        """
-        Define realistic bounds for episode termination
-        they are computed in the reset() method, when
-        initial conditions are 
-        """
         # Set environment bounds
-        self.x_bound_right = 0.9*self.state_normalizer[0]
+        self.x_bound_right = 0.9*np.maximum(self.state_normalizer[0],100)
         self.x_bound_left = -self.x_bound_right
-        self.y_bound_up = 0.9*abs(self.state_normalizer[1])
+        self.y_bound_up = 0.9*np.maximum(self.state_normalizer[1],100)
         self.y_bound_down = -30
 
         # Define observation space
@@ -96,11 +90,7 @@ class Rocket(Env):
 
         # Landing parameters
         self.target_r = 30
-        self.a_0 = None # Initial glideslope angle
 
-        # Shaping reward
-        self.prev_shaping = None
-        
         # Renderer variables (pygame)
         self.window_size = 600  # The size of the PyGame window
         """
@@ -113,26 +103,64 @@ class Rocket(Env):
         self.window = None
         self.clock = None
 
-    def step(self, action):
+    def step(self, normalized_action):
 
-        u = self._denormalize_action(action)
-        self.action = u
+        self.action = self._denormalize_action(normalized_action)
 
-        self.y, __, isterminal, currentTime = self.SIM.step(u)
-        obs = self._normalize_obs(self.y)
+        self.y, __, isterminal, __ = self.SIM.step(self.action)
+        obs = self.y.astype(np.float32)
 
         # Done if the rocket is at ground
-        done = bool(isterminal) or currentTime>=self.maxTime or self._checkBounds(obs)
+        done = bool(isterminal) or self._checkBounds(obs)
 
-        reward = 0
-        reward, info = self._compute_reward(currentTime, obs, done, u)
+        reward, rewards_dict = self._compute_reward(obs, self.action)
+
+        info = {
+            "rewards_dict" : rewards_dict,
+            "is_done" : done,
+            "perfect_landing" : rewards_dict["rew_goal"]>0
+        }
+                        
+        info["bounds_violation"] = self._checkBounds(obs)
+
+        return self._normalize_obs(obs), reward, done, info
+
+    def _compute_reward(self, obs, action):
+        reward = 0              
+
+        r = obs[0:2]
+        v = obs[3:5]
+        zeta = obs[2]-np.pi/2
+
+        v_targ, __ = self.compute_vtarg(r,v)
+
+        thrust = action[1]
+
+        # Coefficients
+        alfa = -0.01
+        beta = -1e-6
+        eta = 0.01
+        gamma = -10
+        delta = -5
+
+        # Attitude constraints
+        zeta_lim = 2*np.pi
+        zeta_mgn = np.pi/2        
         
-        self.infos.append(info)
+        # Compute each reward term
+        rewards_dict = {
+            "velocity_tracking" : alfa*np.linalg.norm(v-v_targ),
+            "thrust_penalty" : beta*thrust,
+            "eta" : eta,
+            "attitude_constraint" : gamma*float(abs(zeta)>zeta_lim),
+            "attitude_hint" : delta*np.maximum(0,abs(zeta)-zeta_mgn),
+            "rew_goal": self._reward_goal(obs),
+        }
 
-        if done and not currentTime>=self.maxTime:
-            assert self._checkCrash or self._checkLanding, f"self._checkCrash is {self._checkCrash} and self._checkLanding is f{self._checkLanding}"
-            
-        return obs, reward, done, info
+        reward = sum(rewards_dict.values())
+        
+        return reward, rewards_dict
+
 
     def _normalize_obs(self, obs):
         return obs/self.state_normalizer
@@ -140,47 +168,31 @@ class Rocket(Env):
     def _denormalize_obs(self,obs):
         return obs*self.state_normalizer
         
-    def _compute_reward(self, currentTime, obs, done, u):
-        reward = 0      
+    def _reward_goal(self, obs):
+        k = 10
+        return k*self._check_landing(obs)
+    
+    def compute_vtarg(self, r, v):
+        tau_1 = 20
+        tau_2 = 100
+        initial_conditions = self.SIM.states[0]
 
-        info = {
-            'stateHistory': self.SIM.states,
-            'actionHistory': self.SIM.actions,
-            "TimeLimit.truncated": False,
-            "EpisodeDone": False,
-            }        
+        v_0 = np.linalg.norm(initial_conditions[3:5])
 
-        shaping = (
-            -100 * np.sqrt(obs[0] * obs[0] + obs[1] * obs[1])
-            - 100 * np.sqrt(obs[3] * obs[3] + obs[4] * obs[4])
-            - 100 * abs(obs[2])
-        )
-        if self.prev_shaping is not None:
-            reward = shaping - self.prev_shaping
-        self.prev_shaping = shaping
+        if r[1]>15:
+            r_hat = r-[0,15]
+            v_hat = v-[0,-2]
+            tau = tau_1
 
-        reward -= (
-            (u[1]>0) * 0.30
-        )  # less fuel spent is better, about -30 for heuristic landing
+        else:
+            r_hat = [0,15]
+            v_hat = v-[0,-1]
+            tau = tau_2
 
-        if self._checkCrash(obs) or self._checkBounds(obs):
-            reward = -20
-
-        if self._checkLanding(obs):
-            reward = +20
-
-
-        # give a bonus final reward
+        t_go = np.linalg.norm(r_hat)/np.linalg.norm(v_hat)
+        v_targ = -v_0*(r_hat/np.linalg.norm(r_hat))*(1-np.exp(-t_go/tau))
         
-        if currentTime>=self.maxTime:
-            info["TimeLimit.truncated"] = True
-            
-        rewards_log = {
-            "reward": reward,
-        }
-        info["rewards_log"] = rewards_log
-        
-        return reward, info
+        return v_targ, t_go
 
     def render(self, mode : str="human"):
         import pygame  # import here to avoid pygame dependency with no render
@@ -200,7 +212,10 @@ class Rocket(Env):
         SHIFT_RIGHT = self.window_size/2
 
         # position of the CoM of the rocket
-        agent_location = self.y[0:2] * step_size
+        r = self.y[0:2]
+        v = self.y[3:5]
+
+        agent_location = r * step_size
 
         agent_location[0] = agent_location[0] + SHIFT_RIGHT
         agent_location[1] = self.window_size - agent_location[1]
@@ -210,7 +225,7 @@ class Rocket(Env):
         to change between these two coordinate frames
         """
 
-        angleDeg = self.y[2]*180/np.pi - 90
+        angle_draw = self.y[2]*180/np.pi - 90
         """
         As the image is vertical when displayed with 0 rotation
         we need to align it with the convention of rocket horizontal
@@ -256,7 +271,7 @@ class Rocket(Env):
         action = self.action
         action[0] = action[0]*180/np.pi
 
-        stringToDisplay1 = f"x: {self.y[0]:5.1f}  y: {self.y[1]:4.1f} Angle: {self.y[2]*180/np.pi:4.1f}"
+        stringToDisplay1 = f"x: {self.y[0]:5.1f}  y: {self.y[1]:4.1f} Angle: {np.rad2deg(self.y[2]):4.1f}"
         stringToDisplay2 = f"vx: {self.y[3]:5.1f}  vy: {self.y[4]:4.1f} omega: {self.y[5]:4.1f}"
         stringToDisplay3 = f"Time: {self.SIM.t:4.1f} Action: {np.array2string(action,precision=2)}"
 
@@ -268,7 +283,27 @@ class Rocket(Env):
         canvas.blit(img3, (20, 60))
 
         blitRotate(canvas, image, tuple(
-            agent_location), (w/2, h/2), angleDeg)
+            agent_location), (w/2, h/2), angle_draw)
+
+        # Draw the target velocity vector
+        v_targ, __ = self.compute_vtarg(r,v)
+        
+        pygame.draw.line(
+            canvas,
+            (0,0,0),
+            start_pos=tuple(agent_location),
+            end_pos=tuple(agent_location+[1,-1]*v_targ*5),
+            width=2
+            )
+        
+        # Draw the current velocity vector       
+        pygame.draw.line(
+            canvas,
+            (0,0,255),
+            start_pos=tuple(agent_location),
+            end_pos=tuple(agent_location+[1,-1]*v*5),
+            width=2
+            )
 
         # Draw a rectangle at the landing pad
         landing_pad = pygame.Rect(0,0,step_size*self.target_r,30)
@@ -310,12 +345,9 @@ class Rocket(Env):
         """ Function defining the reset method of gym
             It returns an initial observation drawn randomly
             from the uniform distribution of the ICs"""
-        # Initialize the state of the system (sample randomly within the IC space)
+
         initialCondition = self.init_space.sample()
         self.y = initialCondition
-        self.prev_shaping = None
-        
-        self.a_0 = np.arctan2(initialCondition[1],initialCondition[0])
 
         # instantiate the simulator object
         self.SIM = Simulator3DOF(initialCondition, self.timestep)
@@ -328,15 +360,17 @@ class Rocket(Env):
             array action is the gimbal angle while the
             second is the throttle"""
 
-        gimbal = action[0]*self.maxGimbal
+        gimbal = action[0]*self.max_gimbal
 
-        thrust = (action[1] + 1)/2. * self.maxThrust
+        thrust = (action[1] + 1)/2. * self.max_thrust
 
         # Add lower bound on thrust with self.minThrust
         return np.float32([gimbal, thrust])
 
-    def plotStates(self, showFig : bool = False,
-    states = None):
+    def _get_obs(self):
+        return self._normalize_obs(self.y)
+
+    def plot_states(self, states = None):
         """
         :param states: list of observations
         """
@@ -368,24 +402,16 @@ class Rocket(Env):
 
         __, = ax1.plot(timesteps, downranges, label='Downrange (x)')
         __, = ax1.plot(timesteps, heights, label='Height (y)')
-        line_theta, = ax1_1.plot(timesteps, ths,'b-')
+        __, = ax1_1.plot(timesteps, np.rad2deg(ths),'b-')
         
         # __, = ax1.plot(vxs, label='Cross velocity (v_x)')
         __, = ax1.plot(timesteps, vzs, label='Vertical velocity (v_z)')
-        
-        if self.infos[-1]["TimeLimit.truncated"]:
-            ax1.text(0,0,'Truncated episode')
-
-        elif self.infos[-1]["EpisodeDone"]:
-            ax1.text(0,0,'Terminated episode')
-        
-        else:
-            ax1.text(0,0,'NOT-truncated episode')
 
         ax1.legend()
-        ax1_1.set_ylabel('theta',color='b')
+        ax1_1.set_ylabel('theta [deg]',color='b')
         ax1_1.tick_params('y', colors='b')
         ax1.set_xlabel('Time [s]')
+        ax1.set_ylabel('Position/Velocity [m]/[m/s]')
 
         # Plotting actions
         for action in self.SIM.actions:
@@ -406,19 +432,15 @@ class Rocket(Env):
         ax2_1.set_ylabel('Gimbals [rad]', color='r')
         ax2_1.tick_params('y', colors='r')
 
-        if showFig:
-            plt.show(block=False)
-
         return (fig1, fig2)
 
-    def _checkBounds(self, obs : ArrayLike):
+    def _checkBounds(self, state : ArrayLike):
         """
         :param state: state of the rocket, np.ndarray() shape(7,)
         
         Check if the rocket goes outside the side or upper bounds
         of the environment
         """
-        state = self._denormalize_obs(obs)
         outside = False
         x,y = state[0:2]
 
@@ -430,46 +452,42 @@ class Rocket(Env):
 
         return outside
 
-    def _checkCrash(self, obs : ArrayLike):
-        state = self._denormalize_obs(obs)
-
-        x,y = state[0:2]
-        vx,vy = state[3:5]
+    def _check_landing(self, state):
+        r = np.linalg.norm(state[0:2])
+        v = np.linalg.norm(state[3:5])
 
         # Measure the angular deviation from vertical orientation
-        theta, vtheta = state[2]-np.pi/2, state[5]
+        theta, vtheta = state[2], state[5]
+        zeta = theta-np.pi/2
 
-        v = (vx**2 + vy**2)**0.5
-        crash = False
+        __,y = state[0:2]
+        vx, vy = state[3:5]
+        glideslope = np.arctan2(np.abs(vy),np.abs(vx))
 
-        if y >= self.y_bound_up:
-            crash = True
-        if y <= 1e-3 and v >= 15.0:
-            crash = True
-        if y <= 1e-3 and abs(x) >= self.target_r:
-            crash = True
+        # Set landing bounds
+        v_lim = 2
+        r_lim = 5
+        glideslope_lim = np.deg2rad(79)
+        zeta_lim = 0.2
+        omega_lim = 0.2
 
-        return crash
+        landing_conditions = {
+            "zero_height" : y<=1e-3,
+            "velocity_limit": v<v_lim,
+            "landing_radius" : r<r_lim,
+            "glideslope_limit" : glideslope<glideslope_lim,
+            "attitude_limit" : abs(zeta)<zeta_lim,
+            "omega_limit" : abs(vtheta)<omega_lim
+        }
 
-    def _checkLanding(self, obs):
-        state = self._denormalize_obs(obs)
-
-        x,y = state[0:2]
-        vx,vy = state[3:5]
-
-        # Measure the angular deviation from vertical orientation
-        theta, vtheta = state[2]-np.pi/2, state[5]
-
-        v = (vx**2 + vy**2)**0.5
-
-        if y<=1e-3 and v <= 15.0 and abs(x)<=self.target_r:
-            return True
-        else:
-            return False
+        return all(landing_conditions.values())
 
     def seed(self, seed: int = 42):
         self.init_space.seed(42)
         return super().seed(seed)
+
+    def _get_normalizer(self):
+        return self.state_normalizer
 
 class Rocket1D(gym.Wrapper, GoalEnv):
     def __init__(
