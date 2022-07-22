@@ -122,7 +122,8 @@ class Rocket(Env):
         }
                         
         info["bounds_violation"] = self._checkBounds(obs)
-
+        info["state"] = self.y
+        
         return self._normalize_obs(obs), reward, done, info
 
     def _compute_reward(self, obs, action):
