@@ -33,7 +33,14 @@ if __name__ == "__main__":
         "max_time" : 40,
         "RANDOM_SEED" : 42,
         "initial_conditions" : [50, 500, np.pi/2, 0, -50, 0],
-        "initial_conditions_range" : [5,50,0,0,0,0]
+        "initial_conditions_range" : [5,50,0,0,0,0],
+        "reward_coefficients" : {
+                                "alfa" : -0.01, 
+                                "beta" : -1e-8,
+                                "eta" : 2,
+                                "gamma" : -10,
+                                "delta" : -5
+                                }
     }
 
     config["max_ep_timesteps"] = int(config["max_time"]/config["timestep"])
@@ -53,7 +60,8 @@ if __name__ == "__main__":
         IC=config["initial_conditions"],
         ICRange=config["initial_conditions_range"],
         timestep=config["timestep"],
-        seed=config["RANDOM_SEED"]
+        seed=config["RANDOM_SEED"],
+        reward_coeff=config["reward_coefficients"]
         )
         
         # Define a new custom action space with only three actions:
