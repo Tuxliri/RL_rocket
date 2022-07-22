@@ -8,7 +8,8 @@ import wandb
 import numpy as np
 import stable_baselines3
 
-from stable_baselines3 import A2C, DQN, PPO, TD3
+from stable_baselines3 import HerReplayBuffer, DDPG, DQN, SAC, TD3
+from stable_baselines3.her.goal_selection_strategy import GoalSelectionStrategy
 from tensorboard import program
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.monitor import Monitor
@@ -26,21 +27,23 @@ if __name__ == "__main__":
     TENSORBOARD_LOGS_DIR = "./logs"
 
     config = {
-        "env_id" : "my_environment/Falcon3DOF-v0",
-        "policy_type": "MlpPolicy",
+        "env_id" : "my_environment/Falcon3DOFHER-v0",
+        "policy_type": "MultiInputPolicy",
         "total_timesteps": int(5e3),
         "timestep" : 0.05,
         "max_time" : 40,
         "RANDOM_SEED" : 42,
         "initial_conditions" : [50, 500, np.pi/2, 0, -50, 0],
-        "initial_conditions_range" : [5,50,0,0,0,0]
+        "initial_conditions_range" : [5,50,0,0,0,0],
+        "online_sampling" : True,
+        "goal_selection_strategy" : 'future',
     }
 
     config["max_ep_timesteps"] = int(config["max_time"]/config["timestep"])
     
 
     run = wandb.init(
-        project="test_runs",
+        project="test_runs_HER",
         config=config,
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
         monitor_gym=True,  # auto-upload the videos of agents playing the game
@@ -74,14 +77,20 @@ if __name__ == "__main__":
 
     env = make_env()
     
-    model = PPO(
-        config["policy_type"],
-        env,
-        tensorboard_log=f"runs/{run.id}",
-        verbose=1,
-        seed=config["RANDOM_SEED"],
-        ent_coef=0.01,
-        )
+    model = DQN(
+    config["policy_type"],
+    env,
+    replay_buffer_class=HerReplayBuffer,
+    # Parameters for HER
+    replay_buffer_kwargs=dict(
+        n_sampled_goal=4,
+        goal_selection_strategy=config["goal_selection_strategy"],
+        online_sampling=config["online_sampling"],
+    ),
+    tensorboard_log=f"runs/{run.id}",
+    seed=config["RANDOM_SEED"],
+    verbose=1,
+    )
 
     def make_eval_env():
         training_env = make_env()

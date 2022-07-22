@@ -13,7 +13,7 @@ env_id = 'my_environment/Falcon3DOF-v0'
 # env_id = 'LunarLander-v2'
 
 config = {
-    "env_id" : "my_environment/Falcon3DOF-v0",
+    "env_id" : "my_environment/Falcon3DOFHER-v0",
     "policy_type": "MlpPolicy",
     "total_timesteps": int(1.5e5),
     "timestep" : 0.05,
@@ -39,7 +39,6 @@ def make_env(config):
     # - max thrust gimbaled right
     # - max thrust gimbaled left
     # - max thrust downwards
-    env = GaudetStateObs(env)
     env = DiscreteActions3DOF(env)
     env = TimeLimit(env, max_episode_steps=config["max_ep_timesteps"])
     return env
@@ -47,7 +46,6 @@ def make_env(config):
 env=make_env(config)
     
 # env = gym.make(env_id)
-policy = PPO('MlpPolicy', env)
 
 # Plot the reward received
 
