@@ -26,7 +26,13 @@ class Rocket(Env):
         IC = [100, 500, np.pi/2, -10, -50, 0],
         ICRange = [10,50,0.1,1,10,0.1],
         timestep=0.1,
-        seed=42
+        seed=42,
+        reward_coeff = {"alfa" : -0.01,
+                        "beta" : -1e-8,
+                        "eta" : 2,
+                        "gamma" : -10,
+                        "delta" : -5
+                        }
     ) -> None:
 
         super(Rocket, self).__init__()
@@ -36,6 +42,7 @@ class Rocket(Env):
         self.ICRange = np.float32(ICRange)  # +- range
         self.timestep = timestep
         self.metadata["render_fps"] = 1/timestep
+        self.reward_coefficients = reward_coeff
 
         # Initial condition space
         self.init_space = spaces.Box(
@@ -135,13 +142,9 @@ class Rocket(Env):
         v_targ, __ = self.compute_vtarg(r,v)
 
         thrust = action[1]
-
+         
         # Coefficients
-        alfa = -0.01
-        beta = -1e-8
-        eta = 2
-        gamma = -10
-        delta = -5
+        coeff = self.reward_coefficients
 
         # Attitude constraints
         zeta_lim = 2*np.pi
@@ -149,11 +152,11 @@ class Rocket(Env):
         
         # Compute each reward term
         rewards_dict = {
-            "velocity_tracking" : alfa*np.linalg.norm(v-v_targ),
-            "thrust_penalty" : beta*thrust,
-            "eta" : eta,
-            "attitude_constraint" : gamma*float(abs(zeta)>zeta_lim),
-            "attitude_hint" : delta*np.maximum(0,abs(zeta)-zeta_mgn),
+            "velocity_tracking" : coeff["alfa"]*np.linalg.norm(v-v_targ),
+            "thrust_penalty" : coeff["beta"]*thrust,
+            "eta" : coeff["eta"],
+            "attitude_constraint" : coeff["gamma"]*float(abs(zeta)>zeta_lim),
+            "attitude_hint" : coeff["delta"]*np.maximum(0,abs(zeta)-zeta_mgn),
             "rew_goal": self._reward_goal(obs),
         }
 
