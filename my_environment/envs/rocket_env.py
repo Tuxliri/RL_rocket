@@ -139,7 +139,7 @@ class Rocket(Env):
         # Coefficients
         alfa = -0.01
         beta = -1e-8
-        eta = 0.01
+        eta = 2
         gamma = -10
         delta = -5
 
