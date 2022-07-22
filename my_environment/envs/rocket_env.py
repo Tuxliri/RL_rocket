@@ -117,11 +117,11 @@ class Rocket(Env):
 
         info = {
             "rewards_dict" : rewards_dict,
-            "is_done" : done
+            "is_done" : done,
+            "perfect_landing" : rewards_dict["rew_goal"]>0
         }
-        
-        if done:                
-            info["bounds_violation"] = self._checkBounds(obs)
+                        
+        info["bounds_violation"] = self._checkBounds(obs)
 
         return self._normalize_obs(obs), reward, done, info
 
@@ -134,7 +134,7 @@ class Rocket(Env):
 
         v_targ, __ = self.compute_vtarg(r,v)
 
-        thrust = action[0]
+        thrust = action[1]
 
         # Coefficients
         alfa = -0.01

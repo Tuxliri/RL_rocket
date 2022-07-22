@@ -65,20 +65,10 @@ class ReturnCallback():
       self.t+=1
       assert not any(np.abs(obs_t))>1, 'observation outside normalization bounds'
 
-      if done:
-        assert len(self.rewards)==self.t,\
-          f"There are {len(self.rewards)} rewards, but there are {self.t} timesteps"
-
-        episodeReturn=0
-
-        for t in range(self.t):
-          episodeReturn += self.rewards[t]*self.gamma**t
-
-        self.t=0
-        self.rewards=[]
-        self.returns.append(episodeReturn)
-
-      return [rew, ]
+      # Extract the values of each
+      rewards_list = list(info["rewards_dict"].values())
+      # rewards_keys = list(info["rewards_dict"].keys())
+      return rewards_list
 
     def plotReturns(self, title="Episodic Returns"):
         plt.bar(myCallback.callback)
@@ -88,9 +78,10 @@ class ReturnCallback():
 
 myCallback = ReturnCallback()
 mapping = {(pygame.K_UP,): 2, (pygame.K_DOWN,): 0, (pygame.K_LEFT,): 1, (pygame.K_RIGHT,): 3}
-plotter = PlayPlot(myCallback.callback, 30 * 5, ["reward"])
+plotter = PlayPlot(myCallback.callback, 30 * 5,
+      ['velocity_tracking', 'thrust_penalty', 'eta', 'attitude_constraint', 'attitude_hint', 'rew_goal'])
  
-play(env, callback=plotter.callback,fps=1/0.05)#, keys_to_action=mapping)
+play(env)#, callback=plotter.callback,fps=1/0.05)#, keys_to_action=mapping)
 
 behavioural_cloner = imitationKickstarter(env, policy=policy.policy)
 

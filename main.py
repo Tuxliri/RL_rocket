@@ -12,7 +12,6 @@ from stable_baselines3 import A2C, DQN, PPO, TD3
 from tensorboard import program
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.utils import set_random_seed
 from wandb.integration.sb3 import WandbCallback
 from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
@@ -69,10 +68,11 @@ if __name__ == "__main__":
             env,
             allow_early_resets=True,
             filename="logs_PPO",
+            info_keywords=("perfect_landing",)
             )
         return env
 
-    env=make_env()
+    env = make_env()
     
     model = PPO(
         config["policy_type"],
@@ -103,7 +103,7 @@ if __name__ == "__main__":
             model_save_path=f"models/{run.id}",
             verbose=2,
             gradient_save_freq=10000
-            )
+            ),
         ]
 
     
