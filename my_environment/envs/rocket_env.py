@@ -1,3 +1,8 @@
+__all__ = [
+    "Rocket",
+    "RocketHER"
+]
+
 # This is the gym environment to test the RL algorithms
 # on the rocket landing control problem. It is a simplified
 # 3DOF version of the real 6DOF dynamics
@@ -123,7 +128,7 @@ class Rocket(Env):
                         
         info["bounds_violation"] = self._checkBounds(obs)
         info["state"] = self.y
-        
+
         return self._normalize_obs(obs), reward, done, info
 
     def _compute_reward(self, obs, action):
@@ -490,90 +495,34 @@ class Rocket(Env):
     def _get_normalizer(self):
         return self.state_normalizer
 
-class Rocket1D(gym.Wrapper, GoalEnv):
+class RocketHER(Rocket, GoalEnv):
     def __init__(
         self,
-        env: Env,
-        reward_type='shaped_terminal',
-        goal_threshold=5,
-        velocity_threshold=5
+        IC = [100, 500, np.pi/2, -10, -50, 0],
+        ICRange = [10,50,0.1,1,10,0.1],
+        timestep=0.1,
+        seed=42,
+        desired_goal : ArrayLike = [0,0,0,0,0,0],
+        reward_weights : ArrayLike = [1,1,1,1,1,1],
         ) -> None:
 
-        super().__init__(env)
-        self.env = env
-        self.observation_space = spaces.Dict({'observation': spaces.Box(
-            low=-np.inf,
-            high=np.inf,
-            shape=(2,),
-            dtype=np.float32
-        ),
-            'desired_goal': spaces.Box(
-            low=-1.,
-            high=1.,
-            shape=(2,),
-            dtype=np.float32
-        ),
-            'achieved_goal': spaces.Box(
-            low=-np.inf,
-            high=np.inf,
-            shape=(2,),
-            dtype=np.float32
-        )
+        super().__init__(IC,ICRange,timestep,seed)
+        self.observation_space = spaces.Dict({'observation': self.observation_space,
+            'desired_goal': self.observation_space,
+            'achieved_goal': self.observation_space,
         }
-
-        )
-        self._action_space = spaces.Box(
-            low=-1,
-            high=1,
-            shape=(1,),
-            dtype=np.float32
         )
 
-        self.desired_goal = np.float32([0, 0])
-        self.reward_type = reward_type
-        self.goal_threshold = goal_threshold
-        self.velocity_threshold = velocity_threshold
+        self.desired_goal = np.array(desired_goal)
+        # In order to achieve convergence it's important to weight
+        # each term of the goal when computing the norm
+        self.reward_weights = np.array(reward_weights)
 
-    def step(self, thrust):
+        assert self.reward_weights.shape == self.desired_goal.shape,\
+            f"The desired goal has shape {self.desired_goal.shape} but the weights have shape {self.reward_weights.shape}"
 
-        action = np.float32([0.0, thrust[0]])
-        obs, reward3dof, done, info = self.env.step(action)
-        obs = self._shrink_obs(obs)
-
-        rew = 0
-        if self.reward_type == 'shaped_terminal':
-            if done:
-                rew = 50 - np.linalg.norm(obs)
-
-        elif self.reward_type == 'sparse_terminal':
-            if done:
-                rew = float(np.linalg.norm(obs) < self.velocity_threshold)
-
-        elif self.reward_type == 'shaped_landing':
-            rew -= (np.linalg.norm(obs) + 0.1)
-
-        elif self.reward_type == 'hovering':
-            rew -= np.abs(obs[1])
-        elif self.reward_type == 'test3dof':
-            rew = reward3dof
-
-        if info["TimeLimit.truncated"]:
-            rew -= 500
-
-        # Test for PPO only, possibly breaking HER compatibility
-        # rew = self.compute_reward(obs, self.desired_goal, {})
-
-        observation = dict({
-            'observation': obs,
-            'achieved_goal': obs,
-            'desired_goal': self.desired_goal
-        })
-
-        return observation, rew, done, info
-
-    def reset(self):
-        obs_full = self.env.reset()
-        obs = self._shrink_obs(obs_full)
+    def reset(self, **kwargs):
+        obs = super().reset(**kwargs)
 
         observation = dict({
             'observation': obs,
@@ -583,20 +532,35 @@ class Rocket1D(gym.Wrapper, GoalEnv):
 
         return observation
 
-    def _shrink_obs(self, obs_original):
+    def step(self, action):
+        obs, rew, done, info =  super().step(action)
 
-        height, velocity = obs_original[1], obs_original[4]
-        return np.float32([height, velocity])
+        observation = dict({
+            'observation': obs,
+            'achieved_goal': obs,
+            'desired_goal': self.desired_goal
+        })
 
-    def compute_reward(self, achieved_goal: object, desired_goal: object, info: dict, p: float = 0.5) -> float:
+        reward = self.compute_reward(obs, self.desired_goal, info)
+        
+        return observation, reward, done, info
+        
 
-        d = self.goal_distance(achieved_goal, desired_goal)
+    def compute_reward(self, achieved_goal: np.ndarray, desired_goal: np.ndarray, info: dict, p: float = 0.5) -> float:
+        """
+        Proximity to the goal is rewarded
 
-        if self.reward_type == 'sparse':
-            return (d < self.goal_threshold).astype(np.float32)
-        else:
-            return -d
+        We use a weighted p-norm
 
-    def goal_distance(self, goal_a, goal_b):
-        assert goal_a.shape == goal_b.shape
-        return np.linalg.norm(goal_a - goal_b, axis=-1)
+        :param achieved_goal: the goal that was achieved
+        :param desired_goal: the goal that was desired
+        :param dict info: any supplementary information
+        :param p: the Lp^p norm used in the reward. Use p<1 to have high kurtosis for rewards in [0, 1]
+        :return: the corresponding reward
+        """
+
+        # Denormalize the goals
+        achieved_goal = self._denormalize_obs(achieved_goal)
+        desired_goal = self._denormalize_obs(desired_goal)
+
+        return -np.power(np.dot(np.abs(achieved_goal - desired_goal), np.array(self.reward_weights)), p)
