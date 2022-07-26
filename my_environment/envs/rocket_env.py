@@ -502,8 +502,8 @@ class RocketHER(Rocket, GoalEnv):
         ICRange = [10,50,0.1,1,10,0.1],
         timestep=0.1,
         seed=42,
-        desired_goal : ArrayLike = [0,0,0,0,0,0],
-        reward_weights : ArrayLike = [1,1,1,1,1,1],
+        desired_goal : ArrayLike = [0.,0.,np.pi/2,0.,0.,0.],
+        reward_weights : ArrayLike = [1.,1.,1.,0.,0.,0.],
         ) -> None:
 
         super().__init__(IC,ICRange,timestep,seed)
@@ -513,10 +513,11 @@ class RocketHER(Rocket, GoalEnv):
         }
         )
 
-        self.desired_goal = np.array(desired_goal)
+        self.desired_goal = self._normalize_obs(np.array(desired_goal))
         # In order to achieve convergence it's important to weight
         # each term of the goal when computing the norm
         self.reward_weights = np.array(reward_weights)
+        self.tolerances = np.array([50,50,0.2,10,10,0.5])
 
         assert self.reward_weights.shape == self.desired_goal.shape,\
             f"The desired goal has shape {self.desired_goal.shape} but the weights have shape {self.reward_weights.shape}"
@@ -541,12 +542,17 @@ class RocketHER(Rocket, GoalEnv):
             'desired_goal': self.desired_goal
         })
 
-        reward = self.compute_reward(obs, self.desired_goal, info)
+        if done:
+            reward = self.compute_reward(obs, self.desired_goal, info)
+        else:
+            reward = 0
         
+        info["HER_reward"] = reward
+
         return observation, reward, done, info
         
 
-    def compute_reward(self, achieved_goal: np.ndarray, desired_goal: np.ndarray, info: dict, p: float = 0.5) -> float:
+    def compute_reward(self, achieved_goal: np.ndarray, desired_goal: np.ndarray, info: dict) -> float:
         """
         Proximity to the goal is rewarded
 
@@ -558,9 +564,24 @@ class RocketHER(Rocket, GoalEnv):
         :param p: the Lp^p norm used in the reward. Use p<1 to have high kurtosis for rewards in [0, 1]
         :return: the corresponding reward
         """
-
         # Denormalize the goals
         achieved_goal = self._denormalize_obs(achieved_goal)
         desired_goal = self._denormalize_obs(desired_goal)
 
-        return -np.power(np.dot(np.abs(achieved_goal - desired_goal), np.array(self.reward_weights)), p)
+        goal_reached = self._goal_reached(achieved_goal,desired_goal)
+
+        
+
+        return goal_reached
+    
+    def _goal_reached(self, achieved_goal : ArrayLike, desired_goal : ArrayLike):
+        
+        tol = self.tolerances
+
+        # Check that achieved_goal is within desired goal +- tolerance
+        if len(desired_goal.shape) is 1:
+            success = all(achieved_goal <= (desired_goal+tol)) and all(achieved_goal>=(desired_goal-tol))
+        else:
+            success = [all(a<=d+tol) and all(a>=d-tol) for a,d in zip(achieved_goal,desired_goal)]
+
+        return success
