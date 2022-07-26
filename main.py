@@ -29,7 +29,7 @@ if __name__ == "__main__":
     config = {
         "env_id" : "my_environment/Falcon3DOFHER-v0",
         "policy_type": "MultiInputPolicy",
-        "total_timesteps": int(5e3),
+        "total_timesteps": int(8e6),
         "timestep" : 0.05,
         "max_time" : 40,
         "RANDOM_SEED" : 42,
@@ -56,7 +56,7 @@ if __name__ == "__main__":
         IC=config["initial_conditions"],
         ICRange=config["initial_conditions_range"],
         timestep=config["timestep"],
-        seed=config["RANDOM_SEED"]
+        seed=config["RANDOM_SEED"],
         )
         
         # Define a new custom action space with only three actions:
