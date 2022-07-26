@@ -94,44 +94,44 @@ class RecordVideoFigure(RecordVideo):
         if not self.is_vector_env:
             self.rewards_info.append(infos["rewards_dict"])
 
-        if self.episode_trigger(self.episode_id):
-            if not self.is_vector_env:
-                if dones:
-                    fig_states,fig_actions = self.env.unwrapped.plot_states()
-                    plt.close()
-                    plt.close()
+        # if self.episode_trigger(self.episode_id):
+        #     if not self.is_vector_env:
+        #         if dones:
+        #             fig_states,fig_actions = self.env.unwrapped.plot_states()
+        #             plt.close()
+        #             plt.close()
 
-                    fig_rew = pd.DataFrame(self.rewards_info).plot()
+        #             fig_rew = pd.DataFrame(self.rewards_info).plot()
 
-                    if wandb.run is not None:
-                        wandb.log({
-                            "states": fig_states,
-                            "actions" : fig_actions,
-                            "rewards" : fig_rew,
-                            "landing_success" : float(infos["perfect_landing"])
-                            })
-                    else:
-                        self.save_figure(fig_states, "states_figure")
-                        self.save_figure(fig_actions, "actions_figure")
+        #             if wandb.run is not None:
+        #                 wandb.log({
+        #                     "states": fig_states,
+        #                     "actions" : fig_actions,
+        #                     "rewards" : fig_rew,
+        #                     "landing_success" : float(infos["perfect_landing"])
+        #                     })
+        #             else:
+        #                 self.save_figure(fig_states, "states_figure")
+        #                 self.save_figure(fig_actions, "actions_figure")
                     
-            elif dones[0]:
-                fig_states,fig_actions = self.env.unwrapped.plot_states()
-                plt.close()
-                plt.close()
+        #     elif dones[0]:
+        #         fig_states,fig_actions = self.env.unwrapped.plot_states()
+        #         plt.close()
+        #         plt.close()
 
-                fig_rew = pd.DataFrame(self.rewards_info).plot()
+        #         fig_rew = pd.DataFrame(self.rewards_info).plot()
 
-                if wandb.run is not None:
-                    wandb.log({
-                        "states": fig_states,
-                        "actions" : fig_actions,
-                        "rewards" : fig_rew,
-                        })
-                else:
-                    self.save_figure(fig_states, "states_figure")
-                    self.save_figure(fig_actions, "actions_figure")
+        #         if wandb.run is not None:
+        #             wandb.log({
+        #                 "states": fig_states,
+        #                 "actions" : fig_actions,
+        #                 "rewards" : fig_rew,
+        #                 })
+        #         else:
+        #             self.save_figure(fig_states, "states_figure")
+        #             self.save_figure(fig_actions, "actions_figure")
 
-            pass
+        #     pass
 
         return observations, rewards, dones, infos
 
