@@ -122,7 +122,7 @@ class RecordVideoFigure(RecordVideo):
                                 "states": fig_states,
                                 "actions": fig_actions,
                                 "rewards": fig_rew,
-                                "landing_success": ["rewards_dict"]["rew_goal"],
+                                "landing_success": infos["rewards_dict"]["rew_goal"],
                             }
                         )
                     else:
