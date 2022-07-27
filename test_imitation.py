@@ -19,7 +19,7 @@ config = {
     "timestep" : 0.05,
     "max_time" : 40,
     "RANDOM_SEED" : 42,
-    "initial_conditions" : [100, 500, np.pi/2, 0, -50, 0],
+    "initial_conditions" : [0, 500, np.pi/2, 0, -50, 0],
     "initial_conditions_range" : [0,50,0,0,0,0]
 }
 config["max_ep_timesteps"] = int(config["max_time"]/config["timestep"])
@@ -68,7 +68,7 @@ class ReturnCallback():
       # Extract the values of each
       rewards_list = list(info["rewards_dict"].values())
       # rewards_keys = list(info["rewards_dict"].keys())
-      return rewards_list
+      return [rewards_list["rew_goal"],]
 
     def plotReturns(self, title="Episodic Returns"):
         plt.bar(myCallback.callback)
@@ -79,7 +79,7 @@ class ReturnCallback():
 myCallback = ReturnCallback()
 mapping = {(pygame.K_UP,): 2, (pygame.K_DOWN,): 0, (pygame.K_LEFT,): 1, (pygame.K_RIGHT,): 3}
 plotter = PlayPlot(myCallback.callback, 30 * 5,
-      ['velocity_tracking', 'thrust_penalty', 'eta', 'attitude_constraint', 'attitude_hint', 'rew_goal'])
+      ['rew_goal'])
  
 play(env)#, callback=plotter.callback,fps=1/0.05)#, keys_to_action=mapping)
 
