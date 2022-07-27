@@ -391,7 +391,7 @@ class Rocket(Env):
         timesteps = self.SIM.times
 
         fig1, ax1 = plt.subplots()
-        ax1_1 = ax1.twinx()
+        # ax1_1 = ax1.twinx()
         
         if states is None:
             states = self.SIM.states
@@ -406,14 +406,14 @@ class Rocket(Env):
 
         __, = ax1.plot(timesteps, downranges, label='Downrange (x)')
         __, = ax1.plot(timesteps, heights, label='Height (y)')
-        __, = ax1_1.plot(timesteps, np.rad2deg(ths),'b-')
+        # __, = ax1_1.plot(timesteps, np.rad2deg(ths),'b-')
         
         # __, = ax1.plot(vxs, label='Cross velocity (v_x)')
         __, = ax1.plot(timesteps, vzs, label='Vertical velocity (v_z)')
 
         ax1.legend()
-        ax1_1.set_ylabel('theta [deg]',color='b')
-        ax1_1.tick_params('y', colors='b')
+        # ax1_1.set_ylabel('theta [deg]',color='b')
+        # ax1_1.tick_params('y', colors='b')
         ax1.set_xlabel('Time [s]')
         ax1.set_ylabel('Position/Velocity [m]/[m/s]')
 
