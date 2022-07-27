@@ -125,7 +125,6 @@ class Rocket(Env):
         info = {
             "rewards_dict" : rewards_dict,
             "is_done" : done,
-            "perfect_landing" : rewards_dict["rew_goal"]>0
         }
                         
         info["bounds_violation"] = self._checkBounds(obs)
@@ -468,8 +467,8 @@ class Rocket(Env):
         glideslope = np.arctan2(np.abs(vy),np.abs(vx))
 
         # Set landing bounds
-        v_lim = 2
-        r_lim = 5
+        v_lim = 15
+        r_lim = self.target_r
         glideslope_lim = np.deg2rad(79)
         zeta_lim = 0.2
         omega_lim = 0.2
@@ -478,7 +477,7 @@ class Rocket(Env):
             "zero_height" : y<=1e-3,
             "velocity_limit": v<v_lim,
             "landing_radius" : r<r_lim,
-            "glideslope_limit" : glideslope<glideslope_lim,
+            #"glideslope_limit" : glideslope<glideslope_lim,
             "attitude_limit" : abs(zeta)<zeta_lim,
             "omega_limit" : abs(vtheta)<omega_lim
         }
