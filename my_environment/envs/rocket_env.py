@@ -310,7 +310,7 @@ class Rocket(Env):
             )
 
         # Draw a rectangle at the landing pad
-        landing_pad = pygame.Rect(0,0,step_size*self.target_r,30)
+        landing_pad = pygame.Rect(0,0,2*step_size*self.target_r,10)
         landing_pad_x = 0 + SHIFT_RIGHT
 
         landing_pad.center=(landing_pad_x,self.window_size)
