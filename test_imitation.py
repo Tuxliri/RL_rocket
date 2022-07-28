@@ -68,7 +68,7 @@ class ReturnCallback():
       # Extract the values of each
       rewards_list = list(info["rewards_dict"].values())
       # rewards_keys = list(info["rewards_dict"].keys())
-      return [rewards_list["rew_goal"],]
+      return [rew,]
 
     def plotReturns(self, title="Episodic Returns"):
         plt.bar(myCallback.callback)
@@ -81,7 +81,7 @@ mapping = {(pygame.K_UP,): 2, (pygame.K_DOWN,): 0, (pygame.K_LEFT,): 1, (pygame.
 plotter = PlayPlot(myCallback.callback, 30 * 5,
       ['rew_goal'])
  
-play(env)#, callback=plotter.callback,fps=1/0.05)#, keys_to_action=mapping)
+play(env, callback=plotter.callback,fps=1/0.05)
 
 behavioural_cloner = imitationKickstarter(env, policy=policy.policy)
 

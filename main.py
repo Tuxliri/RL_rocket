@@ -76,7 +76,6 @@ if __name__ == "__main__":
             env,
             allow_early_resets=True,
             filename="logs_PPO",
-            info_keywords=("perfect_landing",)
             )
         return env
 
