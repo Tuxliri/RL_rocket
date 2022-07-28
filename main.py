@@ -143,6 +143,26 @@ if __name__ == "__main__":
 
     env=make_env(config)
 
+    def make_eval_env():
+        training_env = make_env()
+        return RecordVideoFigure(training_env, video_folder=f"videos/{run.id}",
+        image_folder=f"images/{run.id}", episode_trigger= lambda x: x%5==0 )
+
+    callbacksList = [
+    EvalCallback(
+        eval_env,
+        eval_freq = 1e3,
+        n_eval_episodes = 5,
+        render=False,
+        deterministic=True,
+        ),
+    WandbCallback(
+        model_save_path=f"models/{run.id}",
+        verbose=2,
+        gradient_save_freq=10000
+        ),
+    ]     
+    
     model.set_env(env)
     model.learn(
         total_timesteps=config["total_timesteps"],
