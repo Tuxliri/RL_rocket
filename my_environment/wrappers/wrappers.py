@@ -2,6 +2,7 @@ __all__ = [
     "DiscreteActions",
     "DiscreteActions3DOF",
     "GaudetStateObs",
+    "RewardAnnealing",
     "RecordVideoFigure",
 ]
 
@@ -77,6 +78,19 @@ class GaudetStateObs(gym.ObservationWrapper):
 
         return np.float32([vx - vx_targ, vy - vy_targ, t_go, y])
 
+class RewardAnnealing(gym.Wrapper):
+    def __init__(self, env: gym.Env, thrust_penalty : float = 0.01) -> None:
+        super().__init__(env)
+        self.xi = thrust_penalty
+
+    def step(self, action):
+        obs, __, done, info = super().step(action)
+        rewards_dict = info["rewards_dict"]
+
+        rew = -self.xi*float(action[1]>0.1) + rewards_dict["attitude_hint"] +\
+            rewards_dict["attitude_constraint"] + rewards_dict["rew_goal"]
+
+        return obs, rew, done, info
 
 class RecordVideoFigure(RecordVideo):
     def __init__(
