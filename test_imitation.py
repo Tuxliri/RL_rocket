@@ -2,6 +2,7 @@ import numpy as np
 from stable_baselines3.common.evaluation import evaluate_policy
 from matplotlib import pyplot as plt
 from stable_baselines3 import PPO
+from wrappers.wrappers import RewardAnnealing
 from my_environment.utils.imitation_kickstarter import imitationKickstarter
 import gym
 from gym.utils.play import PlayPlot
@@ -33,13 +34,14 @@ def make_env(config):
     timestep=config["timestep"],
     seed=config["RANDOM_SEED"]
     )
-    
+    # Anneal the reward (remove v_targ following reward)
+    env = RewardAnnealing(env)
+
     # Define a new custom action space with only three actions:
     # - no thrust
     # - max thrust gimbaled right
     # - max thrust gimbaled left
     # - max thrust downwards
-    env = GaudetStateObs(env)
     env = DiscreteActions3DOF(env)
     env = TimeLimit(env, max_episode_steps=config["max_ep_timesteps"])
     return env

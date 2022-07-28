@@ -17,7 +17,7 @@ from wandb.integration.sb3 import WandbCallback
 from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
 
 import my_environment
-from my_environment.wrappers.wrappers import DiscreteActions3DOF, RecordVideoFigure
+from my_environment.wrappers.wrappers import DiscreteActions3DOF, RecordVideoFigure, RewardAnnealing
 from gym.wrappers import TimeLimit
 
 if __name__ == "__main__":
@@ -28,7 +28,7 @@ if __name__ == "__main__":
     config = {
         "env_id" : "my_environment/Falcon3DOF-v0",
         "policy_type": "MlpPolicy",
-        "total_timesteps": int(5e3),
+        "total_timesteps": int(1e3),
         "timestep" : 0.05,
         "max_time" : 40,
         "RANDOM_SEED" : 42,
@@ -120,5 +120,33 @@ if __name__ == "__main__":
         total_timesteps=config["total_timesteps"],
         callback=callbacksList
     )
-    
+
+    def make_env(config):
+        env = gym.make(
+        config["env_id"],
+        IC=config["initial_conditions"],
+        ICRange=config["initial_conditions_range"],
+        timestep=config["timestep"],
+        seed=config["RANDOM_SEED"]
+        )
+        # Anneal the reward (remove v_targ following reward)
+        env = RewardAnnealing(env)
+
+        # Define a new custom action space with only three actions:
+        # - no thrust
+        # - max thrust gimbaled right
+        # - max thrust gimbaled left
+        # - max thrust downwards
+        env = DiscreteActions3DOF(env)
+        env = TimeLimit(env, max_episode_steps=config["max_ep_timesteps"])
+        return env
+
+    env=make_env(config)
+
+    model.set_env(env)
+    model.learn(
+        total_timesteps=config["total_timesteps"],
+        callback=callbacksList
+    )
+
     run.finish()
