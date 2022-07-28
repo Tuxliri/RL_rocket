@@ -473,7 +473,7 @@ class Rocket(Env):
         # Set landing bounds
         v_lim = 15
         r_lim = self.target_r
-        glideslope_lim = np.deg2rad(79)
+        # glideslope_lim = np.deg2rad(79)
         zeta_lim = 0.2
         omega_lim = 0.2
 
