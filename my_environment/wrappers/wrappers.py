@@ -110,7 +110,7 @@ class RecordVideoFigure(RecordVideo):
         if self.episode_trigger(self.episode_id):
             if not self.is_vector_env:
                 if dones:
-                    fig_states, fig_actions = self.env.unwrapped.plot_states()
+                    fig_states, fig_actions, thrust_integral = self.env.unwrapped.plot_states()
                     plt.close()
                     plt.close()
 
@@ -123,6 +123,7 @@ class RecordVideoFigure(RecordVideo):
                                 "actions": fig_actions,
                                 "rewards": fig_rew,
                                 "landing_success": infos["rewards_dict"]["rew_goal"],
+                                "thrust_integral" : thrust_integral,
                             }
                         )
                     else:

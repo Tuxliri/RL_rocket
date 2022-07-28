@@ -436,7 +436,9 @@ class Rocket(Env):
         ax2_1.set_ylabel('Gimbals [rad]', color='r')
         ax2_1.tick_params('y', colors='r')
 
-        return (fig1, fig2)
+        thrust_integral = np.sum(thrusts)/self.max_thrust
+        
+        return (fig1, fig2, thrust_integral)
 
     def _checkBounds(self, state : ArrayLike):
         """
