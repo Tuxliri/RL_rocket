@@ -129,6 +129,7 @@ class RecordVideoFigure(RecordVideo):
                     plt.close()
 
                     fig_rew = pd.DataFrame(self.rewards_info).plot()
+                    plt.close()
 
                     if wandb.run is not None:
                         wandb.log(
