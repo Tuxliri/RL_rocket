@@ -502,7 +502,8 @@ class RocketHER(Rocket, GoalEnv):
         ICRange = [10,50,0.1,1,10,0.1],
         timestep=0.1,
         seed=42,
-        desired_goal : ArrayLike = [0.,400.,np.pi/2,0.,0.,0.],
+        desired_goal : ArrayLike = [0.,0.,np.pi/2,0.,0.,0.],
+        reward_weights : ArrayLike = [1.,1.,1.,0.,0.,0.],
         ) -> None:
 
         super().__init__(IC,ICRange,timestep,seed)
@@ -515,7 +516,11 @@ class RocketHER(Rocket, GoalEnv):
         self.desired_goal = self._normalize_obs(np.array(desired_goal))
         # In order to achieve convergence it's important to weight
         # each term of the goal when computing the norm
+        self.reward_weights = np.array(reward_weights)
         self.tolerances = np.array([50,50,0.2,10,10,0.5])
+
+        assert self.reward_weights.shape == self.desired_goal.shape,\
+            f"The desired goal has shape {self.desired_goal.shape} but the weights have shape {self.reward_weights.shape}"
 
     def reset(self, **kwargs):
         obs = super().reset(**kwargs)
