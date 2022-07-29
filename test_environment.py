@@ -7,11 +7,10 @@ from my_environment.utils.imitation_kickstarter import imitationKickstarter
 import gym
 from gym.utils.play import PlayPlot
 from gym.utils.play import play
-from my_environment.wrappers import DiscreteActions3DOF, GaudetStateObs
+from my_environment.wrappers import DiscreteActions3DOF
 import pygame
 from gym.wrappers import Monitor, TimeLimit
 env_id = 'my_environment/Falcon3DOF-v0'
-# env_id = 'LunarLander-v2'
 
 config = {
     "env_id" : "my_environment/Falcon3DOF-v0",
@@ -52,43 +51,9 @@ env=make_env(config)
 policy = PPO('MlpPolicy', env)
 
 # Plot the reward received
+def callback(obs_t, obs_tp1, action, rew, done, info):
+    return [rew,]
 
-
-class ReturnCallback():
-    def __init__(self) -> None:
-        self.rewards = []
-        self.returns = []
-        self.t = 0
-        self.gamma = 0.99
-        pass
-
-    def callback(self, obs_t, obs_tp1, action, rew, done, info):
-      self.rewards.append(rew)
-      self.t+=1
-      assert not any(np.abs(obs_t))>1, 'observation outside normalization bounds'
-
-      # Extract the values of each
-      rewards_list = list(info["rewards_dict"].values())
-      # rewards_keys = list(info["rewards_dict"].keys())
-      return [rew,]
-
-    def plotReturns(self, title="Episodic Returns"):
-        plt.bar(myCallback.callback)
-        plt.title(title)
-        plt.show()
-
-
-myCallback = ReturnCallback()
-mapping = {(pygame.K_UP,): 2, (pygame.K_DOWN,): 0, (pygame.K_LEFT,): 1, (pygame.K_RIGHT,): 3}
-plotter = PlayPlot(myCallback.callback, 30 * 5,
-      ['rew_goal'])
+plotter = PlayPlot(callback, 30 * 5, ["reward"])
  
-play(env, callback=plotter.callback,fps=1/0.05)
-
-behavioural_cloner = imitationKickstarter(env, policy=policy.policy)
-
-trajs = behavioural_cloner.play()
-
-model = behavioural_cloner.train(n_epochs=100)
-
-evaluate_policy(model, env, render=True)
+play(env)#, callback=plotter.callback)#,fps=30)
