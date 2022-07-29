@@ -83,7 +83,7 @@ class Simulator3DOF():
         self.states.append(self.state)
         self.actions.append(u)
 
-        return self.state, {'states': self.states, 'derivatives': self.derivatives}, solution.status, self.t
+        return self.state, solution.status, self.t
 
     def RHS(self, t, state, u):
         """ 
