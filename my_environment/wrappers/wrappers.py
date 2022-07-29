@@ -36,7 +36,9 @@ class DiscreteActions3DOF(gym.ActionWrapper):
 
         mapping = {
             (pygame.K_LEFT,): 1,
+            (pygame.K_LEFT,pygame.K_UP,): 1,
             (pygame.K_RIGHT,): 3,
+            (pygame.K_RIGHT,pygame.K_UP,): 3,
             (pygame.K_UP,): 2,
             (pygame.K_MODE,): 0,
         }
