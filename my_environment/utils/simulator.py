@@ -107,6 +107,8 @@ class Simulator3DOF():
         Cn = self.Cnalfa*alfa
         Cd = self.Cdalfa*alfa   # ADD Cd0
 
+        Cd = 0.3
+
         # Compute aero forces
         v2 = vx**2 + vz**2
         Q = 0.5*rho*v2
