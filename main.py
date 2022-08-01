@@ -1,12 +1,8 @@
-from datetime import datetime
-from genericpath import exists
-
-import os
-import sys
 import gym
 import wandb
 import numpy as np
 import stable_baselines3
+import ast
 
 from stable_baselines3 import HerReplayBuffer, DDPG, DQN, SAC, TD3
 from stable_baselines3.her.goal_selection_strategy import GoalSelectionStrategy
@@ -20,6 +16,9 @@ from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
 import my_environment
 from my_environment.wrappers.wrappers import DiscreteActions3DOF, RecordVideoFigure
 from gym.wrappers import TimeLimit
+
+def make_net_arch(arch):
+    return ast.literal_eval(arch)
 
 if __name__ == "__main__":
 
@@ -37,13 +36,16 @@ if __name__ == "__main__":
         "initial_conditions_range" : [0,50,0,0,0,0],
         "online_sampling" : False,
         "goal_selection_strategy" : 'future',
+        "batch_size" : 1024,
+        "net_arch": "[512, 512, 512]",
+        "eval_freq" : 50e3
     }
 
     config["max_ep_timesteps"] = int(config["max_time"]/config["timestep"])
     
 
     run = wandb.init(
-        project="test_runs_HER",
+        project="RL_rocket",
         config=config,
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
         monitor_gym=True,  # auto-upload the videos of agents playing the game
@@ -71,26 +73,28 @@ if __name__ == "__main__":
             env,
             allow_early_resets=True,
             filename="logs_PPO",
-            info_keywords=("perfect_landing",)
             )
         return env
 
     env = make_env()
     
     model = DQN(
-    config["policy_type"],
-    env,
-    replay_buffer_class=HerReplayBuffer,
-    # Parameters for HER
-    replay_buffer_kwargs=dict(
-        n_sampled_goal=4,
-        goal_selection_strategy=config["goal_selection_strategy"],
-        online_sampling=config["online_sampling"],
-    ),
-    tensorboard_log=f"runs/{run.id}",
-    seed=config["RANDOM_SEED"],
-    verbose=1,
-    )
+        config["policy_type"],
+        env,
+        replay_buffer_class=HerReplayBuffer,
+        # Parameters for HER
+        replay_buffer_kwargs=dict(
+            n_sampled_goal=4,
+            goal_selection_strategy=config["goal_selection_strategy"],
+            online_sampling=config["online_sampling"],
+            handle_timeout_termination=True,
+        ),
+        tensorboard_log=f"runs/{run.id}",
+        seed=config["RANDOM_SEED"],
+        verbose=1,
+        batch_size= config["batch_size"],
+        policy_kwargs=dict(net_arch=make_net_arch(config["net_arch"])),
+        )
 
     def make_eval_env():
         training_env = make_env()
@@ -103,7 +107,7 @@ if __name__ == "__main__":
     callbacksList = [
         EvalCallback(
             eval_env,
-            eval_freq = 1e3,
+            eval_freq = config["eval_freq"],
             n_eval_episodes = 5,
             render=False,
             deterministic=True,
@@ -111,7 +115,6 @@ if __name__ == "__main__":
         WandbCallback(
             model_save_path=f"models/{run.id}",
             verbose=2,
-            gradient_save_freq=10000
             ),
         ]
 
