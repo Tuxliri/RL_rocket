@@ -498,3 +498,16 @@ class Rocket(Env):
 
     def _get_normalizer(self):
         return self.state_normalizer
+
+    def get_keys_to_action(self):
+        import pygame
+
+        mapping = {
+            (pygame.K_LEFT,): [1,1],
+            (pygame.K_LEFT,pygame.K_UP,): [1,1],
+            (pygame.K_RIGHT,): [-1,1],
+            (pygame.K_RIGHT,pygame.K_UP,): [-1,1],
+            (pygame.K_UP,): [0,1],
+            (pygame.K_MODE,): [0,-1],
+        }
+        return mapping
