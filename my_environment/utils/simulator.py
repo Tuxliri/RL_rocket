@@ -35,13 +35,12 @@ class Simulator3DOF():
         self.g0 = 9.81
 
         # Define rocket properties
-        self.m = 45e3                       # rocket initial mass [kg]
+        self.m = mass                       # rocket initial mass [kg]
         self.Cdalfa = 2                     # drag coefficient [-]
         self.Cnalfa = 1                     # normal force coefficient [-]
         self.I = 6.04e6                     # inertia moment [kg*m^2]
         self.Isp = 360                      # Specific impulse [s]
         self.dryMass = 25.6e3               # dry mass of the stage [kg]
-        self.mass = mass
 
         # Geometric properties NB: REDEFINE THEM FROM THE TIP OF THE BOOSTER!! (or change torque equation in RHS)
         self.x_CG = 10                      # Center of gravity [m]
@@ -91,8 +90,7 @@ class Simulator3DOF():
         in inertial coordinates
         """
         # extract dynamics variables
-        x, y, phi, vx, vz, om = state
-        mass = self.mass
+        x, y, phi, vx, vz, om, mass = state
         # Get control variables
         delta = u[0]
         T = u[1]
@@ -124,8 +122,9 @@ class Simulator3DOF():
         ay = (T*np.sin(delta+phi) + N*np.cos(phi) - A*np.cos(phi))/mass - g
         dom = (N*(self.x_CG - self.x_CP) - T*np.sin(delta)
                * (self.x_T - self.x_CG))/self.I
+        dm=-T/(self.Isp*self.g0)
 
-        dstate = np.array([vx, vz, om, ax, ay, dom])
+        dstate = np.array([vx, vz, om, ax, ay, dom, dm])
 
         return dstate
 
