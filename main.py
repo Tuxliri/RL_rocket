@@ -33,9 +33,9 @@ if __name__ == "__main__":
         "timestep" : 0.05,
         "max_time" : 40,
         "RANDOM_SEED" : 42,
-        "initial_conditions" : [50, 500, np.pi/2, 0, -50, 0],
-        "initial_conditions_range" : [5,50,0,0,0,0],
-        "online_sampling" : True,
+        "initial_conditions" : [0, 500, np.pi/2, 0, -50, 0],
+        "initial_conditions_range" : [0,50,0,0,0,0],
+        "online_sampling" : False,
         "goal_selection_strategy" : 'future',
     }
 
