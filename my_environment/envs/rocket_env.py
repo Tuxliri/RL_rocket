@@ -227,8 +227,8 @@ class Rocket(Env):
 
          
         # The number of pixels per each meter
-        MAX_HEIGHT = self.y_bound_up
-        step_size = self.window_size / MAX_HEIGHT
+        MAX_SIZE = max(self.y_bound_up, self.x_bound_right)
+        step_size = self.window_size / (2*MAX_SIZE)
 
         SHIFT_RIGHT = self.window_size/2
 
@@ -260,6 +260,7 @@ class Rocket(Env):
             image_path = data_path / "rocket.png"
             image = pygame.image.load(image_path)
 
+        image = pygame.transform.scale(image, (100*step_size,500*step_size))
         h = image.get_height()
         w = image.get_width()
 
@@ -362,18 +363,6 @@ class Rocket(Env):
         
         pass
 
-    def reset(self):
-        """ Function defining the reset method of gym
-            It returns an initial observation drawn randomly
-            from the uniform distribution of the ICs"""
-
-        initialCondition = self.init_space.sample()
-        self.y = initialCondition
-
-        # instantiate the simulator object
-        self.SIM = Simulator3DOF(initialCondition, self.timestep)
-
-        return self._normalize_obs(self.y.astype(np.float32))
 
     def _denormalize_action(self, action : ArrayLike):
         """ Denormalize the action as we've bounded it
