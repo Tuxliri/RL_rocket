@@ -110,6 +110,19 @@ class Rocket(Env):
         self.window = None
         self.clock = None
 
+    def reset(self):
+        """ Function defining the reset method of gym
+            It returns an initial observation drawn randomly
+            from the uniform distribution of the ICs"""
+
+        initialCondition = self.init_space.sample()
+        self.y = initialCondition
+
+        # instantiate the simulator object
+        self.SIM = Simulator3DOF(initialCondition, self.timestep)
+
+        return self._normalize_obs(self.y.astype(np.float32))
+
     def step(self, normalized_action):
 
         self.action = self._denormalize_action(normalized_action)
