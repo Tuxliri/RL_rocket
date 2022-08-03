@@ -30,7 +30,7 @@ if __name__ == "__main__":
         "policy_type": "MlpPolicy",
         "total_timesteps": int(1e3),
         "timestep" : 0.05,
-        "max_time" : 40,
+        "max_time" : 100,
         "RANDOM_SEED" : 42,
         "initial_conditions" : [50, 500, np.pi/2, 0, -50, 0],
         "initial_conditions_range" : [5,50,0,0,0,0],
