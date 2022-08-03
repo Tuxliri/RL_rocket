@@ -17,9 +17,9 @@ config = {
     "policy_type": "MlpPolicy",
     "total_timesteps": int(1.5e5),
     "timestep" : 0.05,
-    "max_time" : 40,
+    "max_time" : 100,
     "RANDOM_SEED" : 42,
-    "initial_conditions" : [0, 500, np.pi/2, 0, -50, 0],
+    "initial_conditions" : [-1600, 2000, np.pi*3/4, 180, -90, 0],
     "initial_conditions_range" : [0,50,0,0,0,0]
 }
 config["max_ep_timesteps"] = int(config["max_time"]/config["timestep"])
