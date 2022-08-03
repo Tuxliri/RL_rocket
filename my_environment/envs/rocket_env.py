@@ -452,6 +452,25 @@ class Rocket(Env):
         thrust_integral = np.sum(thrusts)/self.max_thrust
         
         return (fig1, fig2, thrust_integral)
+        
+
+    def states_to_dataframe(self):
+        import pandas as pd
+        
+        return pd.DataFrame(self.SIM.states, columns=self.state_names)
+
+
+    def actions_to_dataframe(self):
+        import pandas as pd
+
+        return pd.DataFrame(self.SIM.actions, columns=self.action_names)
+
+
+    def used_mass(self):
+        initial_mass = self.SIM.states[0][6]
+        final_mass = self.SIM.states[-1][6]
+        return initial_mass-final_mass
+
 
     def _checkBounds(self, state : ArrayLike):
         """
