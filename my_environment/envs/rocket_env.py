@@ -37,6 +37,9 @@ class Rocket(Env):
 
         super(Rocket, self).__init__()
 
+        self.state_names = ['x', 'z', 'theta', 'vx', 'vz', 'omega', 'mass']
+        self.action_names = ['gimbal', 'thrust']
+
         # Initial conditions mean values and +- range
         self.ICMean = np.float32(IC)
         self.ICRange = np.float32(ICRange)  # +- range
