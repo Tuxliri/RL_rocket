@@ -65,7 +65,7 @@ class GaudetStateObs(gym.ObservationWrapper):
 class RewardAnnealing(gym.Wrapper):
     def __init__(self, env: gym.Env, thrust_penalty : float = 0.01) -> None:
         super().__init__(env)
-        self.xi = thrust_penalty
+        self.xi = self.reward_coefficients.get("xi", thrust_penalty)
 
     def step(self, action):
         obs, __, done, info = super().step(action)
