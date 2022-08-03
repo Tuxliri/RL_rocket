@@ -17,6 +17,7 @@ import numpy as np
 from gym import logger
 import wandb
 import pandas as pd
+pd.options.plotting.backend = "plotly"
 
 class DiscreteActions3DOF(gym.ActionWrapper):
     def __init__(self, env, disc_to_cont=[[0, -1], [-1, +1], [0, +1], [+1, +1]]):
@@ -79,7 +80,7 @@ class RewardAnnealing(gym.Wrapper):
         reward = sum(rewards_dict.values())
 
         info["rewards_dict"] = rewards_dict
-        
+
         return obs, reward, done, info
 
 class RecordVideoFigure(RecordVideo):
@@ -93,6 +94,8 @@ class RecordVideoFigure(RecordVideo):
         video_length: int = 0,
         name_prefix: str = "rl-video",
     ):
+        assert isinstance(env.unwrapped, Rocket)
+        
         super().__init__(
             env, video_folder, episode_trigger, step_trigger, video_length, name_prefix
         )
@@ -114,9 +117,8 @@ class RecordVideoFigure(RecordVideo):
         if self.episode_trigger(self.episode_id):
             if not self.is_vector_env:
                 if dones:
-                    fig_states, fig_actions, thrust_integral = self.env.unwrapped.plot_states()
-                    plt.close()
-                    plt.close()
+                    states_dataframe = self.env.unwrapped.states_to_dataframe()
+                    actions_dataframe = self.env.unwrapped.actions_to_dataframe()
 
                     fig_rew = pd.DataFrame(self.rewards_info).plot()
                     plt.close()
@@ -124,11 +126,11 @@ class RecordVideoFigure(RecordVideo):
                     if wandb.run is not None:
                         wandb.log(
                             {
-                                "states": fig_states,
-                                "actions": fig_actions,
+                                "states": states_dataframe.plot(),
+                                "actions": actions_dataframe.plot(),
                                 "rewards": fig_rew,
                                 "landing_success": infos["rewards_dict"]["rew_goal"],
-                                "thrust_integral" : thrust_integral,
+                                "used_mass" : states_dataframe.iloc[0,6] - states_dataframe.iloc[-1,6],
                             }
                         )
                     else:
