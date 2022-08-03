@@ -39,7 +39,8 @@ if __name__ == "__main__":
                                 "beta" : -1e-8,
                                 "eta" : 2,
                                 "gamma" : -10,
-                                "delta" : -5
+                                "delta" : -5,
+                                'xi' : 0.004
                                 }
     }
 
