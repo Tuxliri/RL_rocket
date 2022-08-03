@@ -69,12 +69,18 @@ class RewardAnnealing(gym.Wrapper):
 
     def step(self, action):
         obs, __, done, info = super().step(action)
-        rewards_dict = info["rewards_dict"]
+        
+        old_rewards_dict = info["rewards_dict"]
+        new_rewards = ["attitude_hint", "attitude_constraint", "rew_goal" ]
+        rewards_dict = {key: old_rewards_dict[key] for key in new_rewards}
 
-        rew = -self.xi*action[1] + rewards_dict["attitude_hint"] +\
-            rewards_dict["attitude_constraint"] + rewards_dict["rew_goal"]
+        rewards_dict["thrust_penalty"] = -self.xi*action[1]
 
-        return obs, rew, done, info
+        reward = sum(rewards_dict.values())
+
+        info["rewards_dict"] = rewards_dict
+        
+        return obs, reward, done, info
 
 class RecordVideoFigure(RecordVideo):
     def __init__(
