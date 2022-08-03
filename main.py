@@ -32,8 +32,8 @@ if __name__ == "__main__":
         "timestep" : 0.05,
         "max_time" : 100,
         "RANDOM_SEED" : 42,
-        "initial_conditions" : [50, 500, np.pi/2, 0, -50, 0],
-        "initial_conditions_range" : [5,50,0,0,0,0],
+        "initial_conditions" : [50, 500, np.pi/2, 0, -50, 0,50e3],
+        "initial_conditions_range" : [5,50,0,0,0,0,1e3],
         "reward_coefficients" : {
                                 "alfa" : -0.01, 
                                 "beta" : -1e-8,
@@ -71,7 +71,7 @@ if __name__ == "__main__":
         # - max thrust gimbaled left
         # - max thrust downwards
    
-        env = DiscreteActions3DOF(env)
+        # env = DiscreteActions3DOF(env)
         env = TimeLimit(env, max_episode_steps=config["max_ep_timesteps"])
         env = Monitor(
             env,
@@ -138,7 +138,7 @@ if __name__ == "__main__":
         # - max thrust gimbaled right
         # - max thrust gimbaled left
         # - max thrust downwards
-        env = DiscreteActions3DOF(env)
+        # env = DiscreteActions3DOF(env)
         env = TimeLimit(env, max_episode_steps=config["max_ep_timesteps"])
         return env
 

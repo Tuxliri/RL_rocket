@@ -23,8 +23,8 @@ class Rocket(Env):
 
     def __init__(
         self,
-        IC = [100, 500, np.pi/2, -10, -50, 0],
-        ICRange = [10,50,0.1,1,10,0.1],
+        IC = [100, 500, np.pi/2, -10, -50, 0,50e3],
+        ICRange = [10,50,0.1,1,10,0.1,1e3],
         timestep=0.1,
         seed=42,
         reward_coeff = {"alfa" : -0.01,
@@ -68,9 +68,10 @@ class Rocket(Env):
             2*np.pi,
             2*9.81*t_free_fall,
             2*9.81*t_free_fall,
-            self.max_thrust*np.sin(self.max_gimbal)*lever_arm/(inertia)*t_free_fall/5.
+            self.max_thrust*np.sin(self.max_gimbal)*lever_arm/(inertia)*t_free_fall/5.,
+            self.ICMean[6]+self.ICRange[6]
             ]),
-            1
+            1,
             )
 
         # Set environment bounds
@@ -81,7 +82,10 @@ class Rocket(Env):
 
         # Define observation space
         self.observation_space = spaces.Box(
-            low=-1, high=1, shape=(6,))
+            low=-1, high=1, shape=(7,))
+
+        assert self.observation_space.shape == self.init_space.shape,\
+            f"The observation space has shape {self.observation_space.shape} but the init_space has shape {self.init_space.shape}"
 
         # Two valued vector in the range -1,+1, both for the
         # gimbal angle and the thrust command. It will then be
@@ -392,6 +396,7 @@ class Rocket(Env):
         vxs = []
         vzs = []
         oms = []
+        masses = []
         thrusts = []
         gimbals = []
         timesteps = self.SIM.times
@@ -409,6 +414,7 @@ class Rocket(Env):
             vxs.append(state[3])
             vzs.append(state[4])
             oms.append(state[5])
+            masses.append(state[6]/1e3)
 
         __, = ax1.plot(timesteps, downranges, label='Downrange (x)')
         __, = ax1.plot(timesteps, heights, label='Height (y)')
@@ -416,6 +422,7 @@ class Rocket(Env):
         
         # __, = ax1.plot(vxs, label='Cross velocity (v_x)')
         __, = ax1.plot(timesteps, vzs, label='Vertical velocity (v_z)')
+        __, = ax1.plot(timesteps, masses, label='Mass [T]')
 
         ax1.legend()
         # ax1_1.set_ylabel('theta [deg]',color='b')
@@ -500,3 +507,16 @@ class Rocket(Env):
 
     def _get_normalizer(self):
         return self.state_normalizer
+
+    def get_keys_to_action(self):
+        import pygame
+
+        mapping = {
+            (pygame.K_LEFT,): [1,1],
+            (pygame.K_LEFT,pygame.K_UP,): [1,1],
+            (pygame.K_RIGHT,): [-1,1],
+            (pygame.K_RIGHT,pygame.K_UP,): [-1,1],
+            (pygame.K_UP,): [0,1],
+            (pygame.K_MODE,): [0,-1],
+        }
+        return mapping

@@ -71,7 +71,7 @@ class RewardAnnealing(gym.Wrapper):
         obs, __, done, info = super().step(action)
         rewards_dict = info["rewards_dict"]
 
-        rew = -self.xi*float(action[1]>0.1) + rewards_dict["attitude_hint"] +\
+        rew = -self.xi*action[1] + rewards_dict["attitude_hint"] +\
             rewards_dict["attitude_constraint"] + rewards_dict["rew_goal"]
 
         return obs, rew, done, info
