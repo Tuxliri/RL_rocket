@@ -19,7 +19,7 @@ config = {
     "timestep" : 0.05,
     "max_time" : 40,
     "RANDOM_SEED" : 42,
-    "initial_conditions" : [0, 500, np.pi/2, 0, -50, 0,50e3],
+    "initial_conditions" : [1.6e3, 2e3, np.pi*(0.5-30/180), 180, -90, 0,50e3],
     "initial_conditions_range" : [0,50,0,0,0,0,1e3]
 }
 config["max_ep_timesteps"] = int(config["max_time"]/config["timestep"])
