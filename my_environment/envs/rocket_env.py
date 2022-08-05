@@ -101,6 +101,7 @@ class Rocket(Env):
         self.infos = []
         self.SIM = None
         self.action = np.array([0. , 0.])
+        self.vtarg_history = None
 
         # Landing parameters
         self.target_r = 30
@@ -121,7 +122,7 @@ class Rocket(Env):
         """ Function defining the reset method of gym
             It returns an initial observation drawn randomly
             from the uniform distribution of the ICs"""
-
+        self.vtarg_history = []
         initialCondition = self.init_space.sample()
         self.y = initialCondition
 
@@ -220,6 +221,8 @@ class Rocket(Env):
         t_go = np.linalg.norm(r_hat)/np.linalg.norm(v_hat)
         v_targ = -v_0*(r_hat/np.linalg.norm(r_hat))*(1-np.exp(-t_go/tau))
         
+        self.vtarg_history.append(v_targ)
+
         return v_targ, t_go
 
     def render(self, mode : str="human"):
@@ -468,6 +471,11 @@ class Rocket(Env):
 
         return pd.DataFrame(self.SIM.actions, columns=self.action_names)
 
+
+    def vtarg_to_dataframe(self):
+        import pandas as pd
+
+        return pd.DataFrame(self.vtarg_history, columns=['v_x', 'v_y'])
 
     def used_mass(self):
         initial_mass = self.SIM.states[0][6]
