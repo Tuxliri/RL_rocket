@@ -381,7 +381,7 @@ class Rocket(Env):
 
         thrust = (action[1] + 1)/2. * self.max_thrust
 
-        # Add lower bound on thrust with self.minThrust
+        # TODO : Add lower bound on thrust with self.minThrust
         return np.float32([gimbal, thrust])
 
     def _get_obs(self):
@@ -516,7 +516,6 @@ class Rocket(Env):
             "zero_height" : y<=1e-3,
             "velocity_limit": v<v_lim,
             "landing_radius" : r<r_lim,
-            #"glideslope_limit" : glideslope<glideslope_lim,
             "attitude_limit" : abs(zeta)<zeta_lim,
             "omega_limit" : abs(vtheta)<omega_lim
         }
