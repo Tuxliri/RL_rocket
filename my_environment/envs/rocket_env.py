@@ -90,11 +90,10 @@ class Rocket(Env):
         assert self.observation_space.shape == self.init_space.shape,\
             f"The observation space has shape {self.observation_space.shape} but the init_space has shape {self.init_space.shape}"
 
-        # Two valued vector in the range -1,+1, both for the
+        # Two valued vector in the range -1,+1, for the
         # gimbal angle and the thrust command. It will then be
         # rescaled to the appropriate ranges in the dynamics
-        self.action_space = spaces.Box(low=np.float32(
-            [-1, -1]), high=np.float32([1, 1]), shape=(2,))
+        self.action_space = spaces.Box(low=-1, high=1, shape=(2,))
 
         # Environment state variable and simulator object
         self.y = None
