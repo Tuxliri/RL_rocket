@@ -31,7 +31,8 @@ class Rocket(Env):
                         "beta" : -1e-8,
                         "eta" : 2,
                         "gamma" : -10,
-                        "delta" : -5
+                        "delta" : -5,
+                        "kappa" : 10,
                         }
     ) -> None:
 
@@ -196,7 +197,7 @@ class Rocket(Env):
         return obs*self.state_normalizer
         
     def _reward_goal(self, obs):
-        k = 10
+        k = self.reward_coefficients["kappa"]
         return k*self._check_landing(obs)
     
     def compute_vtarg(self, r, v):
