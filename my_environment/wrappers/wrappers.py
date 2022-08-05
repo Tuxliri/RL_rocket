@@ -119,7 +119,7 @@ class RecordVideoFigure(RecordVideo):
                 if dones:
                     states_dataframe = self.env.unwrapped.states_to_dataframe()
                     actions_dataframe = self.env.unwrapped.actions_to_dataframe()
-                    vtarg_dataframe = self.env.unwrapped.actions_to_dataframe()
+                    vtarg_dataframe = self.env.unwrapped.vtarg_to_dataframe()
 
                     fig_rew = pd.DataFrame(self.rewards_info).plot()
                     plt.close()
