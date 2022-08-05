@@ -321,7 +321,7 @@ class Rocket(Env):
             canvas,
             (0,0,0),
             start_pos=tuple(agent_location),
-            end_pos=tuple(agent_location+[1,-1]*v_targ*5),
+            end_pos=tuple(agent_location+[1,-1]*v_targ),
             width=2
             )
         
@@ -330,7 +330,7 @@ class Rocket(Env):
             canvas,
             (0,0,255),
             start_pos=tuple(agent_location),
-            end_pos=tuple(agent_location+[1,-1]*v*5),
+            end_pos=tuple(agent_location+[1,-1]*v),
             width=2
             )
 
