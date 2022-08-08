@@ -208,13 +208,13 @@ class Rocket(Env):
 
         v_0 = np.linalg.norm(initial_conditions[3:5])
 
-        if r[1]>100:
-            r_hat = r-[0,100]
+        if r[1]>15:
+            r_hat = r-[0,15]
             v_hat = v-[0,-2]
             tau = tau_1
 
         else:
-            r_hat = [0,100]
+            r_hat = [0,15]
             v_hat = v-[0,-1]
             tau = tau_2
 
