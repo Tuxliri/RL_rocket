@@ -165,7 +165,7 @@ class Rocket(Env):
         v = obs[3:5]
         zeta = obs[2]-np.pi/2
 
-        v_targ, __ = self.compute_vtarg(r,v)
+        v_targ, __ = self._compute_vtarg(r,v)
 
         thrust = action[1]
          
@@ -201,7 +201,7 @@ class Rocket(Env):
         k = self.reward_coefficients["kappa"]
         return k*self._check_landing(obs)
     
-    def compute_vtarg(self, r, v):
+    def _compute_vtarg(self, r, v):
         tau_1 = 20
         tau_2 = 100
         initial_conditions = self.SIM.states[0]
@@ -318,7 +318,7 @@ class Rocket(Env):
             agent_location), (w/2, h/2), angle_draw)
 
         # Draw the target velocity vector
-        v_targ, __ = self.compute_vtarg(r,v)
+        v_targ, __ = self._compute_vtarg(r,v)
         
         pygame.draw.line(
             canvas,
