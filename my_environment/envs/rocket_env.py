@@ -154,7 +154,7 @@ class Rocket(Env):
         info["bounds_violation"] = self._checkBounds(state)
 
         if info['bounds_violation']:
-            reward += -10
+            reward += -50
             
         return self._normalize_obs(state), reward, done, info
 
