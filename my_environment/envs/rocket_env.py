@@ -33,6 +33,8 @@ class Rocket(Env):
                         "gamma" : -10,
                         "delta" : -5,
                         "kappa" : 10,
+                        "waypoint" : 50,
+                        "landing_radius" : 30,
                         }
     ) -> None:
 
@@ -104,7 +106,8 @@ class Rocket(Env):
         self.vtarg_history = None
 
         # Landing parameters
-        self.target_r = 30
+        self.target_r = reward_coeff["landing_radius"]
+        self.waypoint = reward_coeff["waypoint"]
 
         # Renderer variables (pygame)
         self.window_size = 600  # The size of the PyGame window
@@ -208,15 +211,17 @@ class Rocket(Env):
 
         v_0 = np.linalg.norm(initial_conditions[3:5])
 
-        # if r[1]>15:
-        #     r_hat = r-[0,15]
-        #     v_hat = v-[0,-2]
-        #     tau = tau_1
+        rz = r[1]
 
-        # else:
-        #     r_hat = [0,15]
-        #     v_hat = v-[0,-1]
-        #     tau = tau_2
+        if rz>self.waypoint:
+            r_hat = r-[0, self.waypoint]
+            v_hat = v-[0,-2]
+            tau = tau_1
+
+        else:
+            r_hat = [0, rz]
+            v_hat = v-[0,-1]
+            tau = tau_2
 
         r_hat = r
         v_hat = v
