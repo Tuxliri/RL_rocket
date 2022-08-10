@@ -75,7 +75,7 @@ class RewardAnnealing(gym.Wrapper):
         new_rewards = ["attitude_hint", "attitude_constraint", "rew_goal" ]
         rewards_dict = {key: old_rewards_dict[key] for key in new_rewards}
 
-        rewards_dict["thrust_penalty"] = -self.xi*action[1]
+        rewards_dict["thrust_penalty"] = -self.xi*(action[1]+1)
 
         reward = sum(rewards_dict.values())
 
