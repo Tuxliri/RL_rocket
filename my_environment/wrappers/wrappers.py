@@ -139,29 +139,31 @@ class RecordVideoFigure(RecordVideo):
                                 **final_errors
                             }
                         )
-                    else:
-                        self.save_figure(fig_states, "states_figure")
-                        self.save_figure(fig_actions, "actions_figure")
-
+                
             elif dones[0]:
-                fig_states, fig_actions = self.env.unwrapped.plot_states()
-                plt.close()
+                states_dataframe = self.env.env_method('states_to_dataframe')[0]
+                actions_dataframe = self.env.env_method('actions_to_dataframe')[0]
+                vtarg_dataframe = self.env.env_method('vtarg_to_dataframe')[0]
+                fig_rew = pd.DataFrame(self.env.env_method('rewards_info')).plot()
                 plt.close()
 
-                fig_rew = pd.DataFrame(self.rewards_info).plot()
+                names = self.env.get_attr('state_names')[0]
+
+                values = np.abs(states_dataframe.iloc[-1,:] - [0,0,np.pi/2,0,0,0,0])
+                final_errors = {'final_errors/'+ n : v for n,v in zip(names, values)}
 
                 if wandb.run is not None:
                     wandb.log(
                         {
-                            "states": fig_states,
-                            "actions": fig_actions,
+                            "states": states_dataframe.plot(),
+                            "actions": actions_dataframe.plot(),
+                            "vtarg": vtarg_dataframe.plot(),
                             "rewards": fig_rew,
+                            "used_mass" : states_dataframe.iloc[0,6] - states_dataframe.iloc[-1,6],
+                            **final_errors
                         }
                     )
-                else:
-                    self.save_figure(fig_states, "states_figure")
-                    self.save_figure(fig_actions, "actions_figure")
-
+                
             pass
 
         return observations, rewards, dones, infos
