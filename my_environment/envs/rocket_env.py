@@ -471,7 +471,7 @@ class Rocket(Env):
         return all(landing_conditions.values())
 
     def seed(self, seed: int = 42):
-        self.init_space.seed(42)
+        self.init_space.seed(seed)
         return super().seed(seed)
 
     def _get_normalizer(self):
