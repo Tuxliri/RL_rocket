@@ -222,10 +222,6 @@ class Rocket(Env):
             r_hat = [0, rz]
             v_hat = v-[0,-1]
             tau = tau_2
-
-        r_hat = r
-        v_hat = v
-        tau = tau_1
         
         t_go = np.linalg.norm(r_hat)/np.linalg.norm(v_hat)
         v_targ = -v_0*(r_hat/np.linalg.norm(r_hat))*(1-np.exp(-t_go/tau))
