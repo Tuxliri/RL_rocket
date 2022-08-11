@@ -161,12 +161,12 @@ class Rocket(Env):
             
         return self._normalize_obs(state), reward, done, info
 
-    def _compute_reward(self, obs, action):
+    def _compute_reward(self, state, action):
         reward = 0              
 
-        r = obs[0:2]
-        v = obs[3:5]
-        zeta = obs[2]-np.pi/2
+        r = state[0:2]
+        v = state[3:5]
+        zeta = state[2]-np.pi/2
 
         v_targ, __ = self._compute_vtarg(r,v)
 
@@ -186,7 +186,7 @@ class Rocket(Env):
             "eta" : coeff["eta"],
             "attitude_constraint" : coeff["gamma"]*float(abs(zeta)>zeta_lim),
             "attitude_hint" : coeff["delta"]*np.maximum(0,abs(zeta)-zeta_mgn),
-            "rew_goal": self._reward_goal(obs),
+            "rew_goal": self._reward_goal(state),
         }
 
         reward = sum(rewards_dict.values())
@@ -197,13 +197,16 @@ class Rocket(Env):
     def _normalize_obs(self, obs):
         return obs/self.state_normalizer
 
+
     def _denormalize_obs(self,obs):
         return obs*self.state_normalizer
-        
+
+
     def _reward_goal(self, obs):
         k = self.reward_coefficients["kappa"]
         return k*self._check_landing(obs)
     
+
     def _compute_vtarg(self, r, v):
         tau_1 = 20
         tau_2 = 100
@@ -229,6 +232,7 @@ class Rocket(Env):
         self.vtarg_history.append(v_targ)
 
         return v_targ, t_go
+
 
     def render(self, mode : str="human"):
         import pygame  # import here to avoid pygame dependency with no render
