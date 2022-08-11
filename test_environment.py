@@ -3,7 +3,6 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from matplotlib import pyplot as plt
 from stable_baselines3 import PPO
 from my_environment.wrappers.wrappers import RewardAnnealing
-from my_environment.utils.imitation_kickstarter import imitationKickstarter
 import gym
 from gym.utils.play import PlayPlot
 from gym.utils.play import play
@@ -15,12 +14,23 @@ env_id = 'my_environment/Falcon3DOF-v0'
 config = {
     "env_id" : "my_environment/Falcon3DOF-v0",
     "policy_type": "MlpPolicy",
-    "total_timesteps": int(1.5e5),
+    "total_timesteps": int(2e6),
     "timestep" : 0.05,
     "max_time" : 100,
     "RANDOM_SEED" : 42,
-    "initial_conditions" : [-1600, 2000, np.pi*3/4, 180, -90, 0],
-    "initial_conditions_range" : [0,50,0,0,0,0]
+    "initial_conditions" : [-1600, 2000, np.pi*3/4, 180, -90, 0, 50e3],
+    "initial_conditions_range" : [5,50,0,0,0,0,1e3],
+    "reward_coefficients" : {
+                            "alfa" : -0.01, 
+                            "beta" : 0,
+                            "delta" : -5,
+                            "eta" : 0.2,
+                            "gamma" : -10,
+                            "kappa" : 10,
+                            "xi" : 0.004,
+                            "waypoint" : 30,
+                            "landing_radius" : 30
+                            },
 }
 config["max_ep_timesteps"] = int(config["max_time"]/config["timestep"])
 
@@ -34,7 +44,7 @@ def make_env(config):
     seed=config["RANDOM_SEED"]
     )
     # Anneal the reward (remove v_targ following reward)
-    # env = RewardAnnealing(env)
+    #env = RewardAnnealing(env)
 
     # Define a new custom action space with only three actions:
     # - no thrust
