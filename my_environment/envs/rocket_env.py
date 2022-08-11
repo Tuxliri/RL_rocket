@@ -222,12 +222,12 @@ class Rocket(Env):
             tau = tau_1
 
         else:
-            r_hat = [0, rz+1e-3]
+            r_hat = [0, rz]
             v_hat = v-[0,-1]
             tau = tau_2
         
         t_go = np.linalg.norm(r_hat)/np.linalg.norm(v_hat)
-        v_targ = -v_0*(r_hat/np.linalg.norm(r_hat))*(1-np.exp(-t_go/tau))
+        v_targ = -v_0*(r_hat/max(1e-3,np.linalg.norm(r_hat))void)*(1-np.exp(-t_go/tau))
         
         self.vtarg_history.append(v_targ)
 
