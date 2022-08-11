@@ -222,7 +222,7 @@ class Rocket(Env):
             tau = tau_1
 
         else:
-            r_hat = [0, rz]
+            r_hat = [0, rz+1e-3]
             v_hat = v-[0,-1]
             tau = tau_2
         
