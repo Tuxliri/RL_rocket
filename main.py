@@ -20,31 +20,60 @@ import my_environment
 from my_environment.wrappers.wrappers import DiscreteActions3DOF, RecordVideoFigure, RewardAnnealing
 from gym.wrappers import TimeLimit
 
+config = {
+    "env_id" : "my_environment/Falcon3DOF-v0",
+    "policy_type": "MlpPolicy",
+    "total_timesteps": int(5e3),
+    "timestep" : 0.05,
+    "max_time" : 150,
+    "RANDOM_SEED" : 42,
+    "initial_conditions" : [-1600, 2000, np.pi*3/4, 180, -90, 0, 50e3],
+    "initial_conditions_range" : [5,50,0,0,0,0,1e3],
+    "reward_coefficients" : {
+                            "alfa" : -0.01, 
+                            "beta" : 0,
+                            "delta" : -5,
+                            "eta" : 0.2,
+                            "gamma" : -10,
+                            "kappa" : 10,
+                            "xi" : 0.004,
+                            "waypoint" : 30,
+                            "landing_radius" : 30
+                            },
+}
+
+config["max_ep_timesteps"] = int(config["max_time"]/config["timestep"])
+config["eval_freq"] = int(config["total_timesteps"]/20)
+
+def make_env():
+    env = gym.make(
+    config["env_id"],
+    IC=config["initial_conditions"],
+    ICRange=config["initial_conditions_range"],
+    timestep=config["timestep"],
+    seed=config["RANDOM_SEED"],
+    reward_coeff=config["reward_coefficients"]
+    )
+    
+    # Define a new custom action space with only three actions:
+    # - no thrust
+    # - max thrust gimbaled right
+    # - max thrust gimbaled left
+    # - max thrust downwards
+
+    # env = DiscreteActions3DOF(env)
+    env = TimeLimit(env, max_episode_steps=config["max_ep_timesteps"])
+    env = Monitor(
+        env,
+        allow_early_resets=True,
+        filename="logs_PPO",
+        )
+    return env
+
 if __name__ == "__main__":
 
     # Choose the folder to store tensorboard logs
     TENSORBOARD_LOGS_DIR = "./logs"
-
-    config = {
-        "env_id" : "my_environment/Falcon3DOF-v0",
-        "policy_type": "MlpPolicy",
-        "total_timesteps": int(1e3),
-        "timestep" : 0.05,
-        "max_time" : 100,
-        "RANDOM_SEED" : 42,
-        "initial_conditions" : [50, 500, np.pi/2, 0, -50, 0,50e3],
-        "initial_conditions_range" : [5,50,0,0,0,0,1e3],
-        "reward_coefficients" : {
-                                "alfa" : -0.01, 
-                                "beta" : -1e-8,
-                                "eta" : 2,
-                                "gamma" : -10,
-                                "delta" : -5,
-                                'xi' : 0.004
-                                }
-    }
-
-    config["max_ep_timesteps"] = int(config["max_time"]/config["timestep"])
     
 
     run = wandb.init(
@@ -55,30 +84,6 @@ if __name__ == "__main__":
         save_code=True,  # optional
     )   
 
-    def make_env():
-        env = gym.make(
-        config["env_id"],
-        IC=config["initial_conditions"],
-        ICRange=config["initial_conditions_range"],
-        timestep=config["timestep"],
-        seed=config["RANDOM_SEED"],
-        reward_coeff=config["reward_coefficients"]
-        )
-        
-        # Define a new custom action space with only three actions:
-        # - no thrust
-        # - max thrust gimbaled right
-        # - max thrust gimbaled left
-        # - max thrust downwards
-   
-        # env = DiscreteActions3DOF(env)
-        env = TimeLimit(env, max_episode_steps=config["max_ep_timesteps"])
-        env = Monitor(
-            env,
-            allow_early_resets=True,
-            filename="logs_PPO",
-            )
-        return env
 
     env = make_env()
     
@@ -102,7 +107,7 @@ if __name__ == "__main__":
     callbacksList = [
         EvalCallback(
             eval_env,
-            eval_freq = 1e3,
+            eval_freq = config["max_ep_timesteps"]/20,
             n_eval_episodes = 5,
             render=False,
             deterministic=True,
@@ -144,10 +149,9 @@ if __name__ == "__main__":
 
     env=make_env(config)
 
-    def make_eval_env():
-        training_env = make_env()
+    def make_eval_env(training_env=env):
         return RecordVideoFigure(training_env, video_folder=f"videos/{run.id}",
-        image_folder=f"images/{run.id}", episode_trigger= lambda x: x%5==0 )
+                image_folder=f"images/{run.id}", episode_trigger= lambda x: x%5==0 )
 
     callbacksList = [
     EvalCallback(
@@ -166,7 +170,7 @@ if __name__ == "__main__":
     
     model.set_env(env)
     model.learn(
-        total_timesteps=config["total_timesteps"],
+        total_timesteps=2*config["total_timesteps"],
         callback=callbacksList
     )
 
