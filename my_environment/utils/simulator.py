@@ -1,7 +1,9 @@
 # In this file the dynamics are simulated using
 # different kind of simulators. A 3DOF simulator,
 # a linearized 3DOF and a 6DOF simulink simulator
+from cmath import cos, sin
 import numpy as np
+from scipy.spatial.transform.rotation import Rotation
 from scipy.integrate import solve_ivp
 from math import fmod
 
