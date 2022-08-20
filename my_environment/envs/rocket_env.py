@@ -670,6 +670,10 @@ class Rocket6DOF(Env):
         self.plotter.add_mesh(self.rocket_body_mesh,show_scalar_bar=False,cmap='bwr')
         self.plotter.add_mesh(self.landing_pad_mesh,color='red')
 
+    def _scipy_quat_convention(self, leading_scalar_quaternion):
+        # return TRAILING SCALAR CONVENTION
+        return np.roll(leading_scalar_quaternion,-1)
+
 
 
     def step(self, normalized_action):
@@ -728,16 +732,25 @@ class Rocket6DOF(Env):
         self.rocket_body_mesh.translate(current_loc-previous_loc)
 
         # Rotate the rocket to the new attitude
-        self.rocket_body_mesh.rotate_vector(vector=(1,0,0),angle=1)
+        current_q = self.state[6:10]
+        step_rot_vector = self._get_step_rot_vec(current_q)
+        norm_step_rot = np.linalg.norm(step_rot_vector)         # This gives the rotation angle in [rad]
+        
+        if norm_step_rot>1e-6:
+            self.rocket_body_mesh.rotate_vector(
+                vector=step_rot_vector/norm_step_rot,
+                angle=np.rad2deg(norm_step_rot),
+                point=current_loc
+                )
         
         # Plot the velocity vector
-        current_vel=self._rotate_x_to_z(self.state[3:6])
-        self.plotter.add_mesh(pv.Arrow(
-                start=current_loc,
-                direction=current_vel,
-                # scale='auto'
-                )
-        )
+        # current_vel=self._rotate_x_to_z(self.state[3:6])
+        # self.plotter.add_mesh(pv.Arrow(
+        #         start=current_loc,
+        #         direction=current_vel,
+        #         # scale='auto'
+        #         )
+        # )
 
         # Render the scene and display it
         self.plotter.update()
@@ -751,6 +764,7 @@ class Rocket6DOF(Env):
 
         pv.close_all()
         return None
+
 
     def _compute_reward(self, state, action):
         reward = 0              
@@ -956,9 +970,15 @@ class Rocket6DOF(Env):
         return ROT_MAT @ vector
 
 
-    def _get_rot_vec(self, q):
-        rotation = sci
-        pass
+    def _get_step_rot_vec(self, current_quaternion) -> np.ndarray:
+        """
+        Compute the incremental rotation vector
+        by which to rotate the body at each time step
+        """
+        current_attitude = R.from_quat(self._scipy_quat_convention(current_quaternion))
+        step_rotation : R = current_attitude*self.previous_attitude.inv()
+        return step_rotation.as_rotvec()
+
 
     def get_keys_to_action(self):
         raise NotImplementedError()
