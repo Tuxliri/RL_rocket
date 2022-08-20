@@ -640,31 +640,36 @@ class Rocket6DOF(Env):
         # instantiate the simulator object
         self.SIM = Simulator6DOF(self.initial_condition, self.timestep)
 
-        if self.plotter is None:
-            current_loc=self._rotate_x_to_z(self.state[0:3])
+        return self._get_obs()
 
-            current_q = self.state[6:10]
+    def _add_meshes_to_plotter(self):
+        current_loc=self._rotate_x_to_z(self.state[0:3])
 
-            # Move the quaternion to the TRAILING scalar convention
-            rotation = R.from_quat(np.roll(current_q,-1))
+        current_q = self.state[6:10]
+
+        # Move the quaternion to the TRAILING scalar convention
+        self.previous_attitude = R.from_quat(self._scipy_quat_convention(current_q))
             
-            self.rocket_body_mesh = pv.Cylinder(
+        self.rocket_body_mesh = pv.Cylinder(
                 center=current_loc,
-                direction=rotation.apply([0,0,1]),    # We rotate the body to be aligned with
+                direction=self.previous_attitude.apply([0,0,1]),    # We rotate the body to be aligned with
                                                         # the initial condition quaternion
                 radius=3.66/2,
                 height=50
                 )
 
-            self.landing_pad_mesh = pv.Circle(radius=self.target_r)
-            current_vel=self._rotate_x_to_z(self.state[3:6])
+        self.landing_pad_mesh = pv.Circle(radius=self.target_r)
+        current_vel=self._rotate_x_to_z(self.state[3:6])
 
-            self.velocity_mesh = pv.Arrow(
+        self.velocity_mesh = pv.Arrow(
                 start=current_loc,
                 direction=current_vel,
                 # scale='auto'
                 )
-        return self._get_obs()
+
+        self.plotter.add_mesh(self.rocket_body_mesh,show_scalar_bar=False,cmap='bwr')
+        self.plotter.add_mesh(self.landing_pad_mesh,color='red')
+
 
 
     def step(self, normalized_action):
@@ -704,12 +709,17 @@ class Rocket6DOF(Env):
             args = {}
             if mode=='rgb_array': args['off_screen'] = True
 
+            # Creating scene and loading the mesh
             self.plotter = pv.Plotter(args)
-            self.plotter.add_mesh(self.rocket_body_mesh,show_scalar_bar=False,cmap='bwr')
-            self.plotter.add_mesh(self.landing_pad_mesh,color='red')
+            self._add_meshes_to_plotter()
+
             self.plotter.show_axes_all()
             self.plotter.show_grid()
-            # self.plotter.render()
+            self.plotter.show(
+                auto_close=False,
+                interactive=False,
+                interactive_update=True
+                )
 
         # Move the rocket towards its new location
         previous_loc = self.rocket_body_mesh.center
@@ -730,11 +740,11 @@ class Rocket6DOF(Env):
         )
 
         # Render the scene and display it
-        self.plotter.render()
-        self.plotter.show(auto_close=False,interactive=False)
-
+        self.plotter.update()
+        
         if mode == "rgb_array":
             return self.plotter.image
+
 
     def close(self) -> None:
         super().close()
