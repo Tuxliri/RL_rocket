@@ -282,7 +282,7 @@ class Simulator6DOF():
         )
 
         dr = v_inertial
-        dv = 1/mass*F_I + g_I
+        dv = 1/mass*F_I #+ g_I
 
         # Rotational dynamics
         OMEGA = self._get_omega_matrix(omega)
