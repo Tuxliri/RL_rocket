@@ -610,13 +610,18 @@ class Rocket6DOF(Env):
         self.state = None
         self.infos = []
         self.SIM : Simulator6DOF = None
+        self.rotation_obj : R = None
         self.action = np.array([0. , 0., 0.])
         self.vtarg_history = []
+
+        # Trajectory constratints
+        self.attitude_traj_limit = trajectory_limits["attitude_limit"]
 
         # Landing parameters
         self.target_r = landing_params["landing_radius"]
         self.maximum_v = landing_params["maximum_velocity"]
         self.landing_target = [0,0,0]
+        self.final_attitude_limit = None # TODO: set separate final attitude limits for landing bonus 
 
         # self.q_lim = raise NotImplementedError
         self.omega_lim = np.array([0.2, 0.2, 0.2])
@@ -635,6 +640,10 @@ class Rocket6DOF(Env):
         self.vtarg_history = []
         self.initial_condition = self.init_space.sample()
         self.state = self.initial_condition
+        
+        # Create a rotation object representing the attitude of the system
+        assert np.linalg.norm(self.state[6:10])==1., f"The quaternion doesn't have unit norm! It's components are {self.state[6:10]}"
+        self.rotation_obj = R.from_quat(self._scipy_quat_convention(self.state[6:10]))
 
         # Reset
         # instantiate the simulator object
@@ -682,6 +691,10 @@ class Rocket6DOF(Env):
 
         self.state, isterminal, __ = self.SIM.step(self.action)
         state = self.state.astype(np.float32)
+
+        # Create a rotation object representing the attitude of the system
+        # assert np.linalg.norm(state[6:10])==1., f"The quaternion doesn't have unit norm! It's components are {state[6:10]}"
+        self.rotation_obj = R.from_quat(self._scipy_quat_convention(state[6:10]))
 
         # Done if the rocket is at ground or outside bounds
         done = bool(isterminal) or self._check_bounds_violation(state)
@@ -779,16 +792,12 @@ class Rocket6DOF(Env):
         # Coefficients
         coeff = self.reward_coefficients
 
-        # Attitude constraints
-        zeta_lim = 2*np.pi
-        zeta_mgn = np.pi/2        
-        
         # Compute each reward term
         rewards_dict = {
             "velocity_tracking" : coeff["alfa"]*np.linalg.norm(v-v_targ),
             "thrust_penalty" : coeff["beta"]*thrust,
             "eta" : coeff["eta"],
-            # "attitude_constraint" : coeff["gamma"]*float(abs(zeta)>zeta_lim),
+            "attitude_constraint" : self._check_attitude_limits(),
             # "attitude_hint" : coeff["delta"]*np.maximum(0,abs(zeta)-zeta_mgn),
             # "rew_goal": self._reward_goal(state),
         }
@@ -797,6 +806,10 @@ class Rocket6DOF(Env):
         
         return reward, rewards_dict
 
+    def _check_attitude_limits(self):
+        gamma = self.reward_coefficients["gamma"]
+        attitude_euler_angles = self.rotation_obj.as_euler('zyx')
+        return gamma*np.any(np.abs(attitude_euler_angles)>self.attitude_traj_limit)
 
     def _reward_goal(self, obs):
         k = self.reward_coefficients["kappa"]
