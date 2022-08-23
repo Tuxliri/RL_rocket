@@ -1,19 +1,20 @@
 """
 Script to test functionality of the 6DOF environment
 """
-from stable_baselines3.common.env_checker import check_env
 from my_environment.envs import Rocket6DOF
 
 # Import the initial conditions from the setup file
 from configuration_file import config
 
 # Instantiate the environment
-env = Rocket6DOF(IC=config["INITIAL_CONDITIONS"])
+env = Rocket6DOF(
+    IC=config["INITIAL_CONDITIONS"],
+    ICRange=config["IC_RANGE"]
+    )
 
-# Check for the environment compatibility with gym and sb3
-# check_env(env, skip_render_check=False)
-
+# [delta_y, delta_z, thrust]
 null_action = [0.,0.,-1]
+non_null_action = [1.,1.,-0.5]
 
 # Initialize the environment
 done = False
