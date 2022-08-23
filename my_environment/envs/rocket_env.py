@@ -807,6 +807,15 @@ class Rocket6DOF(Env):
         trajectory_dataframe = self.states_to_dataframe()
         return self._trajectory_plot_from_df(trajectory_dataframe)
 
+    def get_attitude_trajectory(self):
+        trajectory_dataframe = self.states_to_dataframe()
+        return self._attitude_traj_from_df(trajectory_dataframe)
+
+    def _attitude_traj_from_df(self, trajectory_df : DataFrame):
+        import plotly.express as px
+        fig = px.line(trajectory_df[['q0','q1','q2','q3']])
+
+        return fig
 
     def _trajectory_plot_from_df(self, trajectory_df : DataFrame):
         import plotly.express as px
