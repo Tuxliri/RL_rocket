@@ -337,7 +337,9 @@ class Simulator6DOF():
         delta_y = control_vector[0]
         delta_z = control_vector[1]
         thrust = control_vector[2]
-        T_body_frame = self._rot_mat_thrust_to_body(delta_y,delta_z).dot([thrust,0,0])
+
+        ROT_MAT = self._rot_mat_thrust_to_body(delta_y,delta_z)
+        T_body_frame = ROT_MAT@[thrust,0.,0.]
         return T_body_frame
 
 
@@ -357,9 +359,9 @@ class Simulator6DOF():
     def _rot_mat_thrust_to_body(self, delta_y : float, delta_z : float) -> np.ndarray:
         return np.array(
             [
-                [cos(delta_y)*cos(delta_z),-sin(delta_y),-cos(delta_y)*sin(delta_z)],
-                [cos(delta_y)*cos(delta_z), cos(delta_y),-sin(delta_y)*sin(delta_z)],
-                [sin(delta_z), 0, cos(delta_z)]
+                [np.cos(delta_y)*np.cos(delta_z),-np.sin(delta_y),-np.cos(delta_y)*np.sin(delta_z)],
+                [np.sin(delta_y)*np.cos(delta_z), np.cos(delta_y),-np.sin(delta_y)*np.sin(delta_z)],
+                [np.sin(delta_z), 0, np.cos(delta_z)]
             ]
         )
 
