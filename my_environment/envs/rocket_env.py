@@ -600,7 +600,8 @@ class Rocket6DOF(Env):
         # TODO: remove this check as when using different observation
         # than the state of the system it would result in a raised error
         assert self.observation_space.shape == self.init_space.shape,\
-            f"The observation space has shape {self.observation_space.shape} but the init_space has shape {self.init_space.shape}"
+            f"The observation space has shape {self.observation_space.shape}\
+                but the init_space has shape {self.init_space.shape}"
 
         # Two valued vector in the range -1,+1, for the
         # gimbal angle and the thrust command. It will then be
@@ -637,7 +638,9 @@ class Rocket6DOF(Env):
     def reset(self):
         """ Function defining the reset method of gym
             It returns an initial observation drawn randomly
-            from the uniform distribution of the ICs"""
+            from the uniform distribution of the ICs
+        """
+
         self.vtarg_history = []
         self.initial_condition = self.init_space.sample()
         self.state = self.initial_condition
@@ -656,7 +659,6 @@ class Rocket6DOF(Env):
     def _scipy_quat_convention(self, leading_scalar_quaternion):
         # return TRAILING SCALAR CONVENTION
         return np.roll(leading_scalar_quaternion,-1)
-
 
 
     def step(self, normalized_action):
@@ -895,7 +897,7 @@ class Rocket6DOF(Env):
 
         gimbal_y = action[0]*self.max_gimbal
         gimbal_z = action[1]*self.max_gimbal
-
+        
         thrust = (action[2] + 1)/2. * self.max_thrust
 
         # TODO : Add lower bound on thrust with self.minThrust
