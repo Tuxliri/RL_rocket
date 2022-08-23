@@ -2,7 +2,7 @@
 Script to test functionality of the 6DOF environment
 """
 from my_environment.envs import Rocket6DOF
-
+from gym.wrappers import RecordVideo
 # Import the initial conditions from the setup file
 from configuration_file import config
 
@@ -11,6 +11,7 @@ env = Rocket6DOF(
     IC=config["INITIAL_CONDITIONS"],
     ICRange=config["IC_RANGE"]
     )
+env = RecordVideo(env,video_folder='video_6DOF',name_prefix='new_rotation')
 
 # [delta_y, delta_z, thrust]
 null_action = [0.,0.,-1]

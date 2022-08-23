@@ -678,6 +678,7 @@ class Rocket6DOF(Env):
             np.linalg.norm(self.state[6:10]) == 1.0
         ), f"The quaternion doesn't have unit norm! It's components are {self.state[6:10]}"
         self.rotation_obj = R.from_quat(self._scipy_quat_convention(self.state[6:10]))
+        self.prev_rotation_obj = self.rotation_obj
 
         # Reset
         # instantiate the simulator object
@@ -697,7 +698,7 @@ class Rocket6DOF(Env):
         state = self.state.astype(np.float32)
 
         # Create a rotation object representing the attitude of the system
-        # assert np.linalg.norm(state[6:10])==1., f"The quaternion doesn't have unit norm! It's components are {state[6:10]}"
+        self.prev_rotation_obj = self.rotation_obj
         self.rotation_obj = R.from_quat(self._scipy_quat_convention(state[6:10]))
 
         # Done if the rocket is at ground or outside bounds
@@ -742,39 +743,23 @@ class Rocket6DOF(Env):
                 # interactive_update=True
             )
 
-        self.plotter.clear()
 
         # Move the rocket towards its new location
-        # previous_loc = self.rocket_body_mesh.center
-        # current_loc = self.state[0:3]
-
-        # self.rocket_body_mesh.translate(current_loc-previous_loc)
+        previous_loc = self.rocket_body_mesh.center
+        current_loc = self.state[0:3]
+        
+        self.rocket_body_mesh.translate(current_loc-previous_loc)
 
         # Rotate the rocket to the new attitude
-        # current_q = self.state[6:10]
-        # step_rot_vector = self._get_step_rot_vec(current_q)
-        # norm_step_rot = np.linalg.norm(step_rot_vector)         # This gives the rotation angle in [rad]
-
-        # if norm_step_rot>1e-6:
-        #     self.rocket_body_mesh.rotate_vector(
-        #         vector=step_rot_vector/norm_step_rot,
-        #         angle=np.rad2deg(norm_step_rot),
-        #         inplace=True
-        #         )
-
-        # # Redraw the rocket body mesh at each time
-        # current_attitude = R.from_quat(self._scipy_quat_convention(current_q))
-
-        # self.rocket_body_mesh = pv.Cylinder(
-        #         center=current_loc,
-        #         direction=current_attitude.apply([1,0,0]),
-        #         radius=3.66/2,
-        #         height=50
-        #         )
-        # self.plotter.add_mesh(self.rocket_body_mesh,show_scalar_bar=False,cmap='bwr')
-
-        # Render the scene and display it
-        self._add_meshes_to_plotter()
+        step_rot_vector = self._get_step_rot_vec()
+        norm_step_rot = np.linalg.norm(step_rot_vector)         # This gives the rotation angle in [rad]
+        if norm_step_rot > 0:
+            self.rocket_body_mesh.rotate_vector(
+                vector=step_rot_vector/norm_step_rot,
+                angle=np.rad2deg(norm_step_rot),
+                inplace=True,
+            )
+        # self._add_meshes_to_plotter()
         self.plotter.update()
 
         if mode == "rgb_array":
@@ -783,14 +768,9 @@ class Rocket6DOF(Env):
     def _add_meshes_to_plotter(self):
         current_loc = self.state[0:3]
 
-        current_q = self.state[6:10]
-
-        # Move the quaternion to the TRAILING scalar convention
-        current_attitude = R.from_quat(self._scipy_quat_convention(current_q))
-
         self.rocket_body_mesh = pv.Cylinder(
             center=current_loc,
-            direction=current_attitude.apply([1, 0, 0]),
+            direction=self.rotation_obj.apply([1, 0, 0]),
             radius=3.66 / 2,
             height=50,
         )
@@ -1016,13 +996,12 @@ class Rocket6DOF(Env):
 
         return ROT_MAT @ vector
 
-    def _get_step_rot_vec(self, current_quaternion) -> np.ndarray:
+    def _get_step_rot_vec(self) -> np.ndarray:
         """
         Compute the incremental rotation vector
         by which to rotate the body at each time step
         """
-        current_attitude = R.from_quat(self._scipy_quat_convention(current_quaternion))
-        step_rotation: R = current_attitude * self.previous_attitude.inv()
+        step_rotation = self.rotation_obj*self.prev_rotation_obj.inv()
         return step_rotation.as_rotvec()
 
     def get_keys_to_action(self):
