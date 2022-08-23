@@ -1,7 +1,6 @@
 # In this file the dynamics are simulated using
 # different kind of simulators. A 3DOF simulator,
 # a linearized 3DOF and a 6DOF simulink simulator
-from cmath import cos, sin
 import numpy as np
 from scipy.spatial.transform.rotation import Rotation
 from scipy.integrate import solve_ivp
@@ -297,25 +296,6 @@ class Simulator6DOF():
         dm = -thrust_magnitude/(self.g0*self.Isp)
         
         return np.concatenate([dr, dv, dq, dom, [dm]])
-
-
-    def _computeAoA(self, state):  # CHECK
-        if self.dynamics == 'std3DOF':
-            phi = state[2]
-            vx = state[3]
-            vy = state[4]
-
-            gamma = np.arctan2(vy, vx)
-
-            if not(vx == 0 and vy == 0):
-                alfa = phi - gamma
-            else:
-                alfa = 0
-
-        else:
-            raise NotImplementedError
-
-        return self._normalize(alfa)
 
 
     def _normalize_quaternion(self,q):
