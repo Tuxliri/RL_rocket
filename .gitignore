@@ -4,6 +4,7 @@ runs/
 videos/
 wandb/
 6DOF_videos
+video_6DOF/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
