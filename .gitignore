@@ -4,6 +4,7 @@ runs/
 videos/
 wandb/
 6DOF_videos
+video_6DOF/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -173,3 +174,5 @@ Videos
 logs_PPO.monitor.csv
 .vscode/launch.json
 .vscode/tasks.json
+test_6DOF_environment.py
+my_environment/envs/import pyvista.py
