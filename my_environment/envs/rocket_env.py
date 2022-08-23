@@ -651,34 +651,7 @@ class Rocket6DOF(Env):
 
         return self._get_obs()
 
-    def _add_meshes_to_plotter(self):
-        current_loc=self._rotate_x_to_z(self.state[0:3])
-
-        current_q = self.state[6:10]
-
-        # Move the quaternion to the TRAILING scalar convention
-        self.previous_attitude = R.from_quat(self._scipy_quat_convention(current_q))
-            
-        self.rocket_body_mesh = pv.Cylinder(
-                center=current_loc,
-                direction=self.previous_attitude.apply([0,0,1]),    # We rotate the body to be aligned with
-                                                        # the initial condition quaternion
-                radius=3.66/2,
-                height=50
-                )
-
-        self.landing_pad_mesh = pv.Circle(radius=self.target_r)
-        current_vel=self._rotate_x_to_z(self.state[3:6])
-
-        self.velocity_mesh = pv.Arrow(
-                start=current_loc,
-                direction=current_vel,
-                # scale='auto'
-                )
-
-        self.plotter.add_mesh(self.rocket_body_mesh,show_scalar_bar=False,cmap='bwr')
-        self.plotter.add_mesh(self.landing_pad_mesh,color='red')
-
+    
     def _scipy_quat_convention(self, leading_scalar_quaternion):
         # return TRAILING SCALAR CONVENTION
         return np.roll(leading_scalar_quaternion,-1)
@@ -729,47 +702,83 @@ class Rocket6DOF(Env):
             # Creating scene and loading the mesh
             self.plotter = pv.Plotter(args)
             self._add_meshes_to_plotter()
-
-            self.plotter.show_axes_all()
-            self.plotter.show_grid()
+            
             self.plotter.show(
-                auto_close=False,
-                interactive=False,
-                interactive_update=True
-                )
+                        auto_close=False,
+                        interactive=False,
+                        #interactive_update=True
+                        )
+
+        self.plotter.clear()
 
         # Move the rocket towards its new location
-        previous_loc = self.rocket_body_mesh.center
-        current_loc = self._rotate_x_to_z(self.state[0:3])
+        # previous_loc = self.rocket_body_mesh.center
+        # current_loc = self.state[0:3]
 
-        self.rocket_body_mesh.translate(current_loc-previous_loc)
+        # self.rocket_body_mesh.translate(current_loc-previous_loc)
 
         # Rotate the rocket to the new attitude
-        current_q = self.state[6:10]
-        step_rot_vector = self._get_step_rot_vec(current_q)
-        norm_step_rot = np.linalg.norm(step_rot_vector)         # This gives the rotation angle in [rad]
+        # current_q = self.state[6:10]
+        # step_rot_vector = self._get_step_rot_vec(current_q)
+        # norm_step_rot = np.linalg.norm(step_rot_vector)         # This gives the rotation angle in [rad]
         
-        if norm_step_rot>1e-6:
-            self.rocket_body_mesh.rotate_vector(
-                vector=step_rot_vector/norm_step_rot,
-                angle=np.rad2deg(norm_step_rot),
-                point=current_loc
-                )
-        
-        # Plot the velocity vector
-        # current_vel=self._rotate_x_to_z(self.state[3:6])
-        # self.plotter.add_mesh(pv.Arrow(
-        #         start=current_loc,
-        #         direction=current_vel,
-        #         # scale='auto'
+        # if norm_step_rot>1e-6:
+        #     self.rocket_body_mesh.rotate_vector(
+        #         vector=step_rot_vector/norm_step_rot,
+        #         angle=np.rad2deg(norm_step_rot),
+        #         inplace=True
         #         )
-        # )
+
+        # # Redraw the rocket body mesh at each time
+        # current_attitude = R.from_quat(self._scipy_quat_convention(current_q))
+        
+        # self.rocket_body_mesh = pv.Cylinder(
+        #         center=current_loc,
+        #         direction=current_attitude.apply([1,0,0]),
+        #         radius=3.66/2,
+        #         height=50
+        #         )
+        # self.plotter.add_mesh(self.rocket_body_mesh,show_scalar_bar=False,cmap='bwr')
 
         # Render the scene and display it
+        self._add_meshes_to_plotter()
         self.plotter.update()
         
         if mode == "rgb_array":
             return self.plotter.image
+
+
+    def _add_meshes_to_plotter(self):
+        current_loc=self.state[0:3]
+
+        current_q = self.state[6:10]
+
+        # Move the quaternion to the TRAILING scalar convention
+        current_attitude = R.from_quat(self._scipy_quat_convention(current_q))
+        
+        self.rocket_body_mesh = pv.Cylinder(
+                center=current_loc,
+                direction=current_attitude.apply([1,0,0]),
+                radius=3.66/2,
+                height=50
+                )
+
+        self.landing_pad_mesh = pv.Circle(radius=self.target_r)
+        self.landing_pad_mesh.rotate_y(angle=90)
+        # current_vel=self.state[3:6]
+
+        # self.velocity_mesh = pv.Arrow(
+        #         start=current_loc,
+        #         direction=current_vel,
+        #         # scale='auto'
+        #         )
+
+        self.plotter.add_mesh(self.rocket_body_mesh,show_scalar_bar=False,cmap='bwr')
+        self.plotter.add_mesh(self.landing_pad_mesh,color='red')
+
+        
+        self.plotter.show_axes_all()
+        self.plotter.show_grid()
 
 
     def close(self) -> None:
