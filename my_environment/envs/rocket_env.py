@@ -990,15 +990,10 @@ class Rocket6DOF(Env):
 
 
     def get_keys_to_action(self):
-        raise NotImplementedError()
         import pygame
 
         mapping = {
-            (pygame.K_LEFT,): [1,1],
-            (pygame.K_LEFT,pygame.K_UP,): [1,1],
-            (pygame.K_RIGHT,): [-1,1],
-            (pygame.K_RIGHT,pygame.K_UP,): [-1,1],
-            (pygame.K_UP,): [0,1],
-            (pygame.K_MODE,): [0,-1],
+            (pygame.K_RIGHT,pygame.K_UP,): [0,0,-1.],
+            (pygame.K_UP,): [0,0,-1.],
         }
         return mapping
