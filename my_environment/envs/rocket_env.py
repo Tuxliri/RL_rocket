@@ -525,6 +525,7 @@ class Rocket6DOF(Env):
                         "delta" : -5,
                         "kappa" : 10,
                         },
+        trajectory_limits = {"attitude_limit" : [1.5, 1.5, 2*np.pi]},
         landing_params = {
             "waypoint" : 50,
             "landing_radius" : 30,
