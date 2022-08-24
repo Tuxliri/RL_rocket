@@ -12,7 +12,7 @@ env = Rocket6DOF(
     IC=config["INITIAL_CONDITIONS"],
     ICRange=config["IC_RANGE"]
     )
-env=RecordVideo(env,video_folder="video_6DOF")
+# env=RecordVideo(env,video_folder="video_6DOF")
 
 # [delta_y, delta_z, thrust]
 null_action = [0.,0.,-1]
