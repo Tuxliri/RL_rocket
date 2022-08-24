@@ -758,8 +758,9 @@ class Rocket6DOF(Env):
                 vector=step_rot_vector/norm_step_rot,
                 angle=np.rad2deg(norm_step_rot),
                 inplace=True,
+                point=current_loc,
             )
-        # self._add_meshes_to_plotter()
+
         self.plotter.update()
 
         if mode == "rgb_array":
