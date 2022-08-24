@@ -8,21 +8,23 @@ from gym.wrappers import RecordVideo
 from stable_baselines3.common.env_checker import check_env
     
 # Import the initial conditions from the setup file
-from configuration_file import config
+from configuration_file import env_config
+
+kwargs = env_config
 
 # Instantiate the environment
-env = Rocket6DOF(IC=config["INITIAL_CONDITIONS"])
+env = Rocket6DOF(**kwargs)
 # Check for the environment compatibility with gym and sb3
 #check_env(env, skip_render_check=False)
 
 del env
-env = Rocket6DOF(IC=config["INITIAL_CONDITIONS"])
+env = Rocket6DOF(**kwargs)
 
 # Test usage with stable_baselines_3 model
 model = PPO('MlpPolicy', env, verbose=1)
 
 # Use a separate environement for evaluation
-eval_env = RecordVideo(Rocket6DOF(IC=config["INITIAL_CONDITIONS"]),'6DOF_videos',video_length=500)
+eval_env = RecordVideo(env = Rocket6DOF(**kwargs),video_folder='6DOF_videos',video_length=500)
 
 import time
 

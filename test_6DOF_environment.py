@@ -6,14 +6,13 @@ from my_environment.envs import Rocket6DOF
 from gym.wrappers import RecordVideo
 
 # Import the initial conditions from the setup file
-from configuration_file import config
+from configuration_file import env_config
 from gym.wrappers import RecordVideo
 
 # Instantiate the environment
-env = Rocket6DOF(
-    IC=config["INITIAL_CONDITIONS"],
-    ICRange=config["IC_RANGE"]
-    )
+kwargs = env_config
+env = Rocket6DOF(**kwargs)
+
 # env=RecordVideo(env,video_folder="video_6DOF")
 
 # [delta_y, delta_z, thrust]
