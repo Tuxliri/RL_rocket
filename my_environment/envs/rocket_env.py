@@ -523,12 +523,14 @@ class Rocket6DOF(Env):
             "gamma": -10,
             "delta": -5,
             "kappa": 10,
+            "xi": 0.004,
         },
         trajectory_limits={"attitude_limit": [1.5, 1.5, 2 * np.pi]},
         landing_params={
             "waypoint": 50,
             "landing_radius": 30,
             "maximum_velocity": 10,
+            "landing_attitude_limit" : [0.2, 0.2, 2*np.pi], # [Yaw, Pitch, Roll],
             "omega_lim": [0.2, 0.2, 0.2],
         },
     ) -> None:
@@ -649,9 +651,7 @@ class Rocket6DOF(Env):
         self.target_r = landing_params["landing_radius"]
         self.maximum_v = landing_params["maximum_velocity"]
         self.landing_target = [0, 0, 0]
-        self.final_attitude_limit = (
-            None  # TODO: set separate final attitude limits for landing bonus
-        )
+        self.landing_attitude_limit = landing_params["landing_attitude_limit"]
 
         # self.q_lim = raise NotImplementedError
         self.omega_lim = np.array([0.2, 0.2, 0.2])
@@ -818,7 +818,7 @@ class Rocket6DOF(Env):
             "eta": coeff["eta"],
             "attitude_constraint": self._check_attitude_limits(),
             # "attitude_hint" : coeff["delta"]*np.maximum(0,abs(zeta)-zeta_mgn),
-            # "rew_goal": self._reward_goal(state),
+            "rew_goal": self._reward_goal(state),
         }
 
         reward = sum(rewards_dict.values())
@@ -964,14 +964,14 @@ class Rocket6DOF(Env):
         r = np.float32(state[0:3])
         return not bool(self.position_bounds_space.contains(r))
 
-    # TODO: FINISH IMPLEMENTING IN 6DOF
     def _check_landing(self, state):
-        # raise NotImplementedError()
 
         r = np.linalg.norm(state[0:3])
         v = np.linalg.norm(state[3:6])
         q = state[6:10]
         omega = state[10:13]
+
+        attitude_euler_angles = self.rotation_obj.as_euler("zyx")
 
         assert q.shape == (4,), omega.shape == (3,)
 
@@ -979,7 +979,7 @@ class Rocket6DOF(Env):
             "zero_height": state[0] <= 1e-3,
             "velocity_limit": v < self.maximum_v,
             "landing_radius": r < self.target_r,
-            # "attitude_limit" : ,
+            "attitude_limit" : np.any(abs(attitude_euler_angles)<self.landing_attitude_limit),
             "omega_limit": np.any(abs(omega) < self.omega_lim),
         }
 
