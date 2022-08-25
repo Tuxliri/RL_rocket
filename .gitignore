@@ -3,9 +3,7 @@ models/
 runs/
 videos/
 wandb/
-6DOF_videos
-video_6DOF/
-video_6DOF_new_rot/
+videos_6DOF/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
