@@ -5,17 +5,15 @@ __all__ = ["Rocket", "Rocket6DOF"]
 # 3DOF version of the real 6DOF dynamics
 
 import importlib
+
 import numpy as np
-import gym
-from gym import spaces, Env
 import pyvista as pv
-from scipy.spatial.transform.rotation import Rotation as R
-
-from my_environment.utils.simulator import Simulator3DOF, Simulator6DOF
-
+from gym import Env, spaces
 from my_environment.utils.renderer_utils import blitRotate
+from my_environment.utils.simulator import Simulator3DOF, Simulator6DOF
 from numpy.typing import ArrayLike
 from pandas import DataFrame
+from scipy.spatial.transform.rotation import Rotation as R
 
 
 class Rocket(Env):
@@ -530,7 +528,7 @@ class Rocket6DOF(Env):
             "waypoint": 50,
             "landing_radius": 30,
             "maximum_velocity": 10,
-            "landing_attitude_limit" : [0.2, 0.2, 2*np.pi], # [Yaw, Pitch, Roll],
+            "landing_attitude_limit": [0.2, 0.2, 2 * np.pi],  # [Yaw, Pitch, Roll],
             "omega_lim": [0.2, 0.2, 0.2],
         },
     ) -> None:
@@ -680,15 +678,10 @@ class Rocket6DOF(Env):
         self.rotation_obj = R.from_quat(self._scipy_quat_convention(self.state[6:10]))
         self.prev_rotation_obj = self.rotation_obj
 
-        # Reset
         # instantiate the simulator object
         self.SIM = Simulator6DOF(self.initial_condition, self.timestep)
 
         return self._get_obs()
-
-    def _scipy_quat_convention(self, leading_scalar_quaternion):
-        # return TRAILING SCALAR CONVENTION
-        return np.roll(leading_scalar_quaternion, -1)
 
     def step(self, normalized_action):
 
@@ -743,19 +736,20 @@ class Rocket6DOF(Env):
                 # interactive_update=True
             )
 
-
         # Move the rocket towards its new location
         previous_loc = self.rocket_body_mesh.center
         current_loc = self.state[0:3]
-        
-        self.rocket_body_mesh.translate(current_loc-previous_loc)
+
+        self.rocket_body_mesh.translate(current_loc - previous_loc,inplace=True)
 
         # Rotate the rocket to the new attitude
         step_rot_vector = self._get_step_rot_vec()
-        norm_step_rot = np.linalg.norm(step_rot_vector)         # This gives the rotation angle in [rad]
+        norm_step_rot = np.linalg.norm(
+            step_rot_vector
+        )  # This gives the rotation angle in [rad]
         if norm_step_rot > 0:
             self.rocket_body_mesh.rotate_vector(
-                vector=step_rot_vector/norm_step_rot,
+                vector=step_rot_vector / norm_step_rot,
                 angle=np.rad2deg(norm_step_rot),
                 inplace=True,
                 point=current_loc,
@@ -880,6 +874,7 @@ class Rocket6DOF(Env):
     def _plotly_fig2array(self, plotly_fig):
         # convert Plotly fig to  an array
         import io
+
         from PIL import Image
 
         fig_bytes = plotly_fig.to_image(format="png", width=800, height=800)
@@ -979,7 +974,9 @@ class Rocket6DOF(Env):
             "zero_height": state[0] <= 1e-3,
             "velocity_limit": v < self.maximum_v,
             "landing_radius": r < self.target_r,
-            "attitude_limit" : np.any(abs(attitude_euler_angles)<self.landing_attitude_limit),
+            "attitude_limit": np.any(
+                abs(attitude_euler_angles) < self.landing_attitude_limit
+            ),
             "omega_limit": np.any(abs(omega) < self.omega_lim),
         }
 
@@ -997,12 +994,16 @@ class Rocket6DOF(Env):
 
         return ROT_MAT @ vector
 
+    def _scipy_quat_convention(self, leading_scalar_quaternion):
+        # return TRAILING SCALAR CONVENTION
+        return np.roll(leading_scalar_quaternion, -1)
+
     def _get_step_rot_vec(self) -> np.ndarray:
         """
         Compute the incremental rotation vector
         by which to rotate the body at each time step
         """
-        step_rotation = self.rotation_obj*self.prev_rotation_obj.inv()
+        step_rotation = self.rotation_obj * self.prev_rotation_obj.inv()
         return step_rotation.as_rotvec()
 
     def get_keys_to_action(self):
