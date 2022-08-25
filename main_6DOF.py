@@ -51,7 +51,7 @@ def main():
     callbacksList = [
         EvalCallback(
             eval_env,
-            eval_freq = sb3_config["max_ep_timesteps"]/20,
+            eval_freq = sb3_config["total_timesteps"]/20,
             n_eval_episodes = 5,
             render=False,
             deterministic=True,
