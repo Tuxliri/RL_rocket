@@ -15,7 +15,8 @@ kwargs = env_config
 # Instantiate the environment
 env = Rocket6DOF(**kwargs)
 # Check for the environment compatibility with gym and sb3
-#check_env(env, skip_render_check=False)
+check_env(env, skip_render_check=False)
+env.close()
 
 del env
 env = Rocket6DOF(**kwargs)
