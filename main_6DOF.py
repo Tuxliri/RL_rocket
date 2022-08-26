@@ -1,8 +1,9 @@
+from wrappers.wrappers import EpisodeAnalyzer6DOF
 import my_environment
 import gym
 import wandb
 
-from gym.wrappers import TimeLimit, RecordVideo
+from gym.wrappers import TimeLimit
 from configuration_file import env_config, sb3_config
 
 from stable_baselines3.common.monitor import Monitor
@@ -43,7 +44,7 @@ def main():
 
     def make_eval_env():
         training_env = make_env()
-        return RecordVideo(training_env,video_folder=f"videos_6DOF/{run.id}",
+        return EpisodeAnalyzer6DOF(training_env,video_folder=f"videos_6DOF/{run.id}",
             episode_trigger= lambda x: x%5==0 )
     
     eval_env = make_eval_env()
