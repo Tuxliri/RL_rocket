@@ -6,6 +6,7 @@ env_config = {
     "seed": 42,
     "IC": [500, 100, 100, -50, 0, 0, 1, 0, 0, 0, 0, 0, 0, 45e3],
     "ICRange": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    # "ICRange": [50, 10, 10, 10, 10, 10, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 1e3],
     "reward_coeff": {
         "alfa": -0.01,
         "beta": 0,
@@ -32,7 +33,7 @@ env_config = {
     },
 }
 
-TOTAL_TIMESTEP = int(1e4)
+TOTAL_TIMESTEP = int(3e6)
 MAX_TIME = 150
 
 sb3_config = {
