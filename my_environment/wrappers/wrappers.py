@@ -228,6 +228,7 @@ class EpisodeAnalyzer6DOF(RecordVideo):
                                 "states": states_dataframe.plot(),
                                 "actions": actions_dataframe.plot(),
                                 "vtarg": vtarg_dataframe.plot(),
+                                "trajectory": self.env.unwrapped.get_attitude_trajectory(),
                                 "rewards": fig_rew,
                                 "landing_success": infos["rewards_dict"]["rew_goal"],
                                 "used_mass" : states_dataframe.iloc[0,-1] - states_dataframe.iloc[-1,-1],
