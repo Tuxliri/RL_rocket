@@ -3,6 +3,7 @@ __all__ = [
     "GaudetStateObs",
     "RewardAnnealing",
     "RecordVideoFigure",
+    "EpisodeAnalyzer6DOF"
 ]
 
 import os
@@ -12,7 +13,7 @@ from gym.spaces import Discrete, Box
 from gym.wrappers import RecordVideo
 from matplotlib import pyplot as plt
 
-from my_environment.envs.rocket_env import Rocket
+from my_environment.envs.rocket_env import Rocket, Rocket6DOF
 import numpy as np
 from gym import logger
 import wandb
@@ -182,3 +183,88 @@ class RecordVideoFigure(RecordVideo):
         figure.savefig(base_path)
 
         return None
+
+
+class EpisodeAnalyzer6DOF(RecordVideo):
+    def __init__(
+        self,
+        env,
+        video_folder: str,
+        episode_trigger: Callable[[int], bool] = None,
+        step_trigger: Callable[[int], bool] = None,
+        video_length: int = 0,
+        name_prefix: str = "rl-video",
+    ):
+        assert isinstance(env.unwrapped, Rocket6DOF)
+        
+        super().__init__(
+            env, video_folder, episode_trigger, step_trigger, video_length, name_prefix
+        )
+
+
+        self.rewards_info = []
+
+    def step(self, action):
+        observations, rewards, dones, infos = super().step(action)
+        if not self.is_vector_env:
+            self.rewards_info.append(infos["rewards_dict"])
+
+        if self.episode_trigger(self.episode_id):
+            if not self.is_vector_env:
+                if dones:
+                    states_dataframe = self.env.unwrapped.states_to_dataframe()
+                    actions_dataframe = self.env.unwrapped.actions_to_dataframe()
+                    vtarg_dataframe = self.env.unwrapped.vtarg_to_dataframe()
+                    fig_rew = pd.DataFrame(self.rewards_info).plot()
+                    plt.close()
+
+                    names = self.env.unwrapped.state_names
+                    values = np.abs(states_dataframe.iloc[-1,:])
+                    final_errors = {'final_errors/'+ n : v for n,v in zip(names, values)}
+
+                    if wandb.run is not None:
+                        wandb.log(
+                            {
+                                "states": states_dataframe.plot(),
+                                "actions": actions_dataframe.plot(),
+                                "vtarg": vtarg_dataframe.plot(),
+                                "rewards": fig_rew,
+                                "landing_success": infos["rewards_dict"]["rew_goal"],
+                                "used_mass" : states_dataframe.iloc[0,-1] - states_dataframe.iloc[-1,-1],
+                                **final_errors
+                            }
+                        )
+                
+            elif dones[0]:
+                raise NotImplementedError
+
+                states_dataframe = self.env.env_method('states_to_dataframe')[0]
+                actions_dataframe = self.env.env_method('actions_to_dataframe')[0]
+                vtarg_dataframe = self.env.env_method('vtarg_to_dataframe')[0]
+                fig_rew = pd.DataFrame(self.env.env_method('rewards_info')).plot()
+                plt.close()
+
+                names = self.env.get_attr('state_names')[0]
+
+                values = np.abs(states_dataframe.iloc[-1,:] - [0,0,np.pi/2,0,0,0,0])
+                final_errors = {'final_errors/'+ n : v for n,v in zip(names, values)}
+
+                if wandb.run is not None:
+                    wandb.log(
+                        {
+                            "states": states_dataframe.plot(),
+                            "actions": actions_dataframe.plot(),
+                            "vtarg": vtarg_dataframe.plot(),
+                            "rewards": fig_rew,
+                            "used_mass" : states_dataframe.iloc[0,6] - states_dataframe.iloc[-1,6],
+                            **final_errors
+                        }
+                    )
+                
+            pass
+
+        return observations, rewards, dones, infos
+
+    def reset(self, **kwargs):
+        self.rewards_info = []
+        return super().reset(**kwargs)
