@@ -60,7 +60,6 @@ def start_training():
         WandbCallback(
             model_save_path=f"models/{run.id}",
             verbose=2,
-            gradient_save_freq=10000
             ),
         ]
 
@@ -74,5 +73,4 @@ def start_training():
     return None
 
 if __name__=="__main__":
-    env=make_env()
     start_training()
