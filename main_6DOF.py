@@ -24,7 +24,7 @@ def make_env():
 def start_training():
 
     run = wandb.init(
-        project="test_runs",
+        project="RL_rocket_6DOF",
         config={**env_config, **sb3_config},
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
         monitor_gym=True,  # auto-upload the videos of agents playing the game
