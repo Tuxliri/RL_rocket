@@ -733,8 +733,15 @@ class Rocket6DOF(Env):
             self.plotter.show(
                 auto_close=False,
                 interactive=False,
-                # interactive_update=True
+                # interactive_update=True,
             )
+
+            # Set desired camera position
+            cpos = [(783.93, -265.23, -1118.80),
+                    (262.5, 35.91, 35.91),
+                    (0.9150, 0.1524, 0.3734)]
+            self.plotter.camera_position = cpos
+                
 
         # Move the rocket towards its new location
         previous_loc = self.rocket_body_mesh.center
@@ -872,6 +879,44 @@ class Rocket6DOF(Env):
 
         fig.update_layout(scene_aspectmode='data')
         return fig
+
+    def _vtarg_plot_figure(self, trajectory_df: DataFrame):
+        import plotly.express as px
+        
+        # Create vtarg dataframe
+        vtarg_df = self.vtarg_to_dataframe()
+
+        fig = px.line_3d(trajectory_df[["x", "y", "z"]], x="x", y="y", z="z")
+
+        # Set camera location
+        camera = dict(
+            up=dict(x=1, y=0, z=0),
+            center=dict(x=0, y=0, z=0),
+            eye=dict(x=0.5 * 1.25, y=1.25, z=0 * 1.25),
+        )
+
+        fig.update_layout(scene_camera=camera)
+        x_f, y_f, z_f = self.landing_target
+
+        # Add landing pad location and velocity vector
+        fig.add_scatter3d(x=[x_f], y=[y_f], z=[z_f])
+        fig.add_cone(
+            x=trajectory_df["x"],
+            y=trajectory_df["y"],
+            z=trajectory_df["z"],
+            u=vtarg_df["v_x"], # TODO: CHANGE TO vtarg
+            v=vtarg_df["v_y"],
+            w=vtarg_df["v_z"],
+            sizeref=3,
+        )
+
+        fig.update_layout(scene_aspectmode='data')
+
+        return fig
+
+    def get_vtarg_trajectory(self):
+        trajectory_dataframe = self.states_to_dataframe()
+        return self._vtarg_plot_figure(trajectory_dataframe)
 
     def _plotly_fig2array(self, plotly_fig):
         # convert Plotly fig to  an array
