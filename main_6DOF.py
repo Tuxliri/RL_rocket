@@ -1,4 +1,3 @@
-from wrappers.wrappers import EpisodeAnalyzer6DOF
 import my_environment
 import gym
 import wandb
@@ -10,6 +9,7 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback
 
+from my_environment.wrappers import EpisodeAnalyzer6DOF
 from wandb.integration.sb3 import WandbCallback
 
 def make_env():
