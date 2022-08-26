@@ -21,7 +21,7 @@ def make_env():
     
     return env
 
-def main():
+def start_training():
 
     run = wandb.init(
         project="test_runs",
@@ -75,4 +75,4 @@ def main():
 
 if __name__=="__main__":
     env=make_env()
-    main()
+    start_training()
