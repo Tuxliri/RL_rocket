@@ -787,8 +787,8 @@ class Rocket6DOF(Env):
         #         # scale='auto'
         #         )
 
-        self.plotter.add_mesh(self.rocket_body_mesh, show_scalar_bar=False, cmap="bwr")
-        self.plotter.add_mesh(self.landing_pad_mesh, color="red")
+        self.plotter.add_mesh(self.rocket_body_mesh,show_scalar_bar=False,color="orange")
+        self.plotter.add_mesh(self.landing_pad_mesh,color="red")
 
         self.plotter.show_axes_all()
         self.plotter.show_grid()
