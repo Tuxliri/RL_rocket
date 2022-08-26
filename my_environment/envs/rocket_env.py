@@ -869,6 +869,8 @@ class Rocket6DOF(Env):
             w=trajectory_df["vz"],
             sizeref=3,
         )
+
+        fig.update_layout(scene_aspectmode='data')
         return fig
 
     def _plotly_fig2array(self, plotly_fig):
