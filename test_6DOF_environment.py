@@ -28,7 +28,7 @@ while not done:
     obs, rew, done, info = env.step(null_action)
     env.render(mode="human")
 
-fig = env.get_attitude_trajectory()
+fig = env.get_trajectory_plotly()
 env.close()
 
 fig.show()
