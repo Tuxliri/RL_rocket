@@ -2,9 +2,9 @@ from distutils.command.config import config
 from numpy import pi
 
 env_config = {
-    "timestep": 0.05,
+    "timestep": 0.1,
     "seed": 42,
-    "IC": [500, 100, 100, -50, 0, 0, 1, 0, 0, 0, 0, 0, 0.5, 45e3],
+    "IC": [500, 100, 100, -50, 0, 0, 1, 0, 0, 0, 0, 0, 0, 45e3],
     "ICRange": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     "reward_coeff": {
         "alfa": -0.01,
@@ -32,7 +32,7 @@ env_config = {
     },
 }
 
-TOTAL_TIMESTEP = int(1e6)
+TOTAL_TIMESTEP = int(1e4)
 MAX_TIME = 150
 
 sb3_config = {
