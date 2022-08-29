@@ -9,7 +9,7 @@ env_config = {
     # "ICRange": [50, 10, 10, 10, 10, 10, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 1e3],
     "reward_coeff": {
         "alfa": -0.01,
-        "beta": 0,
+        "beta": -1e-8,
         "delta": -5,
         "eta": 0.2,
         "gamma": -10,
@@ -33,7 +33,7 @@ env_config = {
     },
 }
 
-TOTAL_TIMESTEP = int(3e6)
+TOTAL_TIMESTEP = int(1e6)
 MAX_TIME = 150
 
 sb3_config = {
