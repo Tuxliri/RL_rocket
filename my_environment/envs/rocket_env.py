@@ -967,7 +967,7 @@ class Rocket6DOF(Env):
             tau = tau_1
 
         else:
-            r_hat = [rx, 0, 0]
+            r_hat = [rx + 1, 0, 0]
             v_hat = v - [-1, 0, 0]
             tau = tau_2
 
