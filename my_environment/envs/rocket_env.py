@@ -866,7 +866,15 @@ class Rocket6DOF(Env):
         x_f, y_f, z_f = self.landing_target
 
         # Add landing pad location and velocity vector
-        fig.add_scatter3d(x=[x_f], y=[y_f], z=[z_f])
+        z = np.linspace(-self.target_r,self.target_r,100)
+        y = np.linspace(-self.target_r,self.target_r,100)
+        
+        zv,yv = np.meshgrid(z,y)
+        xv=1.*(zv**2+yv**2<self.target_r**2)
+
+        fig.add_surface(x=xv,y=yv,z=zv,surfacecolor=xv,showscale=False)
+        
+        # Add velocity vector
         fig.add_cone(
             x=trajectory_df["x"],
             y=trajectory_df["y"],
