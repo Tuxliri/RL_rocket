@@ -186,26 +186,56 @@ class RecordVideoFigure(RecordVideo):
 
 
 class EpisodeAnalyzer6DOF(RecordVideo):
-    def __init__(
-        self,
+    def __init__(self,
         env,
         video_folder: str,
         episode_trigger: Callable[[int], bool] = None,
         step_trigger: Callable[[int], bool] = None,
         video_length: int = 0,
-        name_prefix: str = "rl-video",
-    ):
+        name_prefix: str = "rl-video"
+        ):
+        super().__init__(env, video_folder, episode_trigger, step_trigger, video_length, name_prefix)
+
         assert isinstance(env.unwrapped, Rocket6DOF)
-        
-        super().__init__(
-            env, video_folder, episode_trigger, step_trigger, video_length, name_prefix
-        )
-
-
         self.rewards_info = []
 
     def step(self, action):
         observations, rewards, dones, infos = super().step(action)
+
+        if dones and self.episode_trigger(self.episode_id):
+            if not self.is_vector_env:
+                states_dataframe = self.env.unwrapped.states_to_dataframe()
+                actions_dataframe = self.env.unwrapped.actions_to_dataframe()
+                vtarg_dataframe = self.env.unwrapped.vtarg_to_dataframe()
+                fig_rew = pd.DataFrame(self.rewards_info).plot()
+                plt.close()
+
+                names = self.env.unwrapped.state_names
+                values = np.abs(states_dataframe.iloc[-1,:])
+                final_errors = {'final_errors/'+ n : v for n,v in zip(names, values)}
+
+                if wandb.run is not None:
+                    wandb.log(
+                        {
+                            "states": states_dataframe.plot(),
+                            "actions": actions_dataframe.plot(),
+                            "vtarg": vtarg_dataframe.plot(),
+                            "plots3d/trajectory": self.env.unwrapped.get_trajectory_plotly(),
+                            "plots3d/vtarg_trajectory": self.env.unwrapped.get_vtarg_trajectory(),
+                            "rewards": fig_rew,
+                            "landing_success": infos["rewards_dict"]["rew_goal"],
+                            "used_mass" : states_dataframe.iloc[0,-1] - states_dataframe.iloc[-1,-1],
+                            **final_errors
+                        }
+                    )
+            else:
+                raise NotImplementedError
+                
+        return observations, rewards, dones, infos
+
+    """
+    def step(self, action):
+        super().step(action)
         if not self.is_vector_env:
             self.rewards_info.append(infos["rewards_dict"])
 
@@ -236,10 +266,11 @@ class EpisodeAnalyzer6DOF(RecordVideo):
                                 **final_errors
                             }
                         )
-                
+                    
+                    self.episode_id = 0
             elif dones[0]:
+                print("EVAL_ENV IS A VECTOR ENVIRONMENT")
                 raise NotImplementedError
-
                 states_dataframe = self.env.env_method('states_to_dataframe')[0]
                 actions_dataframe = self.env.env_method('actions_to_dataframe')[0]
                 vtarg_dataframe = self.env.env_method('vtarg_to_dataframe')[0]
@@ -262,11 +293,7 @@ class EpisodeAnalyzer6DOF(RecordVideo):
                             **final_errors
                         }
                     )
-                
             pass
 
         return observations, rewards, dones, infos
-
-    def reset(self, **kwargs):
-        self.rewards_info = []
-        return super().reset(**kwargs)
+        """
