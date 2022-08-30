@@ -47,11 +47,11 @@ def start_training():
 
     def make_eval_env():
         training_env = make_env()
-        # return RecordVideo(
-        #     env=training_env,
-        #     video_folder=f"videos_6DOF/{run.id}",
-        #     episode_trigger=ep_trigger,
-        #     )
+        return RecordVideo(
+            env=training_env,
+            video_folder=f"videos_6DOF/{run.id}",
+            episode_trigger=ep_trigger,
+            )
         return EpisodeAnalyzer6DOF(training_env,video_folder=f"videos_6DOF/{run.id}",
             episode_trigger=ep_trigger)
     
