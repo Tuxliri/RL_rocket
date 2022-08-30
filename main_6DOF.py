@@ -60,10 +60,12 @@ def start_training():
     callbacksList = [
         EvalCallback(
             eval_env,
-            eval_freq = sb3_config["total_timesteps"]/20,
+            eval_freq = sb3_config["eval_freq"],
             n_eval_episodes = 5,
             render=False,
             deterministic=True,
+            verbose=2,
+            log_path='evaluation_logs'
             ),
         WandbCallback(
             model_save_path=f"models/{run.id}",
