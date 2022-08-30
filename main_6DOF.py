@@ -8,6 +8,7 @@ from configuration_file import env_config, sb3_config
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback
+from gym.wrappers import RecordVideo
 
 from my_environment.wrappers import EpisodeAnalyzer6DOF
 from wandb.integration.sb3 import WandbCallback
@@ -24,7 +25,7 @@ def make_env():
 def start_training():
 
     run = wandb.init(
-        project="RL_rocket_6DOF",
+        project="test_runs",
         config={**env_config, **sb3_config},
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
         monitor_gym=True,  # auto-upload the videos of agents playing the game
@@ -41,11 +42,18 @@ def start_training():
         seed=env_config["seed"],
         ent_coef=0.01,
         )
+    def ep_trigger(x):
+        return x%5==0
 
     def make_eval_env():
         training_env = make_env()
+        # return RecordVideo(
+        #     env=training_env,
+        #     video_folder=f"videos_6DOF/{run.id}",
+        #     episode_trigger=ep_trigger,
+        #     )
         return EpisodeAnalyzer6DOF(training_env,video_folder=f"videos_6DOF/{run.id}",
-            episode_trigger= lambda x: x%5==0 )
+            episode_trigger=ep_trigger)
     
     eval_env = make_eval_env()
 
