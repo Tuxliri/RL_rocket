@@ -42,5 +42,5 @@ sb3_config = {
     "total_timesteps": TOTAL_TIMESTEP,
     "max_time": MAX_TIME,
     "max_ep_timesteps": MAX_TIME / env_config["timestep"],
-    "eval_freq": TOTAL_TIMESTEP/20,
+    "eval_freq": int(TOTAL_TIMESTEP/20),
 }
