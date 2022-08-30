@@ -41,6 +41,6 @@ sb3_config = {
     "policy_type": "MlpPolicy",
     "total_timesteps": TOTAL_TIMESTEP,
     "max_time": MAX_TIME,
-    "max_ep_timesteps": MAX_TIME / env_config["timestep"],
+    "max_ep_timesteps": int(MAX_TIME / env_config["timestep"]),
     "eval_freq": int(TOTAL_TIMESTEP/20),
 }
