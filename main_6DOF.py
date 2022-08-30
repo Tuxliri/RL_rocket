@@ -76,7 +76,7 @@ def start_training():
     # Train the model
     model.learn(
         total_timesteps=sb3_config["total_timesteps"],
-        callback=callbacksList
+        #callback=callbacksList
     )
     run.finish()
 
