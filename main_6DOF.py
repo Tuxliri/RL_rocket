@@ -1,3 +1,4 @@
+import os
 import my_environment
 import gym
 import wandb
@@ -42,18 +43,11 @@ def start_training():
         seed=env_config["seed"],
         ent_coef=0.01,
         )
-    def ep_trigger(x):
-        return x%5==0
 
     def make_eval_env():
         training_env = make_env()
-        return RecordVideo(
-            env=training_env,
-            video_folder=f"videos_6DOF/{run.id}",
-            episode_trigger=ep_trigger,
-            )
         return EpisodeAnalyzer6DOF(training_env,video_folder=f"videos_6DOF/{run.id}",
-            episode_trigger=ep_trigger)
+            episode_trigger=lambda x: x%5==0)
     
     eval_env = make_eval_env()
 
@@ -78,6 +72,10 @@ def start_training():
         total_timesteps=sb3_config["total_timesteps"],
         #callback=callbacksList
     )
+
+    savepath = os.getcwd()
+    model.save(savepath)
+
     run.finish()
 
     return None
