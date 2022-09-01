@@ -3,7 +3,8 @@ __all__ = [
     "GaudetStateObs",
     "RewardAnnealing",
     "RecordVideoFigure",
-    "EpisodeAnalyzer6DOF"
+    "EpisodeAnalyzer6DOF",
+    "EpisodeAnalyzer"
 ]
 
 import os
