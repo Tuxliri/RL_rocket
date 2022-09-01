@@ -17,16 +17,21 @@ def make_env():
     kwargs = env_config
     env = gym.make("my_environment/Falcon6DOF-v0",**kwargs)
     env = TimeLimit(env, max_episode_steps=sb3_config["max_ep_timesteps"])
-    env = Monitor(env)
-
-    
+    env = Monitor(env)    
     
     return env
+
+def make_eval_env():
+        kwargs = env_config
+        training_env = gym.make("my_environment/Falcon6DOF-v0",**kwargs)
+        training_env = TimeLimit(training_env, max_episode_steps=sb3_config["max_ep_timesteps"])
+        return EpisodeAnalyzer(training_env)
+        # return EpisodeAnalyzer6DOF(training_env,video_folder=f"videos_6DOF/{run.id}",
+            # episode_trigger=lambda x: x%5==0)
 
 def start_training():
 
     run = wandb.init(
-        project="test_runs",
         config={**env_config, **sb3_config},
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
         monitor_gym=True,  # auto-upload the videos of agents playing the game
@@ -43,14 +48,6 @@ def start_training():
         seed=env_config["seed"],
         ent_coef=0.01,
         )
-
-    def make_eval_env():
-        kwargs = env_config
-        training_env = gym.make("my_environment/Falcon6DOF-v0",**kwargs)
-        training_env = TimeLimit(training_env, max_episode_steps=sb3_config["max_ep_timesteps"])
-        return EpisodeAnalyzer(training_env)
-        # return EpisodeAnalyzer6DOF(training_env,video_folder=f"videos_6DOF/{run.id}",
-            # episode_trigger=lambda x: x%5==0)
     
     eval_env = DummyVecEnv([make_eval_env])
 

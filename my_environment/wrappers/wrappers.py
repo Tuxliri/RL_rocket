@@ -4,7 +4,7 @@ __all__ = [
     "RewardAnnealing",
     "RecordVideoFigure",
     "EpisodeAnalyzer6DOF",
-    "EpisodeAnalyzer"
+    "EpisodeAnalyzer",
 ]
 
 import os
@@ -187,16 +187,40 @@ class RecordVideoFigure(RecordVideo):
 
 
 class EpisodeAnalyzer(gym.Wrapper):
+
+    def __init__(self, env: gym.Env) -> None:
+        super().__init__(env)
+        
+        assert isinstance(env.unwrapped, Rocket6DOF)
+        self.rewards_info = []
+
     def step(self, action):
         obs, rew, done, info = super().step(action)
         
         if done:
             fig = self.env.unwrapped.get_trajectory_plotly()
-            
+            states_dataframe = self.env.unwrapped.states_to_dataframe()
+            actions_dataframe = self.env.unwrapped.actions_to_dataframe()
+            vtarg_dataframe = self.env.unwrapped.vtarg_to_dataframe()
+            fig_rew = pd.DataFrame(self.rewards_info).plot()
+            plt.close()
+
+            names = self.env.unwrapped.state_names
+            values = np.abs(states_dataframe.iloc[-1,:])
+            final_errors_dict = {'final_errors/'+ n : v for n,v in zip(names, values)}
+
             if wandb.run is not None:
                 wandb.log(
                     {
+                        "ep_history/states": states_dataframe.plot(),
+                        "ep_history/actions": actions_dataframe.plot(),
+                        "ep_history/vtarg": vtarg_dataframe.plot(),
+                        "ep_history/rewards": fig_rew,
+                        "plots3d/vtarg_trajectory": self.env.unwrapped.get_vtarg_trajectory(),
                         "plots3d/trajectory": fig,
+                        "ep_statistic/landing_success": info["rewards_dict"]["rew_goal"],
+                        "ep_statistic/used_mass" : states_dataframe.iloc[0,-1] - states_dataframe.iloc[-1,-1],
+                        **final_errors_dict
                     }
                 )
 
