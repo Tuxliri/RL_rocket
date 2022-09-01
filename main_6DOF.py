@@ -10,7 +10,7 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
-from my_environment.wrappers import EpisodeAnalyzer6DOF
+from my_environment.wrappers import EpisodeAnalyzer
 from wandb.integration.sb3 import WandbCallback
 
 def make_env():
@@ -45,9 +45,9 @@ def start_training():
 
     def make_eval_env():
         training_env = make_env()
-        return training_env
-        return EpisodeAnalyzer6DOF(training_env,video_folder=f"videos_6DOF/{run.id}",
-            episode_trigger=lambda x: x%5==0)
+        return EpisodeAnalyzer(training_env)
+        # return EpisodeAnalyzer6DOF(training_env,video_folder=f"videos_6DOF/{run.id}",
+            # episode_trigger=lambda x: x%5==0)
     
     eval_env = DummyVecEnv([make_eval_env])
 

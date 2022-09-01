@@ -185,6 +185,26 @@ class RecordVideoFigure(RecordVideo):
         return None
 
 
+class EpisodeAnalyzer(gym.Wrapper):
+    def step(self, action):
+        obs, rew, done, info = super().step(action)
+        
+        if done:
+            fig = self.env.unwrapped.get_trajectory_plotly()
+            
+            if wandb.run is not None:
+                wandb.log(
+                    {
+                        "plots3d/trajectory": fig,
+                    }
+                )
+
+            else:
+                fig.show()
+
+        return obs, rew, done, info
+
+
 class EpisodeAnalyzer6DOF(RecordVideo):
     def __init__(self,
         env,
