@@ -33,7 +33,7 @@ def start_training():
 
     run = wandb.init(
         config={**env_config, **sb3_config},
-        project='test_runs',
+        project='RL_rocket_6DOF',
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
         monitor_gym=True,  # auto-upload the videos of agents playing the game
         save_code=True,  # optional
