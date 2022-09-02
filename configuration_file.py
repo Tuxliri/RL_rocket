@@ -9,9 +9,9 @@ env_config = {
     "ICRange": [50, 10, 10, 10, 10, 10, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 1e3],
     "reward_coeff": {
         "alfa": -0.01,
-        "beta": -1e-8,
+        "beta": -1e-7,
         "delta": -5,
-        "eta": 0.2,
+        "eta": 0.05,
         "gamma": -10,
         "kappa": 10,
         "xi": 0.004,
