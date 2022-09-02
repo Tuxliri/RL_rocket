@@ -669,7 +669,7 @@ class Rocket6DOF(Env):
 
         self.vtarg_history = []
         self.initial_condition = self.init_space.sample()
-        self.initial_condition[6:10]=self.initial_condition[6:10]/np.linalg.norm(self.state[6:10])
+        self.initial_condition[6:10]=self.initial_condition[6:10]/np.linalg.norm(self.initial_condition[6:10])
         self.state = self.initial_condition
 
         # Create a rotation object representing the attitude of the system
