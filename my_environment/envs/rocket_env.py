@@ -862,10 +862,10 @@ class Rocket6DOF(Env):
             eye=dict(x=0.5 * 1.25, y=1.25, z=0 * 1.25),
         )
 
-        fig.update_layout(scene_camera=camera)
-        x_f, y_f, z_f = self.landing_target
+        # fig.update_layout(scene_camera=camera)
+        # x_f, y_f, z_f = self.landing_target
 
-        # Add landing pad location and velocity vector
+        # Add landing pad location and velocity vectors
         z = np.linspace(-self.target_r,self.target_r,100)
         y = np.linspace(-self.target_r,self.target_r,100)
         

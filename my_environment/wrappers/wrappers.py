@@ -197,6 +197,8 @@ class EpisodeAnalyzer(gym.Wrapper):
     def step(self, action):
         obs, rew, done, info = super().step(action)
         
+        self.rewards_info.append(info["rewards_dict"])
+
         if done:
             fig = self.env.unwrapped.get_trajectory_plotly()
             states_dataframe = self.env.unwrapped.states_to_dataframe()
@@ -223,9 +225,12 @@ class EpisodeAnalyzer(gym.Wrapper):
                         **final_errors_dict
                     }
                 )
+            
 
             else:
                 fig.show()
+
+            self.rewards_info = []
 
         return obs, rew, done, info
 

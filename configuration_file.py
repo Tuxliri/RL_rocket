@@ -34,7 +34,7 @@ env_config = {
 }
 
 TOTAL_TIMESTEP = int(1e6)
-MAX_TIME = 150
+MAX_TIME = 80
 
 sb3_config = {
     "env_id": "my_environment/Falcon6DOF-v0",
