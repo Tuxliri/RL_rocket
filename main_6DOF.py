@@ -1,4 +1,6 @@
 import os
+
+from wrappers.wrappers import RewardAnnealing
 import my_environment
 import gym
 import wandb
@@ -17,6 +19,18 @@ from wandb.integration.sb3 import WandbCallback
 def make_env():
     kwargs = env_config
     env = gym.make("my_environment/Falcon6DOF-v0",**kwargs)
+    env = TimeLimit(env, max_episode_steps=sb3_config["max_ep_timesteps"])
+    env = Monitor(env)    
+    
+    return env
+
+def make_annealed_env():
+    kwargs = env_config
+    env = gym.make("my_environment/Falcon6DOF-v0",**kwargs)
+
+    # ADD REWARD ANNEALING
+    env = RewardAnnealing(env)
+
     env = TimeLimit(env, max_episode_steps=sb3_config["max_ep_timesteps"])
     env = Monitor(env)    
     
@@ -79,6 +93,16 @@ def start_training():
         callback=callbacksList
     )
 
+    annealed_env = make_annealed_env()
+
+    model.set_env(annealed_env)
+
+    # Train the ANNEALED model
+    model.learn(
+        total_timesteps=sb3_config["total_timesteps"],
+        callback=callbacksList
+    )
+    
     savepath = os.getcwd()
     model.save(savepath)
 
