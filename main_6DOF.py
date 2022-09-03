@@ -3,13 +3,14 @@ import my_environment
 import gym
 import wandb
 
-from gym.wrappers import TimeLimit
+from gym.wrappers import TimeLimit, RecordVideo
 from configuration_file import env_config, sb3_config
 
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
+
 from my_environment.wrappers import EpisodeAnalyzer
 from wandb.integration.sb3 import WandbCallback
 
@@ -25,7 +26,11 @@ def make_eval_env():
         kwargs = env_config
         training_env = gym.make("my_environment/Falcon6DOF-v0",**kwargs)
         training_env = TimeLimit(training_env, max_episode_steps=sb3_config["max_ep_timesteps"])
-        return EpisodeAnalyzer(training_env)
+        return Monitor(RecordVideo(
+            EpisodeAnalyzer(training_env),
+            video_folder='eval_videos',
+            episode_trigger= lambda x : x%5==0
+            ))
         # return EpisodeAnalyzer6DOF(training_env,video_folder=f"videos_6DOF/{run.id}",
             # episode_trigger=lambda x: x%5==0)
 
