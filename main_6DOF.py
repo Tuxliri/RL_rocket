@@ -1,6 +1,5 @@
 import os
 
-from wrappers.wrappers import RewardAnnealing
 import my_environment
 import gym
 import wandb
@@ -13,7 +12,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
 
-from my_environment.wrappers import EpisodeAnalyzer
+from my_environment.wrappers import EpisodeAnalyzer, RewardAnnealing
 from wandb.integration.sb3 import WandbCallback
 
 def make_env():
