@@ -1067,9 +1067,9 @@ class Rocket6DOF(Env):
 
         mapping = {
             (
-                pygame.K_RIGHT,
+                # pygame.K_RIGHT,
                 pygame.K_UP,
-            ): [0, 0, -1.0],
-            (pygame.K_UP,): [0, 0, -1.0],
+            ): [0, 0, +1.0],
+            (pygame.K_DOWN,): [0, 0, -1.0],
         }
         return mapping
