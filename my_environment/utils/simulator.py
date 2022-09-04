@@ -275,11 +275,7 @@ class Simulator6DOF():
         g_I = [-self.g0,0,0]
 
         # Translational dynamics
-        F_I = self._compute_forces_inertial_rf(
-            q, 
-            u,
-            v_inertial
-        )
+        F_I = self._compute_forces_inertial_rf(q,u,v_inertial)
 
         dr = v_inertial
         dv = 1/mass*F_I + g_I
@@ -312,7 +308,6 @@ class Simulator6DOF():
 
         return inertial_force_vector
 
-
     def _get_thrust_body_frame(self, control_vector):
         delta_y = control_vector[0]
         delta_z = control_vector[1]
@@ -322,6 +317,22 @@ class Simulator6DOF():
         T_body_frame = ROT_MAT@[thrust,0.,0.]
         return T_body_frame
 
+    def get_thrust_vector_inertial(self):
+        u = self.actions[-1]
+        T_body_frame = self._get_thrust_body_frame(u)
+        T_body_frame = -T_body_frame/np.linalg.norm(T_body_frame)*30
+
+        current_state = self.states[-1]
+        attitude_quaternion = current_state[6:10]
+        R_B_to_I = self._rot_mat_body_to_inertial(attitude_quaternion)
+
+        #Get the thrust vector in the inertial reference frame
+        T_inertial_frame = R_B_to_I.dot(T_body_frame)
+
+        # Get the hinge point of the thrust vector
+        r_thrust_inertial_frame = R_B_to_I.dot(2*np.array(self.r_T_B))+current_state[0:3]
+
+        return T_inertial_frame, r_thrust_inertial_frame
 
     def _rot_mat_body_to_inertial(self, attitude_quaternion):
         """

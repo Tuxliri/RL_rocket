@@ -763,6 +763,18 @@ class Rocket6DOF(Env):
                 point=current_loc,
             )
 
+        # Redraw the thrust vector
+        self.plotter.remove_actor('thrust_vector')
+        
+        thrust_vector, thrust_vec_location, = self.SIM.get_thrust_vector_inertial()
+        arrow_kwargs = {'name': 'thrust_vector'}
+        
+        # self.plotter.add_arrows(
+        #     cent=thrust_vec_location,
+        #     direction=thrust_vector,
+        #     **arrow_kwargs
+        #     )
+
         self.plotter.update()
 
         if mode == "rgb_array":
