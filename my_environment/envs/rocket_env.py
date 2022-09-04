@@ -638,6 +638,7 @@ class Rocket6DOF(Env):
         self.state = None
         self.infos = []
         self.SIM: Simulator6DOF = None
+        self.prev_rotation_obj: R = None
         self.rotation_obj: R = None
         self.action = np.array([0.0, 0.0, 0.0])
         self.vtarg_history = []
@@ -676,9 +677,11 @@ class Rocket6DOF(Env):
         # assert (
         #     np.linalg.norm(self.state[6:10]) == 1.0
         # ), f"The quaternion doesn't have unit norm! It's components are {self.state[6:10]}"
-        self.rotation_obj = R.from_quat(self._scipy_quat_convention(self.state[6:10]))
-        self.prev_rotation_obj = self.rotation_obj
+        
 
+        self.rotation_obj = R.from_quat(self._scipy_quat_convention(self.state[6:10]))
+        if self.prev_rotation_obj is None:
+            self.prev_rotation_obj = self.rotation_obj
         # instantiate the simulator object
         self.SIM = Simulator6DOF(self.initial_condition, self.timestep)
 
@@ -748,13 +751,12 @@ class Rocket6DOF(Env):
         previous_loc = self.rocket_body_mesh.center
         current_loc = self.state[0:3]
 
-        self.rocket_body_mesh.translate(current_loc - previous_loc,inplace=True)
+        self.rocket_body_mesh.translate(current_loc - previous_loc, inplace=True)
 
         # Rotate the rocket to the new attitude
         step_rot_vector = self._get_step_rot_vec()
-        norm_step_rot = np.linalg.norm(
-            step_rot_vector
-        )  # This gives the rotation angle in [rad]
+        norm_step_rot = np.linalg.norm(step_rot_vector)  # This gives the rotation angle in [rad]
+
         if norm_step_rot > 0:
             self.rocket_body_mesh.rotate_vector(
                 vector=step_rot_vector / norm_step_rot,
@@ -799,6 +801,14 @@ class Rocket6DOF(Env):
         #         direction=current_vel,
         #         # scale='auto'
         #         )
+        thrust_vector, thrust_vec_location, = self.SIM.get_thrust_vector_inertial()
+        arrow_kwargs = {'name': 'thrust_vector'}
+
+        self.plotter.add_arrows(
+            cent=thrust_vec_location,
+            direction=thrust_vector,
+            **arrow_kwargs
+            )
 
         self.plotter.add_mesh(self.rocket_body_mesh,show_scalar_bar=False,color="orange")
         self.plotter.add_mesh(self.landing_pad_mesh,color="red")
