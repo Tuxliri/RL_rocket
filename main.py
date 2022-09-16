@@ -169,9 +169,9 @@ if __name__ == "__main__":
     ]     
     
     model.set_env(env)
-    model.learn(
-        total_timesteps=2*config["total_timesteps"],
-        callback=callbacksList
-    )
+    # model.learn(
+    #     total_timesteps=2*config["total_timesteps"],
+    #     callback=callbacksList
+    # )
 
     run.finish()

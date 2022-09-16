@@ -104,6 +104,7 @@ class Rocket(Env):
         self.SIM = None
         self.action = np.array([0. , 0.])
         self.vtarg_history = None
+        self.atarg_history = None
 
         # Landing parameters
         self.target_r = reward_coeff["landing_radius"]
@@ -126,6 +127,7 @@ class Rocket(Env):
             It returns an initial observation drawn randomly
             from the uniform distribution of the ICs"""
         self.vtarg_history = []
+        self.atarg_history = []
         initialCondition = self.init_space.sample()
         self.y = initialCondition
 
@@ -167,8 +169,11 @@ class Rocket(Env):
         r = state[0:2]
         v = state[3:5]
         zeta = state[2]-np.pi/2
+        
+        # Get INERTIAL ACCELERATION due to thrust
+        a = self.SIM.get_thrust_acceleration()
 
-        v_targ, __ = self._compute_vtarg(r,v)
+        a_targ, __ = self._compute_atarg(r,v)
 
         thrust = action[1]
          
@@ -181,7 +186,7 @@ class Rocket(Env):
         
         # Compute each reward term
         rewards_dict = {
-            "velocity_tracking" : coeff["alfa"]*np.linalg.norm(v-v_targ),
+            "velocity_tracking" : coeff["alfa"]*np.linalg.norm(a-a_targ),
             "thrust_penalty" : coeff["beta"]*thrust,
             "eta" : coeff["eta"],
             "attitude_constraint" : coeff["gamma"]*float(abs(zeta)>zeta_lim),
@@ -326,14 +331,14 @@ class Rocket(Env):
         blitRotate(canvas, image, tuple(
             agent_location), (w/2, h/2), angle_draw)
 
-        # Draw the target velocity vector
-        v_targ, __ = self._compute_vtarg(r,v)
+        # Draw the target acceleration vector
+        a_targ, __ = self._compute_atarg(r,v)
         
         pygame.draw.line(
             canvas,
             (0,0,0),
             start_pos=tuple(agent_location),
-            end_pos=tuple(agent_location+[1,-1]*v_targ),
+            end_pos=tuple(agent_location+[1,-1]*a_targ),
             width=2
             )
         
@@ -368,9 +373,7 @@ class Rocket(Env):
 
             return None
 
-        return np.transpose(
-            np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)
-        )
+        return np.transpose(np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2))
     
     def close(self) -> None:
         if self.window is not None:
@@ -421,6 +424,49 @@ class Rocket(Env):
         initial_mass = self.SIM.states[0][6]
         final_mass = self.SIM.states[-1][6]
         return initial_mass-final_mass
+    
+    
+    def _compute_atarg(self,r,v):
+        
+        def __compute_t_go(r,v) -> float:
+            # In order to compute the t_go the following depressed
+            # quartic equation has to be solved:
+            # $g^2t_{go}^4-4||\mathbf{v}||^2t_{go}^2-24\mathbf{r}^t\mathbf{v}t_{go}-36||\mathbf{r}||^2=0
+
+            solutions = np.roots([
+                g[1]**2,
+                0,
+                -4*np.linalg.norm(v)**2,
+                -24*np.dot(r,v),
+                -36*np.linalg.norm(r)**2,
+                ])
+
+            real_positive_roots = [n for n in solutions if (n.imag == 0 and n.real>0)][0].real
+
+            # Check that we have only one real solution
+            #assert len(real_positive_roots) == 1, 'Multiple real solutions to t_go equation'
+
+            return real_positive_roots
+
+        g = [0,-9.81] # Gravitational vector
+
+        # Determine the time to go
+        t_go = __compute_t_go(r,v)
+
+        # Compute the optimal target velocity
+        a_targ = -6*r/t_go**2 - 4*v/t_go - g
+
+        self.atarg_history.append(np.concatenate((a_targ,[t_go])))
+
+        return a_targ, t_go
+
+    def get_atarg(self,r,v):
+        return self._compute_atarg(r,v)
+
+    def atarg_to_dataframe(self):
+        import pandas as pd
+
+        return pd.DataFrame(self.atarg_history, columns=["ax", "ay", "az", "t_go"])
 
 
     def _checkBounds(self, state : ArrayLike):

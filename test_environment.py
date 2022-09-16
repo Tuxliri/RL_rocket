@@ -66,4 +66,4 @@ def callback(obs_t, obs_tp1, action, rew, done, info):
 
 plotter = PlayPlot(callback, 30 * 5, ["reward"])
  
-play(env, callback=plotter.callback)#,fps=30)
+play(env, callback=plotter.callback,fps=30)

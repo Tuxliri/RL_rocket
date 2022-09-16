@@ -119,7 +119,7 @@ class RecordVideoFigure(RecordVideo):
                 if dones:
                     states_dataframe = self.env.unwrapped.states_to_dataframe()
                     actions_dataframe = self.env.unwrapped.actions_to_dataframe()
-                    vtarg_dataframe = self.env.unwrapped.vtarg_to_dataframe()
+                    atarg_dataframe = self.env.unwrapped.atarg_to_dataframe()
                     fig_rew = pd.DataFrame(self.rewards_info).plot()
                     plt.close()
 
@@ -130,9 +130,9 @@ class RecordVideoFigure(RecordVideo):
                     if wandb.run is not None:
                         wandb.log(
                             {
-                                "states": states_dataframe.plot(),
-                                "actions": actions_dataframe.plot(),
-                                "vtarg": vtarg_dataframe.plot(),
+                                "plotly/states": states_dataframe.plot(),
+                                "plotly/actions": actions_dataframe.plot(),
+                                "plotly/atarg": atarg_dataframe.plot(),
                                 "rewards": fig_rew,
                                 "landing_success": infos["rewards_dict"]["rew_goal"],
                                 "used_mass" : states_dataframe.iloc[0,6] - states_dataframe.iloc[-1,6],

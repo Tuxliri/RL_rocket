@@ -91,6 +91,7 @@ class Simulator3DOF():
         """
         # extract dynamics variables
         x, y, phi, vx, vz, om, mass = state
+
         # Get control variables
         delta = u[0]
         T = u[1]
@@ -174,3 +175,15 @@ class Simulator3DOF():
         """
 
         return fmod(fmod(angle, np.pi) + np.pi, np.pi)
+
+    def get_thrust_acceleration(self):
+        x, y, phi, vx, vz, om, mass = self.state
+        u=self.actions[-1]
+
+        # Get control variables
+        delta = u[0]
+        T = u[1]
+
+        ax = T*np.cos(delta+phi)
+        ay = T*np.sin(delta+phi)
+        return [ax,ay]
