@@ -440,7 +440,7 @@ class Rocket(Env):
     def atarg_to_dataframe(self):
         import pandas as pd
 
-        return pd.DataFrame(self.atarg_history, columns=["ax", "ay", "az", "t_go"])
+        return pd.DataFrame(self.atarg_history, columns=["ax", "ay", "t_go"])
 
 
     def _checkBounds(self, state : ArrayLike):
