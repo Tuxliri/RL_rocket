@@ -184,6 +184,6 @@ class Simulator3DOF():
         delta = u[0]
         T = u[1]
 
-        ax = T*np.cos(delta+phi)
-        ay = T*np.sin(delta+phi)
+        ax = T*np.cos(delta+phi)/mass
+        ay = T*np.sin(delta+phi)/mass
         return [ax,ay]

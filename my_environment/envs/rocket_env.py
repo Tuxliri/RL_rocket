@@ -212,33 +212,6 @@ class Rocket(Env):
         return k*self._check_landing(obs)
     
 
-    def _compute_vtarg(self, r, v):
-        tau_1 = 20
-        tau_2 = 100
-        initial_conditions = self.SIM.states[0]
-
-        v_0 = np.linalg.norm(initial_conditions[3:5])
-
-        rz = r[1]
-
-        if rz>self.waypoint:
-            r_hat = r-[0, self.waypoint]
-            v_hat = v-[0,-2]
-            tau = tau_1
-
-        else:
-            r_hat = [0, rz]
-            v_hat = v-[0,-1]
-            tau = tau_2
-        
-        t_go = np.linalg.norm(r_hat)/np.linalg.norm(v_hat)
-        v_targ = -v_0*(np.array(r_hat)/max(1e-3,np.linalg.norm(r_hat)))*(1-np.exp(-t_go/tau))
-        
-        self.vtarg_history.append(v_targ)
-
-        return v_targ, t_go
-
-
     def render(self, mode : str="human"):
         import pygame  # import here to avoid pygame dependency with no render
 
@@ -259,6 +232,7 @@ class Rocket(Env):
         # position of the CoM of the rocket
         r = self.y[0:2]
         v = self.y[3:5]
+        a = np.array(self.SIM.get_thrust_acceleration())
 
         agent_location = r * step_size
 
@@ -333,21 +307,21 @@ class Rocket(Env):
 
         # Draw the target acceleration vector
         a_targ, __ = self._compute_atarg(r,v)
-        
+        accel_arrow_length = 5
         pygame.draw.line(
             canvas,
             (0,0,0),
             start_pos=tuple(agent_location),
-            end_pos=tuple(agent_location+[1,-1]*a_targ),
+            end_pos=tuple(agent_location+[1,-1]*a_targ*accel_arrow_length),
             width=2
             )
         
-        # Draw the current velocity vector       
+        # Draw the current thrust acceleration vector       
         pygame.draw.line(
             canvas,
             (0,0,255),
             start_pos=tuple(agent_location),
-            end_pos=tuple(agent_location+[1,-1]*v),
+            end_pos=tuple(agent_location+[1,-1]*a*accel_arrow_length),
             width=2
             )
 

@@ -38,7 +38,7 @@ config["max_ep_timesteps"] = int(config["max_time"]/config["timestep"])
 def make_env(config):
     env = gym.make(
     config["env_id"],
-    IC=config["initial_conditions"],
+    # IC=config["initial_conditions"],
     ICRange=config["initial_conditions_range"],
     timestep=config["timestep"],
     seed=config["RANDOM_SEED"]
