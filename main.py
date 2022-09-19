@@ -107,7 +107,7 @@ if __name__ == "__main__":
     callbacksList = [
         EvalCallback(
             eval_env,
-            eval_freq = config["max_ep_timesteps"]/20,
+            eval_freq = config["eval_freq"],
             n_eval_episodes = 5,
             render=False,
             deterministic=True,
@@ -126,52 +126,5 @@ if __name__ == "__main__":
         total_timesteps=config["total_timesteps"],
         callback=callbacksList
     )
-
-    def make_env(config):
-        env = gym.make(
-        config["env_id"],
-        IC=config["initial_conditions"],
-        ICRange=config["initial_conditions_range"],
-        timestep=config["timestep"],
-        seed=config["RANDOM_SEED"]
-        )
-        # Anneal the reward (remove v_targ following reward)
-        env = RewardAnnealing(env)
-
-        # Define a new custom action space with only three actions:
-        # - no thrust
-        # - max thrust gimbaled right
-        # - max thrust gimbaled left
-        # - max thrust downwards
-        # env = DiscreteActions3DOF(env)
-        env = TimeLimit(env, max_episode_steps=config["max_ep_timesteps"])
-        return env
-
-    env=make_env(config)
-
-    def make_eval_env(training_env=env):
-        return RecordVideoFigure(training_env, video_folder=f"videos/{run.id}",
-                image_folder=f"images/{run.id}", episode_trigger= lambda x: x%5==0 )
-
-    callbacksList = [
-    EvalCallback(
-        eval_env,
-        eval_freq = 1e3,
-        n_eval_episodes = 5,
-        render=False,
-        deterministic=True,
-        ),
-    WandbCallback(
-        model_save_path=f"models/{run.id}",
-        verbose=2,
-        gradient_save_freq=10000
-        ),
-    ]     
-    
-    model.set_env(env)
-    # model.learn(
-    #     total_timesteps=2*config["total_timesteps"],
-    #     callback=callbacksList
-    # )
 
     run.finish()
