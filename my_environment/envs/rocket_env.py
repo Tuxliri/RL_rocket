@@ -169,11 +169,12 @@ class Rocket(Env):
         r = state[0:2]
         v = state[3:5]
         zeta = state[2]-np.pi/2
-        
+        m = state[6]
+
         # Get INERTIAL ACCELERATION due to thrust
         a = self.SIM.get_thrust_acceleration()
 
-        a_targ, __ = self._compute_atarg(r,v)
+        a_targ, __ = self.get_atarg(r,v,m)
 
         thrust = action[1]
          
@@ -186,7 +187,7 @@ class Rocket(Env):
         
         # Compute each reward term
         rewards_dict = {
-            "velocity_tracking" : coeff["alfa"]*np.linalg.norm(a-a_targ),
+            "acceleration_tracking" : coeff["alfa"]*np.linalg.norm(a-a_targ),
             "thrust_penalty" : coeff["beta"]*thrust,
             "eta" : coeff["eta"],
             "attitude_constraint" : coeff["gamma"]*float(abs(zeta)>zeta_lim),
@@ -232,6 +233,8 @@ class Rocket(Env):
         # position of the CoM of the rocket
         r = self.y[0:2]
         v = self.y[3:5]
+        m = self.y[6]
+
         a = np.array(self.SIM.get_thrust_acceleration())
 
         agent_location = r * step_size
@@ -306,7 +309,7 @@ class Rocket(Env):
             agent_location), (w/2, h/2), angle_draw)
 
         # Draw the target acceleration vector
-        a_targ, __ = self._compute_atarg(r,v)
+        a_targ, __ = self._compute_atarg(r,v,m)
         accel_arrow_length = 5
         pygame.draw.line(
             canvas,
@@ -400,7 +403,7 @@ class Rocket(Env):
         return initial_mass-final_mass
     
     
-    def _compute_atarg(self,r,v):
+    def _compute_atarg(self,r,v,mass):
         
         def __compute_t_go(r,v) -> float:
             # In order to compute the t_go the following depressed
@@ -427,15 +430,27 @@ class Rocket(Env):
         # Determine the time to go
         t_go = __compute_t_go(r,v)
 
-        # Compute the optimal target velocity
-        a_targ = -6*r/t_go**2 - 4*v/t_go - g
+        def saturation(q,U) -> np.ndarray:
+            # Saturation function of vector q w.r.t magnitude U
+            q_norm = np.linalg.norm(q)
+            if q_norm<=U:
+                return q
+            else:
+                return q*U/q_norm
+
+        # Compute the saturated optimal target velocity
+        a_targ = saturation(
+            -6*r/t_go**2 - 4*v/t_go - g,
+            self.max_thrust/mass
+            )
 
         self.atarg_history.append(np.concatenate((a_targ,[t_go])))
 
         return a_targ, t_go
 
-    def get_atarg(self,r,v):
-        return self._compute_atarg(r,v)
+    def get_atarg(self,r,v,m):
+
+        return self._compute_atarg(r,v,m)
 
     def atarg_to_dataframe(self):
         import pandas as pd
