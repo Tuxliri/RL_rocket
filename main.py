@@ -23,22 +23,22 @@ from gym.wrappers import TimeLimit
 config = {
     "env_id" : "my_environment/Falcon3DOF-v0",
     "policy_type": "MlpPolicy",
-    "total_timesteps": int(5e3),
+    "total_timesteps": int(2e6),
     "timestep" : 0.05,
-    "max_time" : 150,
+    "max_time" : 100,
     "RANDOM_SEED" : 42,
-    "initial_conditions" : [-1600, 2000, np.pi*3/4, 180, -90, 0, 50e3],
-    "initial_conditions_range" : [5,50,0,0,0,0,1e3],
+    "initial_conditions" : [-1600, 2000, np.pi*3/4, 180, -90, 0, 41e3],
+    "initial_conditions_range" : [100,5,0.1,10,10,0.05,500],
     "reward_coefficients" : {
                             "alfa" : -0.01, 
-                            "beta" : 0,
+                            "beta" : -1e-8,
                             "delta" : -5,
-                            "eta" : 0.2,
+                            "eta" : 0.02,
                             "gamma" : -10,
                             "kappa" : 10,
                             "xi" : 0.004,
                             "waypoint" : 30,
-                            "landing_radius" : 30
+                            "landing_radius" : 50
                             },
 }
 
