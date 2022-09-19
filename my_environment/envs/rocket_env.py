@@ -502,7 +502,7 @@ class Rocket(Env):
             "omega_limit" : abs(vtheta)<omega_lim
         }
 
-        return all(landing_conditions.values()), v**2, r**2
+        return all(landing_conditions.values()), v, r
 
     def seed(self, seed: int = 42):
         self.init_space.seed(seed)
