@@ -211,7 +211,7 @@ class Rocket(Env):
     def _reward_goal(self, obs):
         k = self.reward_coefficients["kappa"]
         landing_rews = self._check_landing(obs)
-        return k*landing_rews[0] - sum(landing_rews[1:2])
+        return k*landing_rews[0] + np.maximum(100-np.array(landing_rews[1:2])**1.2,0)
     
 
     def render(self, mode : str="human"):
