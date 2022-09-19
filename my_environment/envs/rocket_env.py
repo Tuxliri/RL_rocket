@@ -501,7 +501,10 @@ class Rocket(Env):
             "attitude_limit" : abs(zeta)<zeta_lim,
             "omega_limit" : abs(vtheta)<omega_lim
         }
-
+        if not landing_conditions["zero_height"]:
+            v=0
+            r=0
+            
         return all(landing_conditions.values()), v, r
 
     def seed(self, seed: int = 42):
