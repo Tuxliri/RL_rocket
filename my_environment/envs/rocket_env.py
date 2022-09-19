@@ -210,7 +210,8 @@ class Rocket(Env):
 
     def _reward_goal(self, obs):
         k = self.reward_coefficients["kappa"]
-        return k*self._check_landing(obs)
+        landing_rews = self._check_landing(obs)
+        return k*landing_rews[0] - sum(landing_rews[1:2])
     
 
     def render(self, mode : str="human"):
@@ -486,12 +487,10 @@ class Rocket(Env):
 
         __,y = state[0:2]
         vx, vy = state[3:5]
-        glideslope = np.arctan2(np.abs(vy),np.abs(vx))
 
         # Set landing bounds
         v_lim = 15
         r_lim = self.target_r
-        # glideslope_lim = np.deg2rad(79)
         zeta_lim = 0.2
         omega_lim = 0.2
 
@@ -503,7 +502,7 @@ class Rocket(Env):
             "omega_limit" : abs(vtheta)<omega_lim
         }
 
-        return all(landing_conditions.values())
+        return all(landing_conditions.values()), v**2, r**2
 
     def seed(self, seed: int = 42):
         self.init_space.seed(seed)
