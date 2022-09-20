@@ -9,39 +9,19 @@ from gym.utils.play import play
 from my_environment.wrappers import DiscreteActions3DOF
 import pygame
 from gym.wrappers import Monitor, TimeLimit
-env_id = 'my_environment/Falcon3DOF-v0'
 
-config = {
-    "env_id" : "my_environment/Falcon3DOF-v0",
-    "policy_type": "MlpPolicy",
-    "total_timesteps": int(2e6),
-    "timestep" : 0.05,
-    "max_time" : 100,
-    "RANDOM_SEED" : 42,
-    "initial_conditions" : [-1600, 2000, np.pi*3/4, 180, -90, 0, 50e3],
-    "initial_conditions_range" : [5,50,0,0,0,0,1e3],
-    "reward_coefficients" : {
-                            "alfa" : -0.01, 
-                            "beta" : 0,
-                            "delta" : -5,
-                            "eta" : 0.2,
-                            "gamma" : -10,
-                            "kappa" : 10,
-                            "xi" : 0.004,
-                            "waypoint" : 30,
-                            "landing_radius" : 30
-                            },
-}
+from main import config
 config["max_ep_timesteps"] = int(config["max_time"]/config["timestep"])
 
 
 def make_env(config):
     env = gym.make(
     config["env_id"],
-    # IC=config["initial_conditions"],
+    IC=config["initial_conditions"],
     ICRange=config["initial_conditions_range"],
     timestep=config["timestep"],
-    seed=config["RANDOM_SEED"]
+    seed=config["RANDOM_SEED"],
+    reward_coeff=config["reward_coefficients"]
     )
     # Anneal the reward (remove v_targ following reward)
     #env = RewardAnnealing(env)
@@ -66,4 +46,4 @@ def callback(obs_t, obs_tp1, action, rew, done, info):
 
 plotter = PlayPlot(callback, 30 * 5, ["reward"])
  
-play(env, callback=plotter.callback,fps=30)
+play(env)#, callback=plotter.callback,fps=30)
