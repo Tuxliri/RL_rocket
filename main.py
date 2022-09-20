@@ -95,7 +95,6 @@ if __name__ == "__main__":
         tensorboard_log=f"runs/{run.id}",
         verbose=1,
         seed=config["RANDOM_SEED"],
-        batch_size=128
         )
 
     def make_eval_env():
