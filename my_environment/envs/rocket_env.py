@@ -35,6 +35,8 @@ class Rocket(Env):
                         "kappa" : 10,
                         "waypoint" : 50,
                         "landing_radius" : 30,
+                        "w_r_f" : 1,
+                        "w_v_f" : 5,
                         }
     ) -> None:
 
@@ -208,10 +210,39 @@ class Rocket(Env):
         return obs*self.state_normalizer
 
 
-    def _reward_goal(self, obs):
-        k = self.reward_coefficients["kappa"]
-        landing_rews = self._check_landing(obs)
-        return k*landing_rews[0] + sum(np.maximum(100-np.array(landing_rews[1:2]),0))
+    def _reward_goal(self, state):
+
+        r = np.linalg.norm(state[0:2])
+        v = np.linalg.norm(state[3:5])
+
+        # Measure the angular deviation from vertical orientation
+        theta, vtheta = state[2], state[5]
+        zeta = theta-np.pi/2
+
+        y = r[1]
+
+        # Set landing bounds
+        v_lim = 15
+        r_lim = self.target_r
+        zeta_lim = 0.2
+        omega_lim = 0.2
+
+        landing_conditions = {
+            "zero_height" : y<=1e-3,
+            "velocity_limit": v<v_lim,
+            "landing_radius" : r<r_lim,
+            "attitude_limit" : abs(zeta)<zeta_lim,
+            "omega_limit" : abs(vtheta)<omega_lim
+        }
+        rew_f = 0
+        k, w_r_f, w_v_f, = self.reward_coefficients["kappa","w_r_f", "w_v_f"]
+        
+        if landing_conditions["zero_height"]:
+            rew_f = np.maximum(100,np.array([r,v]),0).dot([w_r_f, w_v_f])
+            
+        
+
+        return k*all(landing_conditions.values()) + rew_f
     
 
     def render(self, mode : str="human"):
@@ -477,36 +508,6 @@ class Rocket(Env):
 
         return outside
 
-    def _check_landing(self, state):
-        r = np.linalg.norm(state[0:2])
-        v = np.linalg.norm(state[3:5])
-
-        # Measure the angular deviation from vertical orientation
-        theta, vtheta = state[2], state[5]
-        zeta = theta-np.pi/2
-
-        __,y = state[0:2]
-        vx, vy = state[3:5]
-
-        # Set landing bounds
-        v_lim = 15
-        r_lim = self.target_r
-        zeta_lim = 0.2
-        omega_lim = 0.2
-
-        landing_conditions = {
-            "zero_height" : y<=1e-3,
-            "velocity_limit": v<v_lim,
-            "landing_radius" : r<r_lim,
-            "attitude_limit" : abs(zeta)<zeta_lim,
-            "omega_limit" : abs(vtheta)<omega_lim
-        }
-        if not landing_conditions["zero_height"]:
-            v=0
-            r=0
-            
-        return all(landing_conditions.values()), v, r
-
     def seed(self, seed: int = 42):
         self.init_space.seed(seed)
         return super().seed(seed)
@@ -519,9 +520,9 @@ class Rocket(Env):
 
         mapping = {
             (pygame.K_LEFT,): [1,1],
-            (pygame.K_LEFT,pygame.K_UP,): [1,1],
+            #(pygame.K_LEFT,pygame.K_UP,): [1,1],
             (pygame.K_RIGHT,): [-1,1],
-            (pygame.K_RIGHT,pygame.K_UP,): [-1,1],
+            #(pygame.K_RIGHT,pygame.K_UP,): [-1,1],
             (pygame.K_UP,): [0,1],
             (pygame.K_MODE,): [0,-1],
         }
