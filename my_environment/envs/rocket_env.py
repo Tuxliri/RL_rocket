@@ -235,7 +235,7 @@ class Rocket(Env):
             "omega_limit" : abs(vtheta)<omega_lim
         }
         rew_f = 0
-        k, w_r_f, w_v_f, = self.reward_coefficients["kappa","w_r_f", "w_v_f"]
+        k, w_r_f, w_v_f, = list(map(self.reward_coefficients.get,["kappa","w_r_f", "w_v_f"]))
         
         if landing_conditions["zero_height"]:
             rew_f = np.maximum(100-np.array([r,v]),0).dot([w_r_f, w_v_f])
