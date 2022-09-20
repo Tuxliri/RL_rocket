@@ -219,7 +219,7 @@ class Rocket(Env):
         theta, vtheta = state[2], state[5]
         zeta = theta-np.pi/2
 
-        y = r[1]
+        y = state[1]
 
         # Set landing bounds
         v_lim = 15
@@ -238,7 +238,7 @@ class Rocket(Env):
         k, w_r_f, w_v_f, = self.reward_coefficients["kappa","w_r_f", "w_v_f"]
         
         if landing_conditions["zero_height"]:
-            rew_f = np.maximum(100,np.array([r,v]),0).dot([w_r_f, w_v_f])
+            rew_f = np.maximum(100-np.array([r,v]),0).dot([w_r_f, w_v_f])
             
         
 
