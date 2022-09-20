@@ -238,7 +238,7 @@ class Rocket(Env):
         k, w_r_f, w_v_f, = list(map(self.reward_coefficients.get,["kappa","w_r_f", "w_v_f"]))
         
         if landing_conditions["zero_height"]:
-            rew_f = np.maximum(100-np.array([r**1.1,v**1.5]),0).dot([w_r_f, w_v_f])
+            rew_f = np.maximum(100-np.array([r,v]),0).dot([w_r_f, w_v_f])
 
         return k*all(landing_conditions.values()) + rew_f
     
