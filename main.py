@@ -24,7 +24,7 @@ config = {
     "env_id" : "my_environment/Falcon3DOF-v0",
     "policy_type": "MlpPolicy",
     "total_timesteps": int(2e6),
-    "timestep" : 0.05,
+    "timestep" : 0.1,
     "max_time" : 100,
     "RANDOM_SEED" : 42,
     "initial_conditions" : [-1600, 2000, np.pi*3/4, 180, -90, 0, 41e3],
@@ -38,7 +38,9 @@ config = {
                             "kappa" : 10,
                             "xi" : 0.004,
                             "waypoint" : 30,
-                            "landing_radius" : 50
+                            "landing_radius" : 50,
+                            "w_r_f" : 1,
+                            "w_v_f" : 5,
                             },
 }
 
