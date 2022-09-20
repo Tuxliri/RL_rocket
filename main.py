@@ -40,7 +40,7 @@ config = {
                             "waypoint" : 30,
                             "landing_radius" : 50,
                             "w_r_f" : 1,
-                            "w_v_f" : 4,
+                            "w_v_f" : 6,
                             },
 }
 
