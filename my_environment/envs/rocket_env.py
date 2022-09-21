@@ -37,7 +37,7 @@ class Rocket(Env):
                         "w_r_f" : 1,
                         "w_v_f" : 5,
                         "max_r_f": 100,
-                        "max_v_f": 50,
+                        "max_v_f": 100,
                         }
     ) -> None:
 
