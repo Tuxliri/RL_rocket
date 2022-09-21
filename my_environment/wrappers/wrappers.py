@@ -3,6 +3,7 @@ __all__ = [
     "GaudetStateObs",
     "RewardAnnealing",
     "RecordVideoFigure",
+    "EpisodeAnalyzer"
 ]
 
 import os
@@ -182,3 +183,49 @@ class RecordVideoFigure(RecordVideo):
         figure.savefig(base_path)
 
         return None
+
+class EpisodeAnalyzer(gym.Wrapper):
+
+    def __init__(self, env: gym.Env) -> None:
+        super().__init__(env)
+        
+        assert isinstance(env.unwrapped, Rocket)
+        self.rewards_info = []
+
+    def step(self, action):
+        obs, rew, done, info = super().step(action)
+        
+        sim_time = self.env.unwrapped.SIM.t
+
+        self.rewards_info.append({**info["rewards_dict"], 'time': sim_time})
+
+        if done:
+            states_dataframe = self.env.unwrapped.states_to_dataframe()
+            actions_dataframe = self.env.unwrapped.actions_to_dataframe()
+            atarg_dataframe = self.env.unwrapped.atarg_to_dataframe()
+            rewards_dataframe = pd.DataFrame(self.rewards_info)
+
+            names = self.env.unwrapped.state_names
+            values = np.abs(states_dataframe.iloc[-1,:] - [0,0,np.pi/2,0,0,0,0])
+            final_errors_dict = {'final_errors/'+ n : v for n,v in zip(names, values)}
+
+            if wandb.run is not None:
+                wandb.log(
+                    {
+                        "ep_history/states": states_dataframe.plot(),
+                        "ep_history/actions": actions_dataframe.plot(),
+                        "ep_history/atarg": atarg_dataframe.plot(),
+                        "ep_history/rewards": rewards_dataframe.drop('time',axis=1).plot(),
+                        "ep_statistic/landing_success": info["rewards_dict"]["rew_goal"],
+                        "ep_statistic/used_mass" : states_dataframe.iloc[0,-1] - states_dataframe.iloc[-1,-1],
+                        #"tables/states": wandb.Table(dataframe=states_dataframe),
+                        #"tables/actions": wandb.Table(dataframe=actions_dataframe),
+                        #"tables/atarg": wandb.Table(dataframe=atarg_dataframe),
+                        #"tables/rewards": wandb.Table(dataframe=rewards_dataframe),
+                        **final_errors_dict
+                    }
+                )
+
+            self.rewards_info = []
+
+        return obs, rew, done, info

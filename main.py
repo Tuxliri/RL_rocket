@@ -8,8 +8,7 @@ import wandb
 import numpy as np
 import stable_baselines3
 
-from stable_baselines3 import A2C, DQN, PPO, TD3
-from tensorboard import program
+from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.utils import set_random_seed
@@ -17,8 +16,8 @@ from wandb.integration.sb3 import WandbCallback
 from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
 
 import my_environment
-from my_environment.wrappers.wrappers import DiscreteActions3DOF, RecordVideoFigure, RewardAnnealing
-from gym.wrappers import TimeLimit
+from my_environment.wrappers.wrappers import *
+from gym.wrappers import TimeLimit, RecordVideo
 
 config = {
     "env_id" : "my_environment/Falcon3DOF-v0",
@@ -56,30 +55,29 @@ def make_env():
     seed=config["RANDOM_SEED"],
     reward_coeff=config["reward_coefficients"]
     )
-    
-    # Define a new custom action space with only three actions:
-    # - no thrust
-    # - max thrust gimbaled right
-    # - max thrust gimbaled left
-    # - max thrust downwards
 
-    # env = DiscreteActions3DOF(env)
     env = TimeLimit(env, max_episode_steps=config["max_ep_timesteps"])
     env = Monitor(
         env,
         allow_early_resets=True,
         filename="logs_PPO",
+        info_keywords=("rew_goal",)
         )
     return env
 
+def make_eval_env():
+    training_env = make_env()
+    return Monitor(RecordVideo(
+            EpisodeAnalyzer(training_env),
+            video_folder='eval_videos',
+            episode_trigger= lambda x : x%5==0
+            )
+            )
+
 if __name__ == "__main__":
-
-    # Choose the folder to store tensorboard logs
-    TENSORBOARD_LOGS_DIR = "./logs"
-    
-
+  
     run = wandb.init(
-        project="RL_rocket",
+        project="test_runs",
         config=config,
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
         monitor_gym=True,  # auto-upload the videos of agents playing the game
