@@ -95,7 +95,7 @@ if __name__ == "__main__":
         tensorboard_log=f"runs/{run.id}",
         verbose=1,
         seed=config["RANDOM_SEED"],
-        ent_coef=0.01,
+        ent_coef=0.001,
         )
 
     def make_eval_env():
