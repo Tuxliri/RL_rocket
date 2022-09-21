@@ -28,7 +28,7 @@ config = {
     "max_time" : 100,
     "RANDOM_SEED" : 42,
     "initial_conditions" : [-1600, 2000, np.pi*3/4, 180, -90, 0, 41e3],
-    "initial_conditions_range" : [100,5,0.1,10,10,0.05,500],
+    "initial_conditions_range" : [200,5,0.1,50,50,0.05,1e3],
     "reward_coefficients" : {
                             "alfa" : -0.01, 
                             "beta" : -1e-8,
