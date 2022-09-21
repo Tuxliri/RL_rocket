@@ -40,7 +40,7 @@ config = {
                             "w_r_f" : 1,
                             "w_v_f" : 5,
                             "max_r_f": 100,
-                            "max_v_f": 50,
+                            "max_v_f": 100,
                             },
 }
 
@@ -94,7 +94,7 @@ if __name__ == "__main__":
         tensorboard_log=f"runs/{run.id}",
         verbose=1,
         seed=config["RANDOM_SEED"],
-        ent_coef=0.001,
+        ent_coef=0.01,
         )
   
     eval_env = DummyVecEnv([make_eval_env])
