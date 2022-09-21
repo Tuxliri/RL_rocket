@@ -36,10 +36,11 @@ config = {
                             "gamma" : -10,
                             "kappa" : 10,
                             "xi" : 0.004,
-                            "waypoint" : 30,
                             "landing_radius" : 50,
                             "w_r_f" : 1,
-                            "w_v_f" : 6,
+                            "w_v_f" : 5,
+                            "max_r_f": 100,
+                            "max_v_f": 50,
                             },
 }
 
@@ -93,13 +94,8 @@ if __name__ == "__main__":
         tensorboard_log=f"runs/{run.id}",
         verbose=1,
         seed=config["RANDOM_SEED"],
+        ent_coef=0.001,
         )
-
-    def make_eval_env():
-        training_env = make_env()
-        return RecordVideoFigure(training_env, video_folder=f"videos/{run.id}",
-        image_folder=f"images/{run.id}", episode_trigger= lambda x: x%5==0 )
-
   
     eval_env = DummyVecEnv([make_eval_env])
     
@@ -107,7 +103,7 @@ if __name__ == "__main__":
         EvalCallback(
             eval_env,
             eval_freq = config["eval_freq"],
-            n_eval_episodes = 5,
+            n_eval_episodes = 10,
             render=False,
             deterministic=True,
             ),
