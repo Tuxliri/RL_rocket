@@ -78,7 +78,7 @@ def make_eval_env():
 if __name__ == "__main__":
   
     run = wandb.init(
-        project="test_runs",
+        project="RL_rocket",
         config=config,
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
         monitor_gym=True,  # auto-upload the videos of agents playing the game
