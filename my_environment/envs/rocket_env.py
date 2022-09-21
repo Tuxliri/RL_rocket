@@ -33,10 +33,11 @@ class Rocket(Env):
                         "gamma" : -10,
                         "delta" : -5,
                         "kappa" : 10,
-                        "waypoint" : 50,
                         "landing_radius" : 30,
                         "w_r_f" : 1,
                         "w_v_f" : 5,
+                        "max_r_f": 100,
+                        "max_v_f": 50,
                         }
     ) -> None:
 
@@ -110,7 +111,6 @@ class Rocket(Env):
 
         # Landing parameters
         self.target_r = reward_coeff["landing_radius"]
-        self.waypoint = reward_coeff["waypoint"]
 
         # Renderer variables (pygame)
         self.window_size = 600  # The size of the PyGame window
@@ -156,6 +156,7 @@ class Rocket(Env):
             "state_history" : self.SIM.states,
             "action_history" : self.SIM.actions,
             "timesteps" : self.SIM.times,
+            **rewards_dict
         }
         
         info["bounds_violation"] = self._checkBounds(state)
@@ -235,10 +236,12 @@ class Rocket(Env):
             "omega_limit" : abs(vtheta)<omega_lim
         }
         rew_f = 0
-        k, w_r_f, w_v_f, = list(map(self.reward_coefficients.get,["kappa","w_r_f", "w_v_f"]))
+        k, w_r_f, w_v_f, max_r_f, max_v_f= list(
+            map(self.reward_coefficients.get,["kappa","w_r_f", "w_v_f","max_r_f", "max_v_f"])
+            )
         
         if landing_conditions["zero_height"]:
-            rew_f = np.maximum(100-np.array([r,v]),0).dot([w_r_f, w_v_f])
+            rew_f = np.maximum([max_r_f-r,max_v_f-v],0).dot([w_r_f, w_v_f])
 
         return k*all(landing_conditions.values()) + rew_f
     
