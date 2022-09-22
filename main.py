@@ -38,7 +38,7 @@ config = {
                             "xi" : 0.004,
                             "landing_radius" : 50,
                             "w_r_f" : 0.1,
-                            "w_v_f" : 0.5,
+                            "w_v_f" : 0.6,
                             "max_r_f": 100,
                             "max_v_f": 100,
                             },
