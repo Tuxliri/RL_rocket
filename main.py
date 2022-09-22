@@ -62,7 +62,6 @@ def make_env():
         env,
         allow_early_resets=True,
         filename="logs_PPO",
-        info_keywords=("rew_goal",)
         )
     return env
 

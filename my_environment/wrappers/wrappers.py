@@ -216,7 +216,7 @@ class EpisodeAnalyzer(gym.Wrapper):
                         "ep_history/actions": actions_dataframe.plot(),
                         "ep_history/atarg": atarg_dataframe.plot(),
                         "ep_history/rewards": rewards_dataframe.drop('time',axis=1).plot(),
-                        "ep_statistic/landing_success": info["rewards_dict"]["rew_goal"],
+                        "ep_statistic/landing_success": info["rewards_dict"]["all_conditions"],
                         "ep_statistic/used_mass" : states_dataframe.iloc[0,-1] - states_dataframe.iloc[-1,-1],
                         #"tables/states": wandb.Table(dataframe=states_dataframe),
                         #"tables/actions": wandb.Table(dataframe=actions_dataframe),

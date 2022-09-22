@@ -243,7 +243,11 @@ class Rocket(Env):
         if landing_conditions["zero_height"] and landing_conditions["landing_radius"]:
             final_rewards = np.maximum([max_r_f-r,max_v_f-v],0) * [w_r_f, w_v_f]
 
-        return np.concatenate(([k*all(landing_conditions.values())], final_rewards)).tolist()
+        return {
+            'all_conditions': k*all(landing_conditions.values()),
+            'final_position': final_rewards[0],
+            'final_velocity': final_rewards[1],
+        }
     
 
     def render(self, mode : str="human"):
