@@ -195,7 +195,7 @@ class Rocket(Env):
             "eta" : coeff["eta"],
             "attitude_constraint" : coeff["gamma"]*float(abs(zeta)>zeta_lim),
             "attitude_hint" : coeff["delta"]*np.maximum(0,abs(zeta)-zeta_mgn),
-            "rew_goal": self._reward_goal(state),
+            **self._reward_goal(state),
         }
 
         reward = sum(rewards_dict.values())
@@ -235,15 +235,15 @@ class Rocket(Env):
             "attitude_limit" : abs(zeta)<zeta_lim,
             "omega_limit" : abs(vtheta)<omega_lim
         }
-        rew_f = 0
+        final_rewards = [0, 0]
         k, w_r_f, w_v_f, max_r_f, max_v_f= list(
             map(self.reward_coefficients.get,["kappa","w_r_f", "w_v_f","max_r_f", "max_v_f"])
             )
         
         if landing_conditions["zero_height"] and landing_conditions["landing_radius"]:
-            rew_f = np.maximum([max_r_f-r,max_v_f-v],0).dot([w_r_f, w_v_f])
+            final_rewards = np.maximum([max_r_f-r,max_v_f-v],0) * [w_r_f, w_v_f]
 
-        return k*all(landing_conditions.values()) + rew_f
+        return np.concatenate(([k*all(landing_conditions.values())], final_rewards)).tolist()
     
 
     def render(self, mode : str="human"):

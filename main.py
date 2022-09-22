@@ -78,7 +78,7 @@ def make_eval_env():
 if __name__ == "__main__":
   
     run = wandb.init(
-        project="RL_rocket",
+        project='RL_rocket' if config["total_timesteps"]>1e5 else 'test_runs',
         config=config,
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
         monitor_gym=True,  # auto-upload the videos of agents playing the game
