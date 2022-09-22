@@ -94,7 +94,7 @@ if __name__ == "__main__":
         tensorboard_log=f"runs/{run.id}",
         verbose=1,
         seed=config["RANDOM_SEED"],
-        ent_coef=0.01,
+        ent_coef=0.0001,
         )
   
     eval_env = DummyVecEnv([make_eval_env])
