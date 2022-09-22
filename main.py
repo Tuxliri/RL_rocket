@@ -32,7 +32,7 @@ config = {
                             "alfa" : -0.01, 
                             "beta" : -1e-8,
                             "delta" : -5,
-                            "eta" : 0.02,
+                            "eta" : 0.1,
                             "gamma" : -10,
                             "kappa" : 10,
                             "xi" : 0.004,
