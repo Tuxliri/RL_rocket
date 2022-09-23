@@ -22,12 +22,12 @@ from gym.wrappers import TimeLimit, RecordVideo
 config = {
     "env_id" : "my_environment/Falcon3DOF-v0",
     "policy_type": "MlpPolicy",
-    "total_timesteps": int(2e6),
+    "total_timesteps": int(6e6),
     "timestep" : 0.1,
     "max_time" : 100,
     "RANDOM_SEED" : 42,
     "initial_conditions" : [-1600, 2000, np.pi*3/4, 180, -90, 0, 41e3],
-    "initial_conditions_range" : [100,5,0.1,10,10,0.05,.5e3],
+    "initial_conditions_range" : [200,10,0.1,30,30,0.05,1e3],
     "reward_coefficients" : {
                             "alfa" : -0.01, 
                             "beta" : -1e-8,
@@ -47,6 +47,16 @@ config = {
 config["max_ep_timesteps"] = int(config["max_time"]/config["timestep"])
 config["eval_freq"] = int(config["total_timesteps"]/20)
 
+class ClipReward(gym.RewardWrapper):
+    def __init__(self, env, min_reward=-100, max_reward=100):
+        super().__init__(env)
+        self.min_reward = min_reward
+        self.max_reward = max_reward
+        self.reward_range = (min_reward, max_reward)
+    
+    def reward(self, reward):
+        return np.clip(reward, self.min_reward, self.max_reward)
+
 def make_env():
     env = gym.make(
     config["env_id"],
@@ -57,7 +67,7 @@ def make_env():
     reward_coeff=config["reward_coefficients"]
     )
 
-    env = TimeLimit(env, max_episode_steps=config["max_ep_timesteps"])
+    env = TimeLimit(ClipReward(env, max_episode_steps=config["max_ep_timesteps"]))
     env = Monitor(
         env,
         allow_early_resets=True,
@@ -94,7 +104,7 @@ if __name__ == "__main__":
         tensorboard_log=f"runs/{run.id}",
         verbose=1,
         seed=config["RANDOM_SEED"],
-        ent_coef=0.0001,
+	ent_coef=0.0001,
         )
   
     eval_env = DummyVecEnv([make_eval_env])
