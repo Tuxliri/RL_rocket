@@ -67,7 +67,7 @@ def make_env():
     reward_coeff=config["reward_coefficients"]
     )
 
-    env = TimeLimit(ClipReward(env, max_episode_steps=config["max_ep_timesteps"]))
+    env = ClipReward(TimeLimit(env, max_episode_steps=config["max_ep_timesteps"]))
     env = Monitor(
         env,
         allow_early_resets=True,
