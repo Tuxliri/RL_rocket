@@ -38,7 +38,7 @@ config = {
                             "xi" : 0.004,
                             "landing_radius" : 50,
                             "w_r_f" : 0.1,
-                            "w_v_f" : 1.0,
+                            "w_v_f" : 0.6,
                             "max_r_f": 100,
                             "max_v_f": 50,
                             },
@@ -81,7 +81,7 @@ def make_eval_env():
     return Monitor(RecordVideo(
             EpisodeAnalyzer(training_env),
             video_folder='eval_videos',
-            episode_trigger= lambda x : x%5==0
+            episode_trigger= lambda x : x%1==0
             )
             )
 
@@ -104,7 +104,6 @@ if __name__ == "__main__":
         tensorboard_log=f"runs/{run.id}",
         verbose=1,
         seed=config["RANDOM_SEED"],
-	ent_coef=0.0001,
         )
   
     eval_env = DummyVecEnv([make_eval_env])
