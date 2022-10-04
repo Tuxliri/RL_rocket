@@ -7,6 +7,7 @@ import gym
 import wandb
 import numpy as np
 import stable_baselines3
+import torch as th
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback
@@ -81,6 +82,7 @@ if __name__ == "__main__":
         tensorboard_log=f"runs/{run.id}",
         verbose=1,
         seed=config["RANDOM_SEED"],
+        policy_kwargs=dict(activation_fn=th.nn.ReLU,)
         )
   
     eval_env = DummyVecEnv([make_eval_env])
