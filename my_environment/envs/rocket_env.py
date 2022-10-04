@@ -179,9 +179,7 @@ class Rocket(Env):
 
         a_targ, __ = self.get_atarg(r,v,m)
 
-        z = state[1]
-        if z<50:
-            a_targ[0]=0
+        
 
         thrust = action[1]
          
@@ -201,6 +199,9 @@ class Rocket(Env):
             "attitude_hint" : coeff["delta"]*np.maximum(0,abs(zeta)-zeta_mgn),
             "rew_goal": self._reward_goal(state),
         }
+        z = state[1]
+        if z<50:
+            rewards_dict["acceleration_tracking"] = 0
 
         reward = sum(rewards_dict.values())
         
