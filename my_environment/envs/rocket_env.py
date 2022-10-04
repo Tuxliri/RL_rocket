@@ -179,6 +179,10 @@ class Rocket(Env):
 
         a_targ, __ = self.get_atarg(r,v,m)
 
+        z = state[1]
+        if z<50:
+            a_targ[0]=0
+
         thrust = action[1]
          
         # Coefficients
