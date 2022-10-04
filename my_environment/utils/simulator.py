@@ -4,6 +4,7 @@
 import numpy as np
 from scipy.integrate import solve_ivp
 from math import fmod
+import math
 
 from matplotlib import pyplot as plt
 
@@ -53,30 +54,29 @@ class Simulator3DOF():
 
     def step(self, u):
 
-        if self.dynamics == 'std3DOF':
-            def _height_event(t, y):
-                return y[1]
+        
+        def _height_event(t, y):
+            return y[1]
 
-            # RK integration
-            _height_event.terminal = True
+        # RK integration
+        _height_event.terminal = True
 
-            solution = solve_ivp(
-                fun=lambda t, y: self.RHS(t, y, u),
-                t_span=[self.t, self.t+self.timestep],
-                y0=self.state,
-                events=_height_event
-            )
+        solution = solve_ivp(
+            fun=lambda t, y: self.RHS(t, y, u),
+            t_span=[self.t, self.t+self.timestep],
+            y0=self.state,
+            events=_height_event
+        )
 
-            self.state = np.array([var[-1] for var in solution.y])
+        self.state = np.array([var[-1] for var in solution.y])
 
-            self.t = round(self.t+self.timestep,3)
-            
-            self.times.append(self.t)
+        self.t = round(self.t+self.timestep,3)
+        
+        self.times.append(self.t)
 
-            self.state[2] = self._wrapTo2Pi(self.state[2])
+        self.state[2] = self._wrapTo2Pi(self.state[2])
 
-        else:
-            raise NotImplementedError()
+        
 
         # Keep track of all states
         self.states.append(self.state)
@@ -97,7 +97,8 @@ class Simulator3DOF():
         T = u[1]
 
         # Implement getting it from the height (y)
-        rho = 1.225  # *exp(-y/H) scaling due to height
+        H = 7160    # Scale height
+        rho = 1.225*math.exp(-y/H) # scaling due to height
 
         alfa = 0
         #alfa = self._computeAoA(y)
@@ -106,15 +107,16 @@ class Simulator3DOF():
         Cn = self.Cnalfa*alfa
         Cd = self.Cdalfa*alfa   # ADD Cd0
 
-        Cd = 0.3
+        Ca = 0.82
 
         # Compute aero forces
         v2 = vx**2 + vz**2
         Q = 0.5*rho*v2
 
-        A = Cd*Q*self.Sref
+        A = Ca*Q*self.Sref
 
-        N = Cn*Q*self.Sref
+        # N = Cn*Q*self.Sref
+        N = 0
 
         g = self.g0
 
