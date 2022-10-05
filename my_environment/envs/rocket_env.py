@@ -200,7 +200,7 @@ class Rocket(Env):
             "rew_goal": self._reward_goal(state),
         }
         z = state[1]
-        if z<50:
+        if z<100:
             rewards_dict["acceleration_tracking"] = 0
 
         reward = sum(rewards_dict.values())
