@@ -82,8 +82,10 @@ if __name__ == "__main__":
         tensorboard_log=f"runs/{run.id}",
         verbose=1,
         seed=config["RANDOM_SEED"],
-        gamma=0.999
-        )
+        gamma=0.99,
+        target_kl=0.001,
+        policy_kwargs=dict(activation_fn=th.nn.ReLU,),
+    )
   
     eval_env = DummyVecEnv([make_eval_env])
     
