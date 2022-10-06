@@ -83,8 +83,8 @@ if __name__ == "__main__":
         verbose=1,
         seed=config["RANDOM_SEED"],
         gamma=0.99,
-        target_kl=0.001,
         policy_kwargs=dict(activation_fn=th.nn.ReLU,),
+        target_kl=0.001,
     )
   
     eval_env = DummyVecEnv([make_eval_env])
