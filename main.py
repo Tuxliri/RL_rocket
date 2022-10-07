@@ -35,6 +35,15 @@ class ClipReward(gym.RewardWrapper):
     def reward(self, reward):
         return np.clip(reward, self.min_reward, self.max_reward)
 
+class RemoveMassFromObs(gym.ObservationWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        # Define observation space
+        self.observation_space = gym.spaces.Box(
+            low=-1, high=1, shape=(6,))
+    def observation(self, obs):
+        return obs[0:6]
+
 def make_env():
     env = gym.make(
     config["env_id"],
@@ -46,11 +55,12 @@ def make_env():
     )
 
     env = ClipReward(TimeLimit(env, max_episode_steps=config["max_ep_timesteps"]))
-    env = Monitor(
+    env = RemoveMassFromObs(Monitor(
         env,
         allow_early_resets=True,
         filename="logs_PPO",
         info_keywords=("rew_goal",)
+        )
         )
     return env
 
@@ -83,8 +93,6 @@ if __name__ == "__main__":
         verbose=1,
         seed=config["RANDOM_SEED"],
         gamma=0.99,
-        policy_kwargs=dict(activation_fn=th.nn.ReLU,),
-        target_kl=0.01,
     )
   
     eval_env = DummyVecEnv([make_eval_env])
@@ -93,7 +101,7 @@ if __name__ == "__main__":
         EvalCallback(
             eval_env,
             eval_freq = config["eval_freq"],
-            n_eval_episodes = 10,
+            n_eval_episodes = 15,
             render=False,
             deterministic=True,
             ),
