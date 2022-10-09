@@ -16,6 +16,8 @@ from stable_baselines3.common.utils import set_random_seed
 from wandb.integration.sb3 import WandbCallback
 from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
 
+from sb3_contrib import RecurrentPPO
+
 import my_environment
 from my_environment.wrappers.wrappers import *
 from gym.wrappers import TimeLimit, RecordVideo
@@ -86,7 +88,7 @@ if __name__ == "__main__":
 
     env = make_env()
     
-    model = PPO(
+    model = RecurrentPPO(
         config["policy_type"],
         env,
         tensorboard_log=f"runs/{run.id}",
@@ -96,7 +98,7 @@ if __name__ == "__main__":
     )
   
     eval_env = DummyVecEnv([make_eval_env])
-    
+    # test
     callbacksList = [
         EvalCallback(
             eval_env,
