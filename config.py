@@ -2,7 +2,7 @@ import numpy as np
 
 config = {
     "env_id" : "my_environment/Falcon3DOF-v0",
-    "policy_type": "MlpPolicy",
+    "policy_type": "MlpLstmPolicy",
     "total_timesteps": int(6e6),
     "timestep" : 0.1,
     "max_time" : 100,
