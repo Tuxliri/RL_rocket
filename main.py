@@ -16,7 +16,6 @@ from stable_baselines3.common.utils import set_random_seed
 from wandb.integration.sb3 import WandbCallback
 from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
 
-from sb3_contrib import RecurrentPPO
 
 import my_environment
 from my_environment.wrappers.wrappers import *
@@ -88,7 +87,7 @@ if __name__ == "__main__":
 
     env = make_env()
     
-    model = RecurrentPPO(
+    model = PPO(
         config["policy_type"],
         env,
         tensorboard_log=f"runs/{run.id}",
