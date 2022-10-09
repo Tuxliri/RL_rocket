@@ -218,8 +218,8 @@ class Rocket(Env):
 
     def _reward_goal(self, state):
 
-        r = np.linalg.norm(state[0:2])
-        v = np.linalg.norm(state[3:5])
+        r_norm = np.linalg.norm(state[0:2])
+        v_norm = np.linalg.norm(state[3:5])
 
         # Measure the angular deviation from vertical orientation
         theta, vtheta = state[2], state[5]
@@ -235,8 +235,8 @@ class Rocket(Env):
 
         landing_conditions = {
             "zero_height" : y<=1e-3,
-            "velocity_limit": v<v_lim,
-            "landing_radius" : r<r_lim,
+            "velocity_limit": v_norm<v_lim,
+            "landing_radius" : r_norm<r_lim,
             "attitude_limit" : abs(zeta)<zeta_lim,
             "omega_limit" : abs(vtheta)<omega_lim
         }
@@ -246,7 +246,7 @@ class Rocket(Env):
             )
         
         if landing_conditions["zero_height"]:
-            rew_f = np.maximum([max_r_f-r,max_v_f-v],0).dot([w_r_f, w_v_f])
+            rew_f=50*max(1-r_norm/max_r_f,0)*max(1-v_norm/max_v_f,0)
 
         return k*all(landing_conditions.values()) + rew_f
     
