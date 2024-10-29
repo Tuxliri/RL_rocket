@@ -5,8 +5,6 @@ import numpy as np
 from scipy.integrate import solve_ivp
 from math import fmod
 
-from matplotlib import pyplot as plt
-
 
 class Simulator3DOF():
     def __init__(self, IC, dt=0.5, dynamics='std3DOF', mass = 50e3) -> None:

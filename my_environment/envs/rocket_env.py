@@ -5,7 +5,7 @@
 import importlib
 import numpy as np
 import gym
-from gym import spaces, Env, GoalEnv
+from gym import spaces, Env
 
 from my_environment.utils.simulator import Simulator3DOF
 
@@ -60,7 +60,7 @@ class Rocket(Env):
         
         
         # Actuators bounds
-        self.max_gimbal = np.deg2rad(20)     # [rad]
+        self.max_gimbal = np.deg2rad(10)     # [rad]
         self.max_thrust = 981e3              # [N]
         
         # State normalizer and bounds
@@ -130,7 +130,7 @@ class Rocket(Env):
         self.y = initialCondition
 
         # instantiate the simulator object
-        self.SIM = Simulator3DOF(initialCondition, self.timestep)
+        self.SIM = Simulator3DOF(initialCondition, self.timestep, mass=self.y[6])
 
         return self._normalize_obs(self.y.astype(np.float32))
 
