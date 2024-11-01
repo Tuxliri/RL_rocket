@@ -63,7 +63,7 @@ class Rocket(Env):
         
         
         # Actuators bounds
-        self.max_gimbal = np.deg2rad(20)     # [rad]
+        self.max_gimbal = np.deg2rad(10)     # [rad]
         self.max_thrust = 981e3              # [N]
         
         # State normalizer and bounds
