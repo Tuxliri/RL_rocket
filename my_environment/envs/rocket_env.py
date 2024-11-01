@@ -5,7 +5,7 @@
 import importlib
 import numpy as np
 import gym
-from gym import spaces, Env, GoalEnv
+from gym import spaces, Env
 
 from my_environment.utils.simulator import Simulator3DOF
 
