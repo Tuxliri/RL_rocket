@@ -3,6 +3,8 @@ models/
 runs/
 videos/
 wandb/
+videos_6DOF/
+trained_model_video/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -172,3 +174,6 @@ Videos
 logs_PPO.monitor.csv
 .vscode/launch.json
 .vscode/tasks.json
+test_plotly_figure.py
+test_trained_model.py
+model.zip
